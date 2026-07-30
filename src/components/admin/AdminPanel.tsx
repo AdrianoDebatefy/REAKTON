@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { LocalizedString, SiteContent, SiteLinks, Song, World } from "@/types/content";
 import { CONTENT_LOCALES, LOCALE_LABELS, emptyLocalized } from "@/lib/locale";
 
@@ -13,26 +13,38 @@ async function uploadFile(file: File): Promise<string> {
   return data.url;
 }
 
-type MainTab = "welten" | "logo" | "links" | "legal";
+type SectionTab = "content" | "header";
 
-const WORLD_TAB_STYLES: Record<
+const WORLD_THEME: Record<
   World["atmosphere"],
-  { header: string; tab: string; tabActive: string }
+  {
+    albumTabActive: string;
+    albumTabInactive: string;
+    contentPanel: string;
+    slotTabActive: string;
+    inputBg: string;
+  }
 > = {
   cosmos: {
-    header: "bg-[#1a3a6e]/90 border-sky-400/30",
-    tab: "border-sky-400/25 text-sky-100/70 hover:bg-sky-900/40",
-    tabActive: "bg-[#1a3a6e]/80 border-sky-300/50 text-white",
+    albumTabActive: "bg-[#3d6ea8] text-white border-transparent",
+    albumTabInactive: "bg-black text-white border-white hover:border-white/80",
+    contentPanel: "bg-[#3d6ea8]",
+    slotTabActive: "bg-[#2a5590] text-white",
+    inputBg: "bg-[#2a5590]/60 border-white/40 text-white placeholder:text-white/50",
   },
   nano: {
-    header: "bg-[#4a5568]/90 border-slate-300/30",
-    tab: "border-slate-300/25 text-slate-100/70 hover:bg-slate-700/50",
-    tabActive: "bg-[#5a6578]/90 border-slate-200/45 text-white",
+    albumTabActive: "bg-[#6b7280] text-white border-transparent",
+    albumTabInactive: "bg-black text-white border-white hover:border-white/80",
+    contentPanel: "bg-[#6b7280]",
+    slotTabActive: "bg-[#565f6d] text-white",
+    inputBg: "bg-[#565f6d]/60 border-white/40 text-white placeholder:text-white/50",
   },
   club: {
-    header: "bg-[#6b1528]/90 border-red-400/35",
-    tab: "border-red-400/30 text-red-100/75 hover:bg-red-950/50",
-    tabActive: "bg-[#7a1a32]/90 border-red-300/50 text-white",
+    albumTabActive: "bg-[#8b2038] text-white border-transparent",
+    albumTabInactive: "bg-black text-white border-white hover:border-white/80",
+    contentPanel: "bg-[#8b2038]",
+    slotTabActive: "bg-[#6e1830] text-white",
+    inputBg: "bg-[#6e1830]/60 border-white/40 text-white placeholder:text-white/50",
   },
 };
 
@@ -41,29 +53,31 @@ function UploadField({
   accept,
   value,
   onChange,
+  inputClassName = "min-w-0 flex-1 border border-white/15 bg-black/40 px-2 py-1.5 text-xs",
 }: {
   label: string;
   accept: string;
   value: string;
   onChange: (url: string) => void;
+  inputClassName?: string;
 }) {
   const [busy, setBusy] = useState(false);
 
   return (
-    <label className="block text-xs text-white/55">
+    <label className="block text-xs text-white/75">
       {label}
       <div className="mt-1 flex gap-2">
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="min-w-0 flex-1 border border-white/15 bg-black/40 px-2 py-1.5 text-xs"
+          className={inputClassName}
           placeholder="/uploads/..."
         />
         <input
           type="file"
           accept={accept}
-          className="max-w-[8rem] text-[10px]"
+          className="max-w-[8rem] text-[10px] text-white/80"
           disabled={busy}
           onChange={async (e) => {
             const f = e.target.files?.[0];
@@ -86,32 +100,38 @@ function LocalizedFields({
   value,
   onChange,
   multiline,
+  inputClassName,
 }: {
   label: string;
   value: LocalizedString;
   onChange: (v: LocalizedString) => void;
   multiline?: boolean;
+  inputClassName?: string;
 }) {
+  const fieldClass =
+    inputClassName ??
+    "mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-sm text-white";
+
   return (
-    <div className="rounded border border-white/10 bg-black/20 p-3">
-      <p className="mb-3 text-[10px] uppercase tracking-widest text-white/45">{label}</p>
+    <div>
+      <p className="mb-2 text-[10px] uppercase tracking-widest text-white/60">{label}</p>
       <div className="grid gap-3 md:grid-cols-3">
         {CONTENT_LOCALES.map((locale) => (
-          <label key={locale} className="block text-xs text-white/55">
+          <label key={locale} className="block text-xs text-white/75">
             {LOCALE_LABELS[locale]}
             {multiline ? (
               <textarea
                 rows={4}
                 value={value[locale] ?? ""}
                 onChange={(e) => onChange({ ...value, [locale]: e.target.value })}
-                className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-sm leading-relaxed"
+                className={`${fieldClass} leading-relaxed`}
               />
             ) : (
               <input
                 type="text"
                 value={value[locale] ?? ""}
                 onChange={(e) => onChange({ ...value, [locale]: e.target.value })}
-                className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-sm"
+                className={fieldClass}
               />
             )}
           </label>
@@ -123,67 +143,68 @@ function LocalizedFields({
 
 function SongSlotEditor({
   song,
-  index,
   onChange,
+  theme,
 }: {
   song: Song;
-  index: number;
   onChange: (s: Song) => void;
+  theme: typeof WORLD_THEME.cosmos;
 }) {
   const infoText = song.infoText ?? emptyLocalized();
+  const inputClass = `mt-1 w-full border px-2 py-1.5 text-sm ${theme.inputBg}`;
 
   return (
-    <div className="rounded border border-white/10 bg-black/25 p-3">
-      <p className="mb-3 text-[10px] uppercase tracking-widest text-white/40">Cover Slot {index + 1}</p>
-
-      <label className="mb-3 block text-xs text-white/55">
+    <div className="space-y-4">
+      <label className="block text-xs text-white/85">
         Titel (unterer Balken)
         <input
           type="text"
           value={song.title}
           onChange={(e) => onChange({ ...song, title: e.target.value })}
           placeholder="Track-Titel"
-          className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1 text-sm"
+          className={inputClass}
         />
       </label>
 
       <LocalizedFields
-        label="Song-Info (Sidepanel beim Info-Button)"
+        label="Song-Info (Sidepanel)"
         value={infoText}
         onChange={(infoText) => onChange({ ...song, infoText })}
         multiline
+        inputClassName={inputClass}
       />
 
-      <div className="mt-3 space-y-2">
-        <UploadField
-          label="Bild (Cover)"
-          accept="image/*"
-          value={song.coverImage}
-          onChange={(url) => onChange({ ...song, coverImage: url })}
+      <UploadField
+        label="Bild (Cover)"
+        accept="image/*"
+        value={song.coverImage}
+        onChange={(url) => onChange({ ...song, coverImage: url })}
+        inputClassName={`min-w-0 flex-1 border px-2 py-1.5 text-xs ${theme.inputBg}`}
+      />
+      <UploadField
+        label="Animation (MP4, optional)"
+        accept="video/mp4,video/webm"
+        value={song.videoSnippet ?? ""}
+        onChange={(url) => onChange({ ...song, videoSnippet: url || undefined })}
+        inputClassName={`min-w-0 flex-1 border px-2 py-1.5 text-xs ${theme.inputBg}`}
+      />
+      <UploadField
+        label="Audio-Loop (MP3, optional)"
+        accept="audio/mpeg,audio/mp3,audio/wav"
+        value={song.audioSnippet ?? ""}
+        onChange={(url) => onChange({ ...song, audioSnippet: url || undefined })}
+        inputClassName={`min-w-0 flex-1 border px-2 py-1.5 text-xs ${theme.inputBg}`}
+      />
+      <label className="block text-xs text-white/85">
+        Video-Link (YouTube)
+        <input
+          type="url"
+          value={song.videoUrl ?? ""}
+          onChange={(e) => onChange({ ...song, videoUrl: e.target.value || undefined })}
+          placeholder="https://www.youtube.com/watch?v=..."
+          className={inputClass}
         />
-        <UploadField
-          label="Animation (MP4, optional)"
-          accept="video/mp4,video/webm"
-          value={song.videoSnippet ?? ""}
-          onChange={(url) => onChange({ ...song, videoSnippet: url || undefined })}
-        />
-        <UploadField
-          label="Audio-Loop (MP3, optional)"
-          accept="audio/mpeg,audio/mp3,audio/wav"
-          value={song.audioSnippet ?? ""}
-          onChange={(url) => onChange({ ...song, audioSnippet: url || undefined })}
-        />
-        <label className="block text-xs text-white/55">
-          Video-Link (YouTube)
-          <input
-            type="url"
-            value={song.videoUrl ?? ""}
-            onChange={(e) => onChange({ ...song, videoUrl: e.target.value || undefined })}
-            placeholder="https://www.youtube.com/watch?v=..."
-            className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-xs"
-          />
-        </label>
-      </div>
+      </label>
     </div>
   );
 }
@@ -196,15 +217,17 @@ function defaultSlotCount(world: World) {
   return 11;
 }
 
-function WorldEditor({
+function WorldMetaEditor({
   world,
   onChange,
+  theme,
 }: {
   world: World;
   onChange: (w: World) => void;
+  theme: typeof WORLD_THEME.cosmos;
 }) {
   const slotCount = defaultSlotCount(world);
-  const styles = WORLD_TAB_STYLES[world.atmosphere];
+  const inputClass = `mt-1 w-full border px-2 py-1.5 text-sm ${theme.inputBg}`;
 
   const ensureSlots = useCallback(() => {
     const songs = [...world.songs];
@@ -219,88 +242,144 @@ function WorldEditor({
   }, [world, slotCount, onChange]);
 
   return (
-    <div className="overflow-hidden rounded border border-white/15">
-      <div className={`border-b px-4 py-3 ${styles.header}`}>
-        <h2 className="text-sm uppercase tracking-widest text-white/95">{world.albumTitle.de}</h2>
-        <p className="mt-1 text-xs text-white/60">
-          Spalten-Label: {world.columnLabel.de} · {slotCount} Cover-Slots
-        </p>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <label className="flex items-center gap-2 text-xs text-white/85">
+          <input type="checkbox" checked={!world.locked} onChange={(e) => onChange({ ...world, locked: !e.target.checked })} />
+          Spalte auf Landingpage freigeschaltet
+        </label>
+        <button type="button" onClick={ensureSlots} className="text-[10px] uppercase tracking-widest text-white/70 underline">
+          {slotCount} Cover-Slots vorbereiten
+        </button>
       </div>
 
-      <div className="space-y-4 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <label className="flex items-center gap-2 text-xs text-white/50">
-            <input
-              type="checkbox"
-              checked={!world.locked}
-              onChange={(e) => onChange({ ...world, locked: !e.target.checked })}
-            />
-            Spalte auf Landingpage freigeschaltet
-          </label>
-          <button
-            type="button"
-            onClick={ensureSlots}
-            className="text-xs uppercase tracking-widest text-white/50 underline"
-          >
-            {slotCount} Slots vorbereiten
-          </button>
-        </div>
+      <LocalizedFields
+        label="Spalten-Label (Landing)"
+        value={world.columnLabel}
+        onChange={(columnLabel) => onChange({ ...world, columnLabel })}
+        inputClassName={inputClass}
+      />
+      <LocalizedFields
+        label="Welt-Titel (welcome to …)"
+        value={world.albumTitle}
+        onChange={(albumTitle) => onChange({ ...world, albumTitle })}
+        inputClassName={inputClass}
+      />
+      <LocalizedFields
+        label="Themen-Beschreibung"
+        value={world.themeDescription}
+        onChange={(themeDescription) => onChange({ ...world, themeDescription })}
+        multiline
+        inputClassName={inputClass}
+      />
 
-        <LocalizedFields
-          label="Spalten-Label (Landing, unten)"
-          value={world.columnLabel}
-          onChange={(columnLabel) => onChange({ ...world, columnLabel })}
+      <div className="grid gap-3 md:grid-cols-2">
+        <UploadField
+          label="Hintergrund Desktop (16:9)"
+          accept="image/*"
+          value={world.backgroundImage}
+          onChange={(url) => onChange({ ...world, backgroundImage: url })}
+          inputClassName={`min-w-0 flex-1 border px-2 py-1.5 text-xs ${theme.inputBg}`}
         />
-        <LocalizedFields
-          label="Welt-Titel (welcome to …)"
-          value={world.albumTitle}
-          onChange={(albumTitle) => onChange({ ...world, albumTitle })}
+        <UploadField
+          label="Hintergrund Mobile (9:16)"
+          accept="image/*"
+          value={world.backgroundImageMobile ?? ""}
+          onChange={(url) => onChange({ ...world, backgroundImageMobile: url || undefined })}
+          inputClassName={`min-w-0 flex-1 border px-2 py-1.5 text-xs ${theme.inputBg}`}
         />
-        <LocalizedFields
-          label="Themen-Beschreibung"
-          value={world.themeDescription}
-          onChange={(themeDescription) => onChange({ ...world, themeDescription })}
-          multiline
+        <UploadField
+          label="Hintergrund Animation (MP4)"
+          accept="video/mp4,video/webm"
+          value={world.backgroundVideo ?? ""}
+          onChange={(url) => onChange({ ...world, backgroundVideo: url || undefined })}
+          inputClassName={`min-w-0 flex-1 border px-2 py-1.5 text-xs ${theme.inputBg}`}
         />
+      </div>
+    </div>
+  );
+}
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <UploadField
-            label="Hintergrund Desktop (16:9)"
-            accept="image/*"
-            value={world.backgroundImage}
-            onChange={(url) => onChange({ ...world, backgroundImage: url })}
-          />
-          <UploadField
-            label="Hintergrund Mobile (9:16, optional)"
-            accept="image/*"
-            value={world.backgroundImageMobile ?? ""}
-            onChange={(url) => onChange({ ...world, backgroundImageMobile: url || undefined })}
-          />
-          <UploadField
-            label="Hintergrund Animation (MP4, optional)"
-            accept="video/mp4,video/webm"
-            value={world.backgroundVideo ?? ""}
-            onChange={(url) => onChange({ ...world, backgroundVideo: url || undefined })}
-          />
-        </div>
+function ContentSection({
+  worlds,
+  onWorldsChange,
+}: {
+  worlds: World[];
+  onWorldsChange: (worlds: World[]) => void;
+}) {
+  const [worldIndex, setWorldIndex] = useState(0);
+  const [slotTab, setSlotTab] = useState<"welt" | number>("welt");
 
-        <div>
-          <p className="mb-3 text-[10px] uppercase tracking-widest text-white/40">Cover-Slots</p>
-          <div className="grid gap-3 md:grid-cols-2">
-            {world.songs.slice(0, slotCount).map((song, i) => (
-              <SongSlotEditor
-                key={song.id}
-                index={i}
-                song={song}
-                onChange={(s) => {
-                  const songs = [...world.songs];
-                  songs[i] = s;
-                  onChange({ ...world, songs });
-                }}
-              />
-            ))}
-          </div>
-        </div>
+  const world = worlds[worldIndex];
+  const theme = world ? WORLD_THEME[world.atmosphere] : WORLD_THEME.cosmos;
+  const slotCount = world ? defaultSlotCount(world) : 0;
+
+  useEffect(() => {
+    setSlotTab("welt");
+  }, [worldIndex]);
+
+  if (!world) return null;
+
+  const updateWorld = (w: World) => {
+    const next = [...worlds];
+    next[worldIndex] = w;
+    onWorldsChange(next);
+  };
+
+  return (
+    <div className="mt-6">
+      <div className="flex flex-wrap items-end gap-3">
+        {worlds.map((w, wi) => {
+          const t = WORLD_THEME[w.atmosphere];
+          const active = worldIndex === wi;
+          return (
+            <button
+              key={w.id}
+              type="button"
+              onClick={() => setWorldIndex(wi)}
+              className={`border px-4 py-2 text-[11px] uppercase tracking-widest transition ${
+                active ? t.albumTabActive : t.albumTabInactive
+              }`}
+            >
+              {w.columnLabel.de}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
+        {(["welt", ...Array.from({ length: slotCount }, (_, i) => i + 1)] as const).map((tab) => {
+          const isWelt = tab === "welt";
+          const active = slotTab === tab;
+          return (
+            <button
+              key={String(tab)}
+              type="button"
+              onClick={() => setSlotTab(tab)}
+              className={`min-w-[1.5rem] px-1 py-0.5 text-sm uppercase tracking-widest transition ${
+                active ? `${theme.slotTabActive} rounded px-2` : "text-white/75 hover:text-white"
+              }`}
+            >
+              {isWelt ? "Welt" : tab}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className={`mt-2 min-h-[320px] rounded-sm p-5 md:p-6 ${theme.contentPanel}`}>
+        {slotTab === "welt" ? (
+          <WorldMetaEditor world={world} onChange={updateWorld} theme={theme} />
+        ) : (
+          <SongSlotEditor
+            song={world.songs[slotTab - 1] ?? { id: `${world.id}-slot-${slotTab}`, title: "", coverImage: "/covers/placeholder.svg" }}
+            onChange={(s) => {
+              const songs = [...world.songs];
+              songs[slotTab - 1] = s;
+              updateWorld({ ...world, songs });
+            }}
+            theme={theme}
+          />
+        )}
       </div>
     </div>
   );
@@ -339,13 +418,6 @@ function SiteLinksEditor({
   );
 }
 
-const MAIN_TABS: { id: MainTab; label: string }[] = [
-  { id: "welten", label: "Spalten & Welten" },
-  { id: "logo", label: "Header-Logo" },
-  { id: "links", label: "Links" },
-  { id: "legal", label: "Rechtstexte" },
-];
-
 export function AdminPanel({
   content,
   onSave,
@@ -356,8 +428,7 @@ export function AdminPanel({
   const [data, setData] = useState(content);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
-  const [mainTab, setMainTab] = useState<MainTab>("welten");
-  const [worldTab, setWorldTab] = useState(0);
+  const [sectionTab, setSectionTab] = useState<SectionTab>("content");
 
   async function save() {
     setSaving(true);
@@ -393,15 +464,11 @@ export function AdminPanel({
     }
   }
 
-  const activeWorld = data.worlds[worldTab];
-  const worldStyles = activeWorld ? WORLD_TAB_STYLES[activeWorld.atmosphere] : WORLD_TAB_STYLES.cosmos;
-
   return (
     <div className="mx-auto max-w-5xl px-4 pb-16 pt-24">
       <h1 className="text-xl font-light uppercase tracking-widest">REAKTON Admin</h1>
       <p className="mt-2 text-xs text-white/50">
-        REAKTON WEBSITE 2026 — Inhalte nach Tabs sortiert. Lokale Datei:{" "}
-        <code className="text-white/55">data/site-content.local.json</code>
+        Lokale Datei: <code className="text-white/55">data/site-content.local.json</code>
       </p>
 
       <div className="mt-4 flex flex-wrap gap-3">
@@ -427,113 +494,82 @@ export function AdminPanel({
         </label>
       </div>
 
-      <nav className="mt-8 flex flex-wrap gap-2 border-b border-white/10 pb-1" aria-label="Admin-Bereiche">
-        {MAIN_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setMainTab(tab.id)}
-            className={`px-4 py-2 text-[11px] uppercase tracking-widest transition ${
-              mainTab === tab.id
-                ? "border-b-2 border-white text-white"
-                : "text-white/45 hover:text-white/75"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <nav className="mt-8 flex gap-8 border-b border-white/10" aria-label="Admin-Bereiche">
+        <button
+          type="button"
+          onClick={() => setSectionTab("content")}
+          className={`pb-2 text-sm uppercase tracking-[0.35em] transition ${
+            sectionTab === "content"
+              ? "border-b-2 border-white text-white"
+              : "text-white/40 hover:text-white/70"
+          }`}
+        >
+          Content
+        </button>
+        <button
+          type="button"
+          onClick={() => setSectionTab("header")}
+          className={`pb-2 text-sm uppercase tracking-[0.35em] transition ${
+            sectionTab === "header"
+              ? "border-b-2 border-white text-white"
+              : "text-white/40 hover:text-white/70"
+          }`}
+        >
+          Header
+        </button>
       </nav>
 
-      {mainTab === "welten" && (
-        <div className="mt-6">
-          <div className="flex flex-wrap gap-2">
-            {data.worlds.map((world, wi) => {
-              const styles = WORLD_TAB_STYLES[world.atmosphere];
-              return (
-                <button
-                  key={world.id}
-                  type="button"
-                  onClick={() => setWorldTab(wi)}
-                  className={`rounded border px-3 py-2 text-[10px] uppercase tracking-widest transition ${
-                    worldTab === wi ? styles.tabActive : styles.tab
-                  }`}
-                >
-                  Welt {wi + 1}: {world.columnLabel.de}
-                </button>
-              );
-            })}
-          </div>
+      {sectionTab === "content" && (
+        <ContentSection
+          worlds={data.worlds}
+          onWorldsChange={(worlds) => setData({ ...data, worlds })}
+        />
+      )}
 
-          {activeWorld && (
-            <div className={`mt-4 rounded-t-lg border border-white/15 ${worldStyles.header} px-4 py-2`}>
-              <p className="text-[10px] uppercase tracking-[0.3em] text-white/70">
-                Content · Welt {worldTab + 1}
-              </p>
-            </div>
-          )}
-
-          <div className="space-y-6">
-            {activeWorld && (
-              <WorldEditor
-                world={activeWorld}
-                onChange={(w) => {
-                  const worlds = [...data.worlds];
-                  worlds[worldTab] = w;
-                  setData({ ...data, worlds });
-                }}
+      {sectionTab === "header" && (
+        <div className="mt-6 space-y-8">
+          <div className="rounded border border-white/15 p-4">
+            <h2 className="text-sm uppercase tracking-widest">Logo</h2>
+            <div className="mt-4 max-w-md">
+              <UploadField
+                label="REAKTON-Logo"
+                accept="image/*"
+                value={data.brandLogo ?? "/brand/reakton-logo.webp"}
+                onChange={(url) => setData({ ...data, brandLogo: url })}
               />
-            )}
-          </div>
-        </div>
-      )}
-
-      {mainTab === "logo" && (
-        <div className="mt-6 rounded border border-white/15 p-4">
-          <h2 className="text-sm uppercase tracking-widest">Header-Logo</h2>
-          <p className="mt-1 text-xs text-white/45">WebP mit Transparenz, 30px Höhe im Header.</p>
-          <div className="mt-4 max-w-md">
-            <UploadField
-              label="REAKTON-Logo"
-              accept="image/*"
-              value={data.brandLogo ?? "/brand/reakton-logo.webp"}
-              onChange={(url) => setData({ ...data, brandLogo: url })}
+            </div>
+            <img
+              src={data.brandLogo ?? "/brand/reakton-logo.webp"}
+              alt="Logo-Vorschau"
+              className="mt-4 h-[30px] w-auto"
             />
           </div>
-          <img
-            src={data.brandLogo ?? "/brand/reakton-logo.webp"}
-            alt="Logo-Vorschau"
-            className="mt-4 h-[30px] w-auto"
-          />
-        </div>
-      )}
 
-      {mainTab === "links" && (
-        <div className="mt-6 rounded border border-white/15 p-4">
-          <h2 className="text-sm uppercase tracking-widest">Links (Header)</h2>
-          <div className="mt-4 max-w-md">
-            <SiteLinksEditor
-              links={data.siteLinks}
-              onChange={(siteLinks) => setData({ ...data, siteLinks })}
+          <div className="rounded border border-white/15 p-4">
+            <h2 className="text-sm uppercase tracking-widest">Links</h2>
+            <div className="mt-4 max-w-md">
+              <SiteLinksEditor
+                links={data.siteLinks}
+                onChange={(siteLinks) => setData({ ...data, siteLinks })}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4 rounded border border-white/15 p-4">
+            <h2 className="text-sm uppercase tracking-widest">Rechtstexte</h2>
+            <LocalizedFields
+              label="Impressum"
+              value={data.impressum}
+              onChange={(impressum) => setData({ ...data, impressum })}
+              multiline
+            />
+            <LocalizedFields
+              label="Datenschutz"
+              value={data.datenschutz}
+              onChange={(datenschutz) => setData({ ...data, datenschutz })}
+              multiline
             />
           </div>
-        </div>
-      )}
-
-      {mainTab === "legal" && (
-        <div className="mt-6 space-y-4 rounded border border-white/15 p-4">
-          <h2 className="text-sm uppercase tracking-widest">Rechtstexte</h2>
-          <LocalizedFields
-            label="Impressum"
-            value={data.impressum}
-            onChange={(impressum) => setData({ ...data, impressum })}
-            multiline
-          />
-          <LocalizedFields
-            label="Datenschutz"
-            value={data.datenschutz}
-            onChange={(datenschutz) => setData({ ...data, datenschutz })}
-            multiline
-          />
         </div>
       )}
 

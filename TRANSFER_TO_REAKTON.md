@@ -1,22 +1,26 @@
 # REAKTON WEBSITE 2026 — Transfer zu GitHub
 
-Der vollständige Stand liegt in diesem Branch (`cursor/reakton-website-2026-transfer-d206`).
-Repo-Root = Next.js-App (kein `reakton-website/` Unterordner mehr).
+Der vollständige Stand liegt in Branch `cursor/reakton-website-2026-transfer-d206` (Staging) bzw. direkt in **REAKTON** nach erfolgreichem Push.
 
-## Einmalig auf deinem Rechner pushen (ca. 2 Minuten)
+Repo-Root = Next.js-App (kein `reakton-website/` Unterordner).
 
-Der Cloud-Agent hat **keinen Schreibzugriff** auf `AdrianoDebatefy/REAKTON`.
-Mit deinem GitHub-Account:
+## Status prüfen
+
+Öffne https://github.com/AdrianoDebatefy/REAKTON — dort sollten u. a. `README.md`, `package.json` und `src/` sichtbar sein.
+
+Falls das Repo noch leer ist, Push erneut ausführen:
 
 ```bash
 git clone --branch cursor/reakton-website-2026-transfer-d206 --single-branch \
   https://github.com/AdrianoDebatefy/debatyfyOnlinebetaFour.git reakton-push
 cd reakton-push
 git remote set-url origin https://github.com/AdrianoDebatefy/REAKTON.git
-git push -u origin main
+git push -u origin HEAD:main
 ```
 
-Danach lokal nur noch REAKTON klonen:
+Erwartete Meldung: `* [new branch] main -> main` (kein `403` oder `denied`).
+
+## Nach erfolgreichem Push — nur noch REAKTON
 
 ```bash
 git clone https://github.com/AdrianoDebatefy/REAKTON.git
@@ -25,19 +29,7 @@ npm install
 npm run dev
 ```
 
-## Cursor Cloud Agent dauerhaft auf REAKTON
+## Cursor Cloud Agent auf REAKTON
 
-1. GitHub → **AdrianoDebatefy/REAKTON** → Settings → Collaborators  
-   → Cursor/GitHub-App **Write**-Zugriff geben  
-2. Neue Cloud-Agent-Session mit Repo **REAKTON** starten (nicht `debatyfyOnlinebetaFour`)
-
-## Alternative: Git-Bundle
-
-Falls der Branch noch nicht gepusht ist, liegt im Workspace auch `REAKTON-WEBSITE-2026.bundle`:
-
-```bash
-git clone REAKTON-WEBSITE-2026.bundle reakton-temp
-cd reakton-temp
-git remote add origin https://github.com/AdrianoDebatefy/REAKTON.git
-git push -u origin main
-```
+1. GitHub → **AdrianoDebatefy/REAKTON** → Settings → Collaborators → Cursor/GitHub-App **Write**
+2. Neue Cloud-Agent-Session mit Repo **REAKTON** (nicht `debatyfyOnlinebetaFour`)

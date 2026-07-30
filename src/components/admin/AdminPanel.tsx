@@ -261,7 +261,7 @@ function WorldMetaEditor({
         inputClassName={inputClass}
       />
       <LocalizedFields
-        label="Welt-Titel (welcome to …)"
+        label="Welt-Titel (nach «Willkommen bei»)"
         value={world.albumTitle}
         onChange={(albumTitle) => onChange({ ...world, albumTitle })}
         inputClassName={inputClass}

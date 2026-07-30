@@ -590,8 +590,6 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
   const captionDecodeMode: DecodeMode =
     landingCaptionMode === "hidden" ? "static" : landingCaptionMode;
 
-  const scrimLayerVisible =
-    !showWorld && (landingCaptionMode !== "hidden" || isEntering || isColumnReturning);
   const scrimFadingOut = landingCaptionMode === "out" || isEntering || showWorld;
   const scrimOpacity = scrimFadingOut ? 0 : 1;
 
@@ -693,12 +691,8 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
         )}
       </div>
 
-      {scrimLayerVisible && (
-        <>
-          <LandingScrimLayer worlds={worlds} opacity={scrimOpacity} variant="desktop" />
-          <LandingScrimLayer worlds={worlds} opacity={scrimOpacity} variant="mobile" />
-        </>
-      )}
+      <LandingScrimLayer worlds={worlds} opacity={scrimOpacity} variant="desktop" />
+      <LandingScrimLayer worlds={worlds} opacity={scrimOpacity} variant="mobile" />
 
       <AnimatePresence>
         {showWorld && activeWorld && (

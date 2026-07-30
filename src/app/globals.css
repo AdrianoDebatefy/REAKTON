@@ -217,16 +217,35 @@ body {
   filter: sepia(0.35) saturate(2.2) hue-rotate(310deg) brightness(0.88);
 }
 
-.cover-cloud-drift {
-  animation: cloud-drift 14s ease-in-out infinite;
+/* Cover-Slots: Drift nur auf übergroßem Media-Layer (kein blauer Rand) */
+.album-cover-slot {
+  isolation: isolate;
 }
 
-.cover-cloud-drift:nth-child(2n) {
+.cover-slot-media {
+  position: absolute;
+  left: -10%;
+  top: -10%;
+  width: 120%;
+  height: 120%;
+}
+
+.cover-cloud-drift {
+  animation: cloud-drift 14s ease-in-out infinite;
+  will-change: transform;
+}
+
+.cover-cloud-drift--1 {
+  animation-duration: 14s;
+  animation-delay: 0s;
+}
+
+.cover-cloud-drift--2 {
   animation-duration: 17s;
   animation-delay: -4s;
 }
 
-.cover-cloud-drift:nth-child(3n) {
+.cover-cloud-drift--3 {
   animation-duration: 20s;
   animation-delay: -7s;
 }
@@ -408,6 +427,7 @@ body {
 /* Aktiver Cover-Slot: 800×800, responsiv */
 .cover-slot-drift {
   animation: coverDrift 14s ease-in-out infinite;
+  will-change: transform;
 }
 
 .cover-slot-drift--1 {

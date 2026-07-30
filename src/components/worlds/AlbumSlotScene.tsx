@@ -772,7 +772,7 @@ export function AlbumSlotScene({
         const isDragging = draggingIndex === i;
         const driftClass =
           introDone && !isPoleMode && !exiting && isCloud && !isDragging
-            ? "cover-cloud-drift"
+            ? `cover-cloud-drift cover-cloud-drift--${(i % 3) + 1}`
             : introDone && !isPoleMode && !exiting && !isCloud && !isDragging
               ? `cover-slot-drift cover-slot-drift--${(i % 4) + 1}`
               : "";
@@ -786,12 +786,17 @@ export function AlbumSlotScene({
             onPointerMove={handleCoverPointerMove}
             onPointerUp={(e) => handleCoverPointerUp(song, e)}
             onPointerCancel={(e) => handleCoverPointerUp(song, e)}
-            className={`absolute overflow-hidden rounded-sm border shadow-lg focus:outline-none focus:ring-2 focus:ring-white/40 ${borderClass} ${
-              isActive ? "border-white/40" : ""
+            className={`album-cover-slot absolute overflow-hidden rounded-sm border focus:outline-none focus:ring-2 focus:ring-white/40 ${borderClass} ${
+              isActive ? "border-white/40 shadow-lg" : "shadow-md shadow-black/50"
             } ${introDone && !exiting ? "cursor-grab touch-none active:cursor-grabbing" : ""} ${
               isDragging ? "z-50 cursor-grabbing" : isActive ? "z-40" : "z-10"
             }`}
-            style={{ backgroundColor: COVER_COLOR }}
+            style={{
+              backgroundColor:
+                song.coverImage && !song.coverImage.includes("placeholder")
+                  ? "#080c12"
+                  : COVER_COLOR,
+            }}
             initial={{ left: `${pos.x}%`, top: `${pos.y}%`, width: INACTIVE_SIZE, height: INACTIVE_SIZE, x: "-50%", y: "-50%", scale: 0, opacity: 0 }}
             animate={{
               left: `${pos.x}%`,
@@ -820,31 +825,35 @@ export function AlbumSlotScene({
             )}
 
             <motion.div
-              className={`relative h-full w-full ${driftClass}`}
+              className="relative h-full w-full"
               onMouseEnter={() => isActive && setShowVolume(true)}
               onMouseLeave={() => setShowVolume(false)}
             >
-              {isActive && activeSong?.videoSnippet ? (
-                <video
-                  ref={slotVideoRef}
-                  src={activeSong.videoSnippet}
-                  className="h-full w-full object-cover"
-                  autoPlay
-                  loop
-                  playsInline
-                  muted={!!activeSong.audioSnippet}
-                />
-              ) : (
-                <Image
-                  src={song.coverImage || "/covers/placeholder.svg"}
-                  alt={song.title}
-                  fill
-                  className="object-cover"
-                  sizes={isActive ? "520px" : "80px"}
-                  priority={isActive}
-                  draggable={false}
-                />
-              )}
+              <div className="absolute inset-0 overflow-hidden">
+                <div className={`cover-slot-media ${driftClass}`}>
+                  {isActive && activeSong?.videoSnippet ? (
+                    <video
+                      ref={slotVideoRef}
+                      src={activeSong.videoSnippet}
+                      className="h-full w-full object-cover"
+                      autoPlay
+                      loop
+                      playsInline
+                      muted={!!activeSong.audioSnippet}
+                    />
+                  ) : (
+                    <Image
+                      src={song.coverImage || "/covers/placeholder.svg"}
+                      alt={song.title}
+                      fill
+                      className="object-cover"
+                      sizes={isActive ? "520px" : "80px"}
+                      priority={isActive}
+                      draggable={false}
+                    />
+                  )}
+                </div>
+              </div>
               {!isActive && (
                 <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 py-0.5 text-[14px] uppercase tracking-wider text-white/85">
                   {song.title}

@@ -120,18 +120,23 @@ function columnPanLeft(columnIndex: number, columnWidth: number, expanded: boole
   return expanded ? "50%" : `${centerPct}%`;
 }
 
-function overlayExitX(
+function columnOverlayOpacity(
   columnIndex: number,
   selectedIndex: number | null,
   isEntering: boolean,
   isImmersed: boolean,
-  columnCount: number
-): number | string {
-  if (selectedIndex === null || (!isEntering && !isImmersed)) return 0;
-  if (columnIndex !== selectedIndex) return 0;
-  if (selectedIndex === 0) return "-100%";
-  if (selectedIndex === columnCount - 1) return "100%";
-  return "100%";
+  isColumnReturning: boolean,
+  inWorld: boolean,
+  expanded: boolean
+): number {
+  if (inWorld) return 0;
+  if (isColumnReturning) return 1;
+  if (!expanded && selectedIndex === null) return 1;
+  if (selectedIndex === null) return 1;
+  if (columnIndex === selectedIndex && (isEntering || isImmersed)) return 0;
+  if (isEntering || isImmersed) return 0;
+  if (!expanded) return 1;
+  return 0;
 }
 
 function ColumnCaption({
@@ -181,7 +186,6 @@ function WorldBgLayer({
   expanded,
   columnIndex,
   columnWidth,
-  columnCount,
   selectedIndex,
   isEntering,
   isImmersed,
@@ -199,7 +203,6 @@ function WorldBgLayer({
   expanded: boolean;
   columnIndex: number;
   columnWidth: number;
-  columnCount: number;
   selectedIndex: number | null;
   isEntering: boolean;
   isImmersed: boolean;
@@ -215,17 +218,15 @@ function WorldBgLayer({
 }) {
   const clipPath = columnClipPath(columnIndex, columnWidth, expanded);
   const panLeft = columnPanLeft(columnIndex, columnWidth, expanded);
-  const isSelected = selectedIndex === columnIndex;
-  const overlaySlide = overlayExitX(
+  const overlayOpacity = columnOverlayOpacity(
     columnIndex,
     selectedIndex,
     isEntering,
     isImmersed,
-    columnCount
+    isColumnReturning,
+    inWorld ?? false,
+    expanded
   );
-  const overlayVisible =
-    !inWorld &&
-    (!expanded || isEntering || isColumnReturning || overlaySlide !== 0);
 
   return (
     <motion.div
@@ -266,14 +267,8 @@ function WorldBgLayer({
       <motion.div
         className={`landing-column-overlay landing-column-overlay--${atmosphere}`}
         initial={false}
-        animate={{
-          x: isSelected && (isEntering || isImmersed) && !isColumnReturning ? overlaySlide : 0,
-          opacity: overlayVisible ? 1 : 0,
-        }}
-        transition={{
-          x: { ...EARTH_TRANSITION, type: "tween" },
-          opacity: { duration: 0.15 },
-        }}
+        animate={{ opacity: overlayOpacity }}
+        transition={{ opacity: EARTH_TRANSITION }}
         aria-hidden
       />
     </motion.div>
@@ -564,7 +559,6 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
             desktopSrc={earthDesktopSrc}
             columnIndex={cosmosColumnIndex}
             columnWidth={columnWidth}
-            columnCount={worlds.length}
             selectedIndex={selectedIndex}
             isEntering={isEntering}
             isImmersed={isImmersed}
@@ -594,7 +588,6 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
             desktopSrc={nanoDesktopSrc}
             columnIndex={nanoColumnIndex}
             columnWidth={columnWidth}
-            columnCount={worlds.length}
             selectedIndex={selectedIndex}
             isEntering={isEntering}
             isImmersed={isImmersed}
@@ -624,7 +617,6 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
             desktopSrc={clubDesktopSrc}
             columnIndex={clubColumnIndex}
             columnWidth={columnWidth}
-            columnCount={worlds.length}
             selectedIndex={selectedIndex}
             isEntering={isEntering}
             isImmersed={isImmersed}

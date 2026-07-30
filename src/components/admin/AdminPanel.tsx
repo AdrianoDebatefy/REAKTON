@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { LiveVideo, LocalizedString, PressEntry, SiteContent, SiteLinks, Song, World } from "@/types/content";
 import type { AnalyticsData } from "@/lib/analytics";
 import { CONTENT_LOCALES, LOCALE_LABELS, emptyLocalized } from "@/lib/locale";
+import { PasswordChangeForm } from "@/components/admin/PasswordChangeForm";
 
 async function uploadFile(file: File): Promise<string> {
   const form = new FormData();
@@ -14,7 +15,7 @@ async function uploadFile(file: File): Promise<string> {
   return data.url;
 }
 
-type SectionTab = "content" | "header" | "live" | "press" | "analytics";
+type SectionTab = "content" | "header" | "live" | "press" | "analytics" | "account";
 
 const WORLD_THEME: Record<
   World["atmosphere"],
@@ -826,6 +827,17 @@ export function AdminPanel({
         >
           Analytics
         </button>
+        <button
+          type="button"
+          onClick={() => setSectionTab("account")}
+          className={`pb-2 text-sm uppercase tracking-[0.35em] transition ${
+            sectionTab === "account"
+              ? "border-b-2 border-white text-white"
+              : "text-white/40 hover:text-white/70"
+          }`}
+        >
+          Zugang
+        </button>
       </nav>
 
       {sectionTab === "content" && (
@@ -850,6 +862,15 @@ export function AdminPanel({
       )}
 
       {sectionTab === "analytics" && <AnalyticsSection />}
+
+      {sectionTab === "account" && (
+        <div className="mt-6 rounded border border-white/15 p-5">
+          <h2 className="text-sm uppercase tracking-widest text-white/70">Passwort ändern</h2>
+          <div className="mt-4 max-w-md">
+            <PasswordChangeForm />
+          </div>
+        </div>
+      )}
 
       {sectionTab === "header" && (
         <div className="mt-6 space-y-8">

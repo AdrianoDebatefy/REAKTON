@@ -69,7 +69,9 @@ export default function AdminPage() {
           </button>
         </form>
         <p className="mt-4 text-xs text-white/35">
-          Lokales Standard-Passwort: <span className="text-white/55">reakton-admin</span>
+          {process.env.NODE_ENV === "production"
+            ? "Passwort vom Hosting (ADMIN_PASSWORD) oder nach erstem Login unter «Zugang» ändern."
+            : "Lokales Standard-Passwort: reakton-admin"}
         </p>
         {message && <p className="mt-4 text-sm text-red-400">{message}</p>}
       </div>

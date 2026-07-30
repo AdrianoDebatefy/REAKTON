@@ -38,8 +38,15 @@ Open [http://localhost:3000](http://localhost:3000)
 
 - URL: `/admin`
 - Default password: `reakton-admin` (set `ADMIN_PASSWORD` and `ADMIN_SECRET` in production)
+- Change password after login: Admin → tab **Zugang** (stored in `data/admin.local.json`)
 
 Content is stored in `data/site-content.json`. Add worlds, songs, press entries, and links without code changes.
+
+## Contact form
+
+- Header **Kontakt** → `/contact`
+- Submissions are saved as JSON on the server: `data/messages/{timestamp}.json` (not emailed by default)
+- On Vercel/serverless, use persistent storage or email forwarding — files in `data/messages/` are gitignored
 
 ## Environment
 

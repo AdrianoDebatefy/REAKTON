@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { SignJWT } from "jose";
 import { cookies } from "next/headers";
+import { verifyAdminPassword } from "@/lib/admin-credentials";
 
 const secret = new TextEncoder().encode(
   process.env.ADMIN_SECRET || "reakton-dev-secret-change-in-production"
@@ -8,9 +9,8 @@ const secret = new TextEncoder().encode(
 
 export async function POST(request: Request) {
   const { password } = await request.json();
-  const expected = process.env.ADMIN_PASSWORD || "reakton-admin";
 
-  if (password !== expected) {
+  if (!(await verifyAdminPassword(password))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

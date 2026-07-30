@@ -1,0 +1,16 @@
+---
+description: REAKTON website project identity for Cursor agents
+alwaysApply: true
+---
+
+# REAKTON WEBSITE 2026
+
+This workspace is the **REAKTON band website** (Next.js), not Debatefy and not DAWERSION.
+
+- Repository: https://github.com/AdrianoDebatefy/REAKTON
+- App path: repo root (or `C:\Users\adria\REAKTON` on Windows)
+- Stack: Next.js 14, TypeScript, Tailwind, Framer Motion, next-intl
+- Three landing columns: Cosmos (Erde), Nano, Club
+- Local images only: `public/worlds/` (Erde.jpg, nano.jpg, club-bg.jpg)
+
+When referring to this project in commits, PRs, or summaries, use **REAKTON WEBSITE 2026**.

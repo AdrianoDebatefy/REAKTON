@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 40" fill="none" role="img" aria-label="REAKTON">
+  <defs>
+    <filter id="reakton-glow" x="-20%" y="-40%" width="140%" height="180%">
+      <feGaussianBlur stdDeviation="1.2" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <linearGradient id="reakton-cyan" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#d9f7ff" />
+      <stop offset="45%" stop-color="#5ecfff" />
+      <stop offset="100%" stop-color="#2a9fd6" />
+    </linearGradient>
+  </defs>
+  <g fill="url(#reakton-cyan)" filter="url(#reakton-glow)">
+    <text
+      x="0"
+      y="30"
+      font-family="Rajdhani, system-ui, sans-serif"
+      font-size="28"
+      font-weight="300"
+      letter-spacing="0.28em"
+    >
+      REAKTON
+    </text>
+  </g>
+</svg>

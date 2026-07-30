@@ -1,0 +1,73 @@
+{
+  "nav": {
+    "live": "Live",
+    "merch": "Merchandise",
+    "press": "Press",
+    "toy": "Toy",
+    "contact": "Contact",
+    "impressum": "Legal Notice",
+    "datenschutz": "Privacy Policy",
+    "back": "Back",
+    "home": "Home"
+  },
+  "home": {
+    "locked": "Coming Soon",
+    "lockedHint": "Available from November 2026",
+    "enterWorld": "Enter world",
+    "toyTitle": "Clap-Toy",
+    "toyDescription": "Interactive experience — coming soon at reakton.de/clap-toy",
+    "toyCta": "Go to Clap-Toy"
+  },
+  "world": {
+    "watchVideo": "Watch video",
+    "closeVideo": "Close",
+    "themeLabel": "welcome to",
+    "nowPlaying": "Now playing",
+    "play": "Play",
+    "pause": "Pause",
+    "noAudio": "Audio coming soon",
+    "backToGrid": "Back",
+    "dragCovers": "Drag covers to reposition"
+  },
+  "press": {
+    "title": "Press",
+    "subtitle": "Interviews, reviews and mentions",
+    "readMore": "Read article"
+  },
+  "live": {
+    "title": "Live",
+    "subtitle": "Concerts and performances",
+    "consentRequired": "YouTube videos load after cookie consent."
+  },
+  "merch": {
+    "title": "Merchandise",
+    "subtitle": "Music and merch at our partners"
+  },
+  "contact": {
+    "title": "Contact",
+    "name": "Name",
+    "email": "Email",
+    "subject": "Subject (optional)",
+    "message": "Message",
+    "gdpr": "I agree to the processing of my data according to the privacy policy.",
+    "submit": "Send",
+    "success": "Thank you — your message has been sent.",
+    "error": "Something went wrong. Please try again.",
+    "captcha": "Security question: What is {a} + {b}?"
+  },
+  "cookie": {
+    "title": "Cookies & Consent",
+    "description": "We use essential cookies and load external content (e.g. YouTube) only with your consent.",
+    "accept": "Accept all",
+    "essential": "Essential only",
+    "privacy": "Privacy"
+  },
+  "legal": {
+    "impressumTitle": "Legal Notice",
+    "datenschutzTitle": "Privacy Policy"
+  },
+  "meta": {
+    "title": "REAKTON — Robotronic Music",
+    "description": "REAKTON — Electronic duo from Berlin. Robotronic music as a consistent evolution of electronic pop culture."
+  }
+}

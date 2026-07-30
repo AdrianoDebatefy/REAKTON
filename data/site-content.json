@@ -1,0 +1,139 @@
+{
+  "brandLogo": "/brand/reakton-logo.webp",
+  "worlds": [
+    {
+      "id": "weltall",
+      "slug": "weltall-erde-mensch",
+      "albumTitle": { "de": "Weltall:Erde:Mensch", "en": "Universe:Earth:Human" },
+      "columnLabel": { "de": "weltall:erde:mensch", "en": "universe:earth:human" },
+      "themeDescription": {
+        "de": "Kosmische Weite, planetare Horizonte und die menschliche Perspektive im All.",
+        "en": "Cosmic vastness, planetary horizons, and the human perspective in space."
+      },
+      "atmosphere": "cosmos",
+      "color": "blue",
+      "locked": false,
+      "backgroundImage": "/worlds/Erde.jpg",
+      "backgroundImageMobile": "/worlds/Erde-mobile.jpg",
+      "slotCount": 12,
+      "ogImage": "/og/weltall.jpg",
+      "songs": [
+        { "id": "wem-01", "title": "Umlaufbahn", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+        { "id": "wem-02", "title": "Lichtgeschwindigkeit", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+        { "id": "wem-03", "title": "Datenstrom", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+        { "id": "wem-04", "title": "Fernerkundung", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+        { "id": "wem-05", "title": "Horizont", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+        { "id": "wem-06", "title": "Mensch Maschine", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+        { "id": "wem-07", "title": "Kontakt", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+        { "id": "wem-08", "title": "Signal", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+        { "id": "wem-09", "title": "Kosmos", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+        { "id": "wem-10", "title": "Erde", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+        { "id": "wem-11", "title": "Mensch", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+        { "id": "wem-12", "title": "Weltall", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }
+      ]
+    },
+    {
+      "id": "nano",
+      "slug": "micro-macro-nano",
+      "albumTitle": { "de": "Micro:Macro:Nano", "en": "Micro:Macro:Nano" },
+      "columnLabel": { "de": "micro:macro:nano", "en": "micro:macro:nano" },
+      "themeDescription": {
+        "de": "Mikroskopische Maschinen, Smart Dust und die Robotik des Unsichtbaren.",
+        "en": "Microscopic machines, smart dust, and the robotics of the invisible."
+      },
+      "atmosphere": "nano",
+      "color": "silver",
+      "locked": false,
+      "backgroundImage": "/worlds/nano.jpg",
+      "backgroundImageMobile": "/worlds/nano-mobile.jpg",
+      "slotCount": 13,
+      "ogImage": "/og/nano.jpg",
+      "songs": [
+        { "id": "nano-01", "title": "Nano", "coverImage": "/covers/placeholder.svg" },
+        { "id": "nano-02", "title": "Aerosol", "coverImage": "/covers/placeholder.svg" },
+        { "id": "nano-03", "title": "Kommunikation", "coverImage": "/covers/placeholder.svg" },
+        { "id": "nano-04", "title": "Deep Learning", "coverImage": "/covers/placeholder.svg" },
+        { "id": "nano-05", "title": "Elektronenmikroskop", "coverImage": "/covers/placeholder.svg" },
+        { "id": "nano-06", "title": "Entertainment", "coverImage": "/covers/placeholder.svg" },
+        { "id": "nano-07", "title": "Surgery Girl", "coverImage": "/covers/placeholder.svg" },
+        { "id": "nano-08", "title": "Atom", "coverImage": "/covers/placeholder.svg" },
+        { "id": "nano-09", "title": "Pixel", "coverImage": "/covers/placeholder.svg" },
+        { "id": "nano-10", "title": "Smart Dust City", "coverImage": "/covers/placeholder.svg" },
+        { "id": "nano-11", "title": "Stream", "coverImage": "/covers/placeholder.svg" },
+        { "id": "nano-12", "title": "Remix 1", "coverImage": "/covers/placeholder.svg" },
+        { "id": "nano-13", "title": "Remix 2", "coverImage": "/covers/placeholder.svg" }
+      ]
+    },
+    {
+      "id": "club",
+      "slug": "clip-clap-club",
+      "albumTitle": { "de": "Clip:Clap:Club", "en": "Clip:Clap:Club" },
+      "columnLabel": { "de": "clip:clap:club", "en": "clip:clap:club" },
+      "themeDescription": {
+        "de": "Nacht, Rhythmus, Körper — die Club-Welt von REAKTON.",
+        "en": "Night, rhythm, body — the club dimension of REAKTON."
+      },
+      "atmosphere": "club",
+      "color": "red",
+      "locked": false,
+      "backgroundImage": "/worlds/club-bg.jpg",
+      "ogImage": "/og/club.jpg",
+      "slotCount": 14,
+      "songs": [
+        { "id": "club-01", "title": "Clip", "coverImage": "/covers/placeholder.svg" },
+        { "id": "club-02", "title": "Clap", "coverImage": "/covers/placeholder.svg" },
+        { "id": "club-03", "title": "Bass", "coverImage": "/covers/placeholder.svg" },
+        { "id": "club-04", "title": "Strobe", "coverImage": "/covers/placeholder.svg" },
+        { "id": "club-05", "title": "Night", "coverImage": "/covers/placeholder.svg" },
+        { "id": "club-06", "title": "Body", "coverImage": "/covers/placeholder.svg" },
+        { "id": "club-07", "title": "Pulse", "coverImage": "/covers/placeholder.svg" },
+        { "id": "club-08", "title": "Red Room", "coverImage": "/covers/placeholder.svg" },
+        { "id": "club-09", "title": "Laser", "coverImage": "/covers/placeholder.svg" },
+        { "id": "club-10", "title": "Floor", "coverImage": "/covers/placeholder.svg" },
+        { "id": "club-11", "title": "After", "coverImage": "/covers/placeholder.svg" },
+        { "id": "club-12", "title": "Dawn", "coverImage": "/covers/placeholder.svg" },
+        { "id": "club-13", "title": "Remix A", "coverImage": "/covers/placeholder.svg" },
+        { "id": "club-14", "title": "Remix B", "coverImage": "/covers/placeholder.svg" }
+      ]
+    }
+  ],
+  "press": [
+    {
+      "id": "press-1",
+      "outlet": "Out of Line Music",
+      "title": {
+        "de": "REAKTON — micro:macro:nano",
+        "en": "REAKTON — micro:macro:nano"
+      },
+      "excerpt": {
+        "de": "Robotronic Music aus Berlin — eine konsequente Weiterentwicklung elektronischer Popkultur.",
+        "en": "Robotronic music from Berlin — a consistent evolution of electronic pop culture."
+      },
+      "date": "2022-07-22",
+      "url": "https://www.outoflineshop.de"
+    }
+  ],
+  "liveVideos": [
+    {
+      "id": "live-1",
+      "title": { "de": "Live @ Tempodrom Berlin", "en": "Live @ Tempodrom Berlin" },
+      "youtubeUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    }
+  ],
+  "siteLinks": {
+    "merchandise": "https://www.outoflineshop.de",
+    "press": "/press",
+    "youtube": "https://www.youtube.com",
+    "instagram": "https://www.instagram.com",
+    "facebook": "https://www.facebook.com"
+  },
+  "clapToyUrl": "https://reakton.de/clap-toy",
+  "impressum": {
+    "de": "REAKTON / Adriano Theel\nRathenower Str. 30\n10559 Berlin\nDeutschland\nE-Mail: kontakt@reakton.de",
+    "en": "REAKTON / Adriano Theel\nRathenower Str. 30\n10559 Berlin\nGermany\nEmail: kontakt@reakton.de"
+  },
+  "datenschutz": {
+    "de": "Diese Datenschutzerklärung informiert Sie über die Verarbeitung personenbezogener Daten auf reakton.de. Verantwortlicher ist Adriano Theel, Rathenower Str. 30, 10559 Berlin. Kontaktformular-Daten werden ausschließlich zur Bearbeitung Ihrer Anfrage verwendet. YouTube-Einbettungen werden erst nach Cookie-Einwilligung geladen.",
+    "en": "This privacy policy explains how personal data is processed on reakton.de. The controller is Adriano Theel, Rathenower Str. 30, 10559 Berlin. Contact form data is used solely to process your inquiry. YouTube embeds load only after cookie consent."
+  }
+}

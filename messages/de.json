@@ -1,0 +1,73 @@
+{
+  "nav": {
+    "live": "Live",
+    "merch": "Merchandise",
+    "press": "Presse",
+    "toy": "Toy",
+    "contact": "Kontakt",
+    "impressum": "Impressum",
+    "datenschutz": "Datenschutz",
+    "back": "Zurück",
+    "home": "Start"
+  },
+  "home": {
+    "locked": "Demnächst",
+    "lockedHint": "Verfügbar ab November 2026",
+    "enterWorld": "Welt betreten",
+    "toyTitle": "Clap-Toy",
+    "toyDescription": "Interaktives Erlebnis — kommt bald unter reakton.de/clap-toy",
+    "toyCta": "Zum Clap-Toy"
+  },
+  "world": {
+    "watchVideo": "Video ansehen",
+    "closeVideo": "Schließen",
+    "themeLabel": "welcome to",
+    "nowPlaying": "Jetzt läuft",
+    "play": "Abspielen",
+    "pause": "Pause",
+    "noAudio": "Audio folgt",
+    "backToGrid": "Zurück",
+    "dragCovers": "Cover ziehen zum Verschieben"
+  },
+  "press": {
+    "title": "Presse",
+    "subtitle": "Interviews, Reviews und Erwähnungen",
+    "readMore": "Zum Artikel"
+  },
+  "live": {
+    "title": "Live",
+    "subtitle": "Konzerte und Auftritte",
+    "consentRequired": "YouTube-Videos werden nach Cookie-Einwilligung geladen."
+  },
+  "merch": {
+    "title": "Merchandise",
+    "subtitle": "Musik und Merch bei unseren Partnern"
+  },
+  "contact": {
+    "title": "Kontakt",
+    "name": "Name",
+    "email": "E-Mail",
+    "subject": "Betreff (optional)",
+    "message": "Nachricht",
+    "gdpr": "Ich stimme der Verarbeitung meiner Daten gemäß der Datenschutzerklärung zu.",
+    "submit": "Absenden",
+    "success": "Vielen Dank — Ihre Nachricht wurde gesendet.",
+    "error": "Es ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
+    "captcha": "Sicherheitsfrage: Was ist {a} + {b}?"
+  },
+  "cookie": {
+    "title": "Cookies & Einwilligung",
+    "description": "Wir verwenden essenzielle Cookies und laden externe Inhalte (z. B. YouTube) nur mit Ihrer Zustimmung.",
+    "accept": "Alle akzeptieren",
+    "essential": "Nur essenziell",
+    "privacy": "Datenschutz"
+  },
+  "legal": {
+    "impressumTitle": "Impressum",
+    "datenschutzTitle": "Datenschutzerklärung"
+  },
+  "meta": {
+    "title": "REAKTON — Robotronic Music",
+    "description": "REAKTON — Elektro-Duo aus Berlin. Robotronic Music als konsequente Weiterentwicklung elektronischer Popkultur."
+  }
+}

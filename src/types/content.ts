@@ -46,11 +46,14 @@ export interface World {
 
 export interface PressEntry {
   id: string;
-  outlet: string;
-  title: LocalizedString;
-  excerpt?: LocalizedString;
-  date: string;
+  /** Link zum Artikel / externe Seite */
   url: string;
+  /** Presse-Bild (JPG/PNG/WebP) */
+  image?: string;
+  outlet?: string;
+  title?: LocalizedString;
+  excerpt?: LocalizedString;
+  date?: string;
 }
 
 export interface LiveVideo {

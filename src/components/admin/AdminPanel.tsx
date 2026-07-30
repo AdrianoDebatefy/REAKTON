@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { LiveVideo, LocalizedString, SiteContent, SiteLinks, Song, World } from "@/types/content";
+import type { LiveVideo, LocalizedString, PressEntry, SiteContent, SiteLinks, Song, World } from "@/types/content";
 import type { AnalyticsData } from "@/lib/analytics";
 import { CONTENT_LOCALES, LOCALE_LABELS, emptyLocalized } from "@/lib/locale";
 
@@ -14,7 +14,7 @@ async function uploadFile(file: File): Promise<string> {
   return data.url;
 }
 
-type SectionTab = "content" | "header" | "live" | "analytics";
+type SectionTab = "content" | "header" | "live" | "press" | "analytics";
 
 const WORLD_THEME: Record<
   World["atmosphere"],
@@ -448,6 +448,118 @@ function LiveEditor({
   );
 }
 
+function PressEditor({
+  entries,
+  onChange,
+}: {
+  entries: PressEntry[];
+  onChange: (entries: PressEntry[]) => void;
+}) {
+  const addEntry = () => {
+    onChange([
+      ...entries,
+      {
+        id: `press-${Date.now()}`,
+        url: "",
+        image: "",
+        outlet: "",
+        title: emptyLocalized(),
+        date: "",
+      },
+    ]);
+  };
+
+  const updateEntry = (index: number, patch: Partial<PressEntry>) => {
+    const next = [...entries];
+    next[index] = { ...next[index], ...patch };
+    onChange(next);
+  };
+
+  return (
+    <div className="mt-6 space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-white/60">
+          Presse-Einträge für <code className="text-white/50">/press</code> — Link und Bild (JPG).
+        </p>
+        <button
+          type="button"
+          onClick={addEntry}
+          className="rounded border border-white/25 px-4 py-2 text-[10px] uppercase tracking-widest text-white/80 hover:border-white/50"
+        >
+          + Eintrag
+        </button>
+      </div>
+
+      {entries.length === 0 ? (
+        <p className="text-sm text-white/40">Noch keine Einträge — «+ Eintrag» hinzufügen.</p>
+      ) : (
+        <ul className="space-y-4">
+          {entries.map((entry, index) => (
+            <li key={entry.id} className="space-y-3 rounded border border-white/15 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[10px] uppercase tracking-widest text-white/45">
+                  Eintrag {index + 1}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onChange(entries.filter((e) => e.id !== entry.id))}
+                  className="text-[10px] uppercase tracking-widest text-white/45 underline hover:text-white/70"
+                >
+                  Entfernen
+                </button>
+              </div>
+
+              <label className="block text-xs text-white/75">
+                Link
+                <input
+                  type="url"
+                  value={entry.url}
+                  onChange={(e) => updateEntry(index, { url: e.target.value })}
+                  placeholder="https://…"
+                  className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-xs"
+                />
+              </label>
+
+              <UploadField
+                label="Bild (JPG)"
+                accept="image/jpeg,image/png,image/webp"
+                value={entry.image ?? ""}
+                onChange={(url) => updateEntry(index, { image: url || undefined })}
+              />
+
+              {entry.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={entry.image}
+                  alt=""
+                  className="max-h-32 w-auto rounded border border-white/10 object-contain"
+                />
+              ) : null}
+
+              <label className="block text-xs text-white/55">
+                Outlet / Quelle (optional)
+                <input
+                  type="text"
+                  value={entry.outlet ?? ""}
+                  onChange={(e) => updateEntry(index, { outlet: e.target.value || undefined })}
+                  placeholder="z. B. Out of Line Music"
+                  className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-xs"
+                />
+              </label>
+
+              <LocalizedFields
+                label="Titel (optional)"
+                value={entry.title ?? emptyLocalized()}
+                onChange={(title) => updateEntry(index, { title })}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function AnalyticsSection() {
   const [stats, setStats] = useState<AnalyticsData | null>(null);
   const [error, setError] = useState("");
@@ -694,6 +806,17 @@ export function AdminPanel({
         </button>
         <button
           type="button"
+          onClick={() => setSectionTab("press")}
+          className={`pb-2 text-sm uppercase tracking-[0.35em] transition ${
+            sectionTab === "press"
+              ? "border-b-2 border-white text-white"
+              : "text-white/40 hover:text-white/70"
+          }`}
+        >
+          Presse
+        </button>
+        <button
+          type="button"
           onClick={() => setSectionTab("analytics")}
           className={`pb-2 text-sm uppercase tracking-[0.35em] transition ${
             sectionTab === "analytics"
@@ -716,6 +839,13 @@ export function AdminPanel({
         <LiveEditor
           videos={data.liveVideos}
           onChange={(liveVideos) => setData({ ...data, liveVideos })}
+        />
+      )}
+
+      {sectionTab === "press" && (
+        <PressEditor
+          entries={data.press}
+          onChange={(press) => setData({ ...data, press })}
         />
       )}
 

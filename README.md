@@ -37,7 +37,7 @@ Open [http://localhost:3000](http://localhost:3000)
 ## Admin
 
 - URL: `/admin`
-- Default password: `reakton-admin` (set `ADMIN_PASSWORD` and `ADMIN_SECRET` in production)
+- Set `ADMIN_PASSWORD` and `ADMIN_SECRET` in production (or change password under Admin → **Zugang**)
 - Change password after login: Admin → tab **Zugang** (stored in `data/admin.local.json`)
 
 Content is stored in `data/site-content.json`. Add worlds, songs, press entries, and links without code changes.

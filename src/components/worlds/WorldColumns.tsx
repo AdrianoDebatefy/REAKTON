@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import type { World, WorldAtmosphere, Locale } from "@/types/content";
@@ -405,16 +405,6 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
   const [landingCaptionMode, setLandingCaptionMode] = useState<DecodeMode | "hidden">(
     initialUi.landingCaptionMode
   );
-  const prevLocale = useRef(locale);
-
-  useEffect(() => {
-    if (prevLocale.current === locale) return;
-    prevLocale.current = locale;
-    if (showWorld) return;
-    setLandingCaptionMode("out");
-    const timer = window.setTimeout(() => setLandingCaptionMode("in"), CAPTION_DECODE_MS);
-    return () => window.clearTimeout(timer);
-  }, [locale, showWorld]);
 
   const handleCaptionDecodeComplete = useCallback(() => {
     setLandingCaptionMode((mode) => (mode === "in" ? "static" : mode));

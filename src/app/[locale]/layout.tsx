@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Rajdhani } from "next/font/google";
 import { routing } from "@/i18n/routing";
+import type { Locale } from "@/types/content";
 import { CookieProvider } from "@/context/CookieContext";
 import { CookieBanner } from "@/components/CookieBanner";
+import { ClientIntlShell } from "@/components/ClientIntlShell";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { PageViewTracker } from "@/components/PageViewTracker";
@@ -48,7 +49,7 @@ export default async function LocaleLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  if (!routing.locales.includes(locale as "de" | "en" | "ja")) notFound();
+  if (!routing.locales.includes(locale as Locale)) notFound();
 
   const messages = await getMessages();
   const content = getSiteContent();
@@ -59,7 +60,7 @@ export default async function LocaleLayout({
         className={`${rajdhani.variable} min-h-screen bg-[#050508] font-sans text-[#e8e8ec] antialiased`}
         style={{ fontFamily: "var(--font-rajdhani), system-ui, sans-serif" }}
       >
-        <NextIntlClientProvider messages={messages}>
+        <ClientIntlShell initialLocale={locale as Locale} initialMessages={messages}>
           <CookieProvider>
             <Header
               logoUrl={content.brandLogo}
@@ -71,7 +72,7 @@ export default async function LocaleLayout({
             <CookieBanner />
             <PageViewTracker />
           </CookieProvider>
-        </NextIntlClientProvider>
+        </ClientIntlShell>
       </body>
     </html>
   );

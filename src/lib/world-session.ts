@@ -4,7 +4,6 @@ export interface WorldSession {
   activeId: string;
   selectedIndex: number;
   showWorld: boolean;
-  localeSwitch?: boolean;
 }
 
 export function getInitialWorldUiState(): {
@@ -28,27 +27,6 @@ export function getInitialWorldUiState(): {
     showWorld: saved.showWorld,
     landingCaptionMode: "hidden",
   };
-}
-
-export function markLocaleSwitch(): void {
-  const session = readWorldSession();
-  if (session?.showWorld) {
-    writeWorldSession({ ...session, localeSwitch: true });
-  }
-}
-
-export function consumeLocaleSwitch(): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    const raw = sessionStorage.getItem(WORLD_SESSION_KEY);
-    if (!raw) return false;
-    const parsed = JSON.parse(raw) as WorldSession;
-    if (!parsed.localeSwitch) return false;
-    writeWorldSession({ ...parsed, localeSwitch: false });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export function readWorldSession(): WorldSession | null {

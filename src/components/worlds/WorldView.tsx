@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import type { World } from "@/types/content";
@@ -9,7 +9,6 @@ import { WorldAmbientAudio } from "./WorldAmbientAudio";
 import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import type { Locale } from "@/types/content";
 import { getLocalized } from "@/lib/locale";
-import { consumeLocaleSwitch } from "@/lib/world-session";
 import cosmosLayout from "@/data/cosmos-layout.json";
 import nanoLayout from "@/data/nano-layout.json";
 import clubLayout from "@/data/club-layout.json";
@@ -31,39 +30,17 @@ export function WorldView({ world, onBack }: WorldViewProps) {
   const locale = useLocale() as Locale;
   const t = useTranslations("world");
   const tNav = useTranslations("nav");
-  const localeSwitchOnMount = useRef(consumeLocaleSwitch());
   const [exiting, setExiting] = useState(false);
-  const [headerDecodeMode, setHeaderDecodeMode] = useState<DecodeMode>(
-    () => (localeSwitchOnMount.current ? "static" : "in")
-  );
-  const localeReady = useRef(false);
+  const [headerDecodeMode, setHeaderDecodeMode] = useState<DecodeMode>("in");
 
   const useSlotScene =
     world.atmosphere === "cosmos" || world.atmosphere === "nano" || world.atmosphere === "club";
   const useGlobalBackground = useSlotScene;
 
   useEffect(() => {
-    if (!localeSwitchOnMount.current) return;
-    setHeaderDecodeMode("out");
-    const timer = window.setTimeout(() => {
-      setHeaderDecodeMode("in");
-      window.setTimeout(() => setHeaderDecodeMode("static"), HEADER_DECODE_MS);
-    }, HEADER_DECODE_MS);
+    const timer = window.setTimeout(() => setHeaderDecodeMode("static"), HEADER_DECODE_MS);
     return () => window.clearTimeout(timer);
   }, []);
-
-  useEffect(() => {
-    if (!localeReady.current) {
-      localeReady.current = true;
-      return;
-    }
-    setHeaderDecodeMode("out");
-    const timer = window.setTimeout(() => {
-      setHeaderDecodeMode("in");
-      window.setTimeout(() => setHeaderDecodeMode("static"), HEADER_DECODE_MS);
-    }, HEADER_DECODE_MS);
-    return () => window.clearTimeout(timer);
-  }, [locale]);
 
   const handleBackClick = useCallback(() => {
     if (headerDecodeMode === "out") return;
@@ -162,7 +139,6 @@ export function WorldView({ world, onBack }: WorldViewProps) {
           maxSlots={world.slotCount ?? (world.atmosphere === "cosmos" ? 12 : world.atmosphere === "nano" ? 13 : 14)}
           borderClass={borderClass}
           exiting={exiting}
-          skipIntro={localeSwitchOnMount.current}
           onExitComplete={handleExitComplete}
           locale={locale}
         />

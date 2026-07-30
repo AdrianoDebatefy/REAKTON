@@ -457,3 +457,49 @@ body {
   z-index: 10;
   padding-top: 0.5rem;
 }
+
+.cover-info-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(6px);
+  color: rgba(255, 255, 255, 0.92);
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.cover-info-btn:hover {
+  background: rgba(0, 0, 0, 0.62);
+  border-color: rgba(255, 255, 255, 0.85);
+  transform: scale(1.04);
+}
+
+.cover-info-btn__glyph {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.05rem;
+  font-style: italic;
+  line-height: 1;
+}
+
+.cover-info-panel {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.18);
+}
+
+.cover-info-panel__body {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
+}
+
+.cover-info-panel__body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cover-info-panel__body::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.22);
+  border-radius: 9999px;
+}

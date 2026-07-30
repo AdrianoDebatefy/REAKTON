@@ -27,7 +27,10 @@
     "pause": "Pause",
     "noAudio": "Audio coming soon",
     "backToGrid": "Back",
-    "dragCovers": "Drag covers to reposition"
+    "dragCovers": "Drag covers to reposition",
+    "songInfo": "Song info",
+    "closeInfo": "Close",
+    "noSongInfo": "No information available for this track yet."
   },
   "press": {
     "title": "Press",

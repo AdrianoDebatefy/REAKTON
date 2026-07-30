@@ -1,10 +1,12 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { getSiteContent } from "@/lib/content";
+import { getLocalized } from "@/lib/locale";
+import type { Locale } from "@/types/content";
 import { YouTubeEmbed } from "@/components/YouTubeEmbed";
 
 export default async function LivePage() {
   const content = getSiteContent();
-  const locale = (await getLocale()) as "de" | "en";
+  const locale = (await getLocale()) as Locale;
   const t = await getTranslations("live");
 
   return (
@@ -16,9 +18,9 @@ export default async function LivePage() {
         {content.liveVideos.map((video) => (
           <section key={video.id}>
             <h2 className="mb-4 text-sm uppercase tracking-widest text-white/60">
-              {video.title[locale]}
+              {getLocalized(video.title, locale)}
             </h2>
-            <YouTubeEmbed url={video.youtubeUrl} title={video.title[locale]} />
+            <YouTubeEmbed url={video.youtubeUrl} title={getLocalized(video.title, locale)} />
           </section>
         ))}
       </div>

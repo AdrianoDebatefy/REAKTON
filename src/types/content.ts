@@ -1,8 +1,9 @@
-export type Locale = "de" | "en";
+export type Locale = "de" | "en" | "ja";
 
 export interface LocalizedString {
   de: string;
   en: string;
+  ja?: string;
 }
 
 export interface Song {
@@ -16,6 +17,8 @@ export interface Song {
   audioSnippet?: string;
   /** Optional: YouTube-Link für Vollvideo */
   videoUrl?: string;
+  /** Optional: Infotext für Cover-Sidepanel (pro Sprache) */
+  infoText?: LocalizedString;
 }
 
 export type WorldAtmosphere = "cosmos" | "nano" | "club";

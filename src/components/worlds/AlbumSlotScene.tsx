@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
-import type { Song } from "@/types/content";
+import type { Locale, Song } from "@/types/content";
+import { getLocalized } from "@/lib/locale";
 
 interface Position {
   x: number;
@@ -24,6 +25,7 @@ interface AlbumSlotSceneProps {
   exiting?: boolean;
   onExitComplete?: () => void;
   skipIntro?: boolean;
+  locale?: Locale;
 }
 
 const POLE = { x: 50, y: 26 };
@@ -194,6 +196,7 @@ export function AlbumSlotScene({
   exiting = false,
   onExitComplete,
   skipIntro = false,
+  locale = "de",
 }: AlbumSlotSceneProps) {
   const t = useTranslations("world");
   const items = songs.slice(0, maxSlots);
@@ -227,6 +230,7 @@ export function AlbumSlotScene({
   const [introDone, setIntroDone] = useState(skipIntro);
   const [exitStep, setExitStep] = useState<"lines" | "covers" | null>(null);
   const [activeUsesLayout, setActiveUsesLayout] = useState(false);
+  const [infoPanelOpen, setInfoPanelOpen] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const volumeRef = useRef(0.7);
@@ -243,6 +247,7 @@ export function AlbumSlotScene({
   }, [layoutPositions]);
 
   const activeSong = items.find((s) => s.id === activeId) ?? null;
+  const activeInfoText = activeSong ? getLocalized(activeSong.infoText, locale) : "";
   const isPoleMode = activeId !== null;
   const isCloud = variant === "nano" || variant === "club";
   const usePoleLines = variant === "cosmos";
@@ -414,6 +419,7 @@ export function AlbumSlotScene({
       stopAudio();
       setActiveUsesLayout(false);
       setActiveId(song.id);
+      setInfoPanelOpen(false);
       startAudio(song);
     },
     [activeId, exiting, introDone, startAudio, stopAudio]
@@ -428,6 +434,7 @@ export function AlbumSlotScene({
       dragRef.current = null;
       setActiveUsesLayout(false);
       setActiveId(null);
+      setInfoPanelOpen(false);
     },
     [stopAudio]
   );
@@ -527,6 +534,10 @@ export function AlbumSlotScene({
       pointToPercent,
     ]
   );
+
+  useEffect(() => {
+    setInfoPanelOpen(false);
+  }, [activeId]);
 
   useEffect(() => () => stopAudio(), [stopAudio]);
 
@@ -806,6 +817,56 @@ export function AlbumSlotScene({
 
               {isActive && activeSong && !exiting && (
                 <>
+                  {!infoPanelOpen && (
+                    <button
+                      type="button"
+                      data-player-ui
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setInfoPanelOpen(true);
+                      }}
+                      className="cover-info-btn absolute right-2 top-2 z-50"
+                      aria-label={t("songInfo")}
+                    >
+                      <span className="cover-info-btn__glyph">i</span>
+                    </button>
+                  )}
+
+                  <AnimatePresence>
+                    {infoPanelOpen && (
+                      <motion.div
+                        key="cover-info-panel"
+                        data-player-ui
+                        initial={{ x: "100%" }}
+                        animate={{ x: 0 }}
+                        exit={{ x: "100%" }}
+                        transition={{ duration: 0.38, ease: [0.4, 0, 0.2, 1] }}
+                        className="cover-info-panel absolute inset-0 z-[45] flex flex-col"
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setInfoPanelOpen(false);
+                          }}
+                          className="cover-info-panel__close shrink-0 self-end px-3 py-2 text-[11px] uppercase tracking-[0.25em] text-black/55 transition hover:text-black"
+                        >
+                          {t("closeInfo")}
+                        </button>
+                        <div className="cover-info-panel__body flex-1 overflow-y-auto px-5 pb-5 pt-1 text-sm leading-relaxed text-black/88">
+                          {activeInfoText ? (
+                            <p className="whitespace-pre-wrap">{activeInfoText}</p>
+                          ) : (
+                            <p className="text-black/45">{t("noSongInfo")}</p>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   <MotifVolumeSlider
                     value={volume}
                     onChange={handleVolumeChange}

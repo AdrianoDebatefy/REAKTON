@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
-import type { World, WorldAtmosphere } from "@/types/content";
+import type { World, WorldAtmosphere, Locale } from "@/types/content";
 import { WorldView } from "./WorldView";
 import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import { getInitialWorldUiState, writeWorldSession } from "@/lib/world-session";
+import { getLocalized } from "@/lib/locale";
 
 interface WorldColumnsProps {
   worlds: World[];
@@ -142,14 +143,14 @@ function ColumnCaption({
   onDecodeComplete,
 }: {
   world: World;
-  locale: "de" | "en";
+  locale: Locale;
   locked: boolean;
   lockedLabel: string;
   decodeMode: DecodeMode;
   onDecodeComplete?: () => void;
 }) {
   const tone = columnCopyTone(world.atmosphere);
-  const title = world.albumTitle[locale];
+  const title = getLocalized(world.albumTitle, locale);
   return (
     <div className={`landing-column-caption ${columnClass[world.color]}`}>
       <div
@@ -350,7 +351,7 @@ function columnCopyTone(atmosphere: WorldAtmosphere) {
 }
 
 export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
-  const locale = useLocale() as "de" | "en";
+  const locale = useLocale() as Locale;
   const t = useTranslations("home");
   const initialUi = getInitialWorldUiState();
   const [activeId, setActiveId] = useState<string | null>(initialUi.activeId);
@@ -694,7 +695,7 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
               className={`h-full w-full border-0 bg-transparent p-0 ${
                 world.locked ? "cursor-not-allowed" : "cursor-pointer"
               }`}
-              aria-label={`${world.albumTitle[locale]} — ${t("enterWorld")}`}
+              aria-label={`${getLocalized(world.albumTitle, locale)} — ${t("enterWorld")}`}
             />
           ))}
         </div>
@@ -755,7 +756,7 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
               <div className="relative z-20">
                 <DecodeText
                   as="h2"
-                  text={world.albumTitle[locale]}
+                  text={getLocalized(world.albumTitle, locale)}
                   mode={landingCaptionMode === "hidden" ? "out" : captionDecodeMode}
                   className={`text-[30px] font-light ${tone.title}`}
                   style={tone.titleStyle}

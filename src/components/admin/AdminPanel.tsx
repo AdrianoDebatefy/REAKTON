@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { SiteContent, SiteLinks, Song, World } from "@/types/content";
+import type { LocalizedString, SiteContent, SiteLinks, Song, World } from "@/types/content";
+import { CONTENT_LOCALES, LOCALE_LABELS, emptyLocalized } from "@/lib/locale";
 
 async function uploadFile(file: File): Promise<string> {
   const form = new FormData();
@@ -11,6 +12,29 @@ async function uploadFile(file: File): Promise<string> {
   const data = (await res.json()) as { url: string };
   return data.url;
 }
+
+type MainTab = "welten" | "logo" | "links" | "legal";
+
+const WORLD_TAB_STYLES: Record<
+  World["atmosphere"],
+  { header: string; tab: string; tabActive: string }
+> = {
+  cosmos: {
+    header: "bg-[#1a3a6e]/90 border-sky-400/30",
+    tab: "border-sky-400/25 text-sky-100/70 hover:bg-sky-900/40",
+    tabActive: "bg-[#1a3a6e]/80 border-sky-300/50 text-white",
+  },
+  nano: {
+    header: "bg-[#4a5568]/90 border-slate-300/30",
+    tab: "border-slate-300/25 text-slate-100/70 hover:bg-slate-700/50",
+    tabActive: "bg-[#5a6578]/90 border-slate-200/45 text-white",
+  },
+  club: {
+    header: "bg-[#6b1528]/90 border-red-400/35",
+    tab: "border-red-400/30 text-red-100/75 hover:bg-red-950/50",
+    tabActive: "bg-[#7a1a32]/90 border-red-300/50 text-white",
+  },
+};
 
 function UploadField({
   label,
@@ -57,6 +81,46 @@ function UploadField({
   );
 }
 
+function LocalizedFields({
+  label,
+  value,
+  onChange,
+  multiline,
+}: {
+  label: string;
+  value: LocalizedString;
+  onChange: (v: LocalizedString) => void;
+  multiline?: boolean;
+}) {
+  return (
+    <div className="rounded border border-white/10 bg-black/20 p-3">
+      <p className="mb-3 text-[10px] uppercase tracking-widest text-white/45">{label}</p>
+      <div className="grid gap-3 md:grid-cols-3">
+        {CONTENT_LOCALES.map((locale) => (
+          <label key={locale} className="block text-xs text-white/55">
+            {LOCALE_LABELS[locale]}
+            {multiline ? (
+              <textarea
+                rows={4}
+                value={value[locale] ?? ""}
+                onChange={(e) => onChange({ ...value, [locale]: e.target.value })}
+                className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-sm leading-relaxed"
+              />
+            ) : (
+              <input
+                type="text"
+                value={value[locale] ?? ""}
+                onChange={(e) => onChange({ ...value, [locale]: e.target.value })}
+                className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-sm"
+              />
+            )}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SongSlotEditor({
   song,
   index,
@@ -66,10 +130,13 @@ function SongSlotEditor({
   index: number;
   onChange: (s: Song) => void;
 }) {
+  const infoText = song.infoText ?? emptyLocalized();
+
   return (
-    <div className="rounded border border-white/10 p-3">
-      <p className="mb-2 text-[10px] uppercase tracking-widest text-white/40">Slot {index + 1}</p>
-      <label className="mb-2 block text-xs text-white/55">
+    <div className="rounded border border-white/10 bg-black/25 p-3">
+      <p className="mb-3 text-[10px] uppercase tracking-widest text-white/40">Cover Slot {index + 1}</p>
+
+      <label className="mb-3 block text-xs text-white/55">
         Titel (unterer Balken)
         <input
           type="text"
@@ -79,7 +146,15 @@ function SongSlotEditor({
           className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1 text-sm"
         />
       </label>
-      <div className="space-y-2">
+
+      <LocalizedFields
+        label="Song-Info (Sidepanel beim Info-Button)"
+        value={infoText}
+        onChange={(infoText) => onChange({ ...song, infoText })}
+        multiline
+      />
+
+      <div className="mt-3 space-y-2">
         <UploadField
           label="Bild (Cover)"
           accept="image/*"
@@ -99,7 +174,7 @@ function SongSlotEditor({
           onChange={(url) => onChange({ ...song, audioSnippet: url || undefined })}
         />
         <label className="block text-xs text-white/55">
-          Video-Link (YouTube — «Video ansehen» nur wenn gesetzt)
+          Video-Link (YouTube)
           <input
             type="url"
             value={song.videoUrl ?? ""}
@@ -129,6 +204,7 @@ function WorldEditor({
   onChange: (w: World) => void;
 }) {
   const slotCount = defaultSlotCount(world);
+  const styles = WORLD_TAB_STYLES[world.atmosphere];
 
   const ensureSlots = useCallback(() => {
     const songs = [...world.songs];
@@ -143,61 +219,88 @@ function WorldEditor({
   }, [world, slotCount, onChange]);
 
   return (
-    <div className="space-y-4 rounded border border-white/15 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm uppercase tracking-widest">{world.albumTitle.de}</h2>
-        <label className="flex items-center gap-2 text-xs text-white/50" title="Spalte auf der Landingpage klickbar">
-          <input
-            type="checkbox"
-            checked={!world.locked}
-            onChange={(e) => onChange({ ...world, locked: !e.target.checked })}
-          />
-          Spalte freigeschaltet
-        </label>
+    <div className="overflow-hidden rounded border border-white/15">
+      <div className={`border-b px-4 py-3 ${styles.header}`}>
+        <h2 className="text-sm uppercase tracking-widest text-white/95">{world.albumTitle.de}</h2>
+        <p className="mt-1 text-xs text-white/60">
+          Spalten-Label: {world.columnLabel.de} · {slotCount} Cover-Slots
+        </p>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <UploadField
-          label="Welt-Hintergrund Bild Desktop (16:9, z. B. Erde.jpg / nano.jpg)"
-          accept="image/*"
-          value={world.backgroundImage}
-          onChange={(url) => onChange({ ...world, backgroundImage: url })}
-        />
-        <UploadField
-          label="Welt-Hintergrund Bild Mobile (9:16, optional)"
-          accept="image/*"
-          value={world.backgroundImageMobile ?? ""}
-          onChange={(url) => onChange({ ...world, backgroundImageMobile: url || undefined })}
-        />
-        <UploadField
-          label="Welt-Hintergrund Animation (MP4, optional)"
-          accept="video/mp4,video/webm"
-          value={world.backgroundVideo ?? ""}
-          onChange={(url) => onChange({ ...world, backgroundVideo: url || undefined })}
-        />
-      </div>
+      <div className="space-y-4 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label className="flex items-center gap-2 text-xs text-white/50">
+            <input
+              type="checkbox"
+              checked={!world.locked}
+              onChange={(e) => onChange({ ...world, locked: !e.target.checked })}
+            />
+            Spalte auf Landingpage freigeschaltet
+          </label>
+          <button
+            type="button"
+            onClick={ensureSlots}
+            className="text-xs uppercase tracking-widest text-white/50 underline"
+          >
+            {slotCount} Slots vorbereiten
+          </button>
+        </div>
 
-      <button
-        type="button"
-        onClick={ensureSlots}
-        className="text-xs uppercase tracking-widest text-white/50 underline"
-      >
-        {slotCount} Slots vorbereiten
-      </button>
+        <LocalizedFields
+          label="Spalten-Label (Landing, unten)"
+          value={world.columnLabel}
+          onChange={(columnLabel) => onChange({ ...world, columnLabel })}
+        />
+        <LocalizedFields
+          label="Welt-Titel (welcome to …)"
+          value={world.albumTitle}
+          onChange={(albumTitle) => onChange({ ...world, albumTitle })}
+        />
+        <LocalizedFields
+          label="Themen-Beschreibung"
+          value={world.themeDescription}
+          onChange={(themeDescription) => onChange({ ...world, themeDescription })}
+          multiline
+        />
 
-      <div className="grid gap-3 md:grid-cols-2">
-        {world.songs.slice(0, slotCount).map((song, i) => (
-          <SongSlotEditor
-            key={song.id}
-            index={i}
-            song={song}
-            onChange={(s) => {
-              const songs = [...world.songs];
-              songs[i] = s;
-              onChange({ ...world, songs });
-            }}
+        <div className="grid gap-3 md:grid-cols-2">
+          <UploadField
+            label="Hintergrund Desktop (16:9)"
+            accept="image/*"
+            value={world.backgroundImage}
+            onChange={(url) => onChange({ ...world, backgroundImage: url })}
           />
-        ))}
+          <UploadField
+            label="Hintergrund Mobile (9:16, optional)"
+            accept="image/*"
+            value={world.backgroundImageMobile ?? ""}
+            onChange={(url) => onChange({ ...world, backgroundImageMobile: url || undefined })}
+          />
+          <UploadField
+            label="Hintergrund Animation (MP4, optional)"
+            accept="video/mp4,video/webm"
+            value={world.backgroundVideo ?? ""}
+            onChange={(url) => onChange({ ...world, backgroundVideo: url || undefined })}
+          />
+        </div>
+
+        <div>
+          <p className="mb-3 text-[10px] uppercase tracking-widest text-white/40">Cover-Slots</p>
+          <div className="grid gap-3 md:grid-cols-2">
+            {world.songs.slice(0, slotCount).map((song, i) => (
+              <SongSlotEditor
+                key={song.id}
+                index={i}
+                song={song}
+                onChange={(s) => {
+                  const songs = [...world.songs];
+                  songs[i] = s;
+                  onChange({ ...world, songs });
+                }}
+              />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -236,6 +339,13 @@ function SiteLinksEditor({
   );
 }
 
+const MAIN_TABS: { id: MainTab; label: string }[] = [
+  { id: "welten", label: "Spalten & Welten" },
+  { id: "logo", label: "Header-Logo" },
+  { id: "links", label: "Links" },
+  { id: "legal", label: "Rechtstexte" },
+];
+
 export function AdminPanel({
   content,
   onSave,
@@ -246,6 +356,8 @@ export function AdminPanel({
   const [data, setData] = useState(content);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [mainTab, setMainTab] = useState<MainTab>("welten");
+  const [worldTab, setWorldTab] = useState(0);
 
   async function save() {
     setSaving(true);
@@ -267,7 +379,7 @@ export function AdminPanel({
     link.download = `reakton-content-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
     URL.revokeObjectURL(url);
-    setMessage("Backup heruntergeladen — Bilder/Audio liegen weiterhin in public/uploads/");
+    setMessage("Backup heruntergeladen.");
   }
 
   async function importBackup(file: File) {
@@ -281,15 +393,15 @@ export function AdminPanel({
     }
   }
 
+  const activeWorld = data.worlds[worldTab];
+  const worldStyles = activeWorld ? WORLD_TAB_STYLES[activeWorld.atmosphere] : WORLD_TAB_STYLES.cosmos;
+
   return (
     <div className="mx-auto max-w-5xl px-4 pb-16 pt-24">
       <h1 className="text-xl font-light uppercase tracking-widest">REAKTON Admin</h1>
       <p className="mt-2 text-xs text-white/50">
-        Pro Slot: Cover, Titel, optional MP4/Audio/YouTube-Link. Welt: Hintergrundbild + optional MP4.
-      </p>
-      <p className="mt-2 text-xs leading-relaxed text-white/40">
-        Speichern schreibt nach <code className="text-white/55">data/site-content.local.json</code> (bleibt beim
-        Git-Update erhalten). Medien in <code className="text-white/55">public/uploads/</code> nicht überschreiben.
+        REAKTON WEBSITE 2026 — Inhalte nach Tabs sortiert. Lokale Datei:{" "}
+        <code className="text-white/55">data/site-content.local.json</code>
       </p>
 
       <div className="mt-4 flex flex-wrap gap-3">
@@ -315,52 +427,115 @@ export function AdminPanel({
         </label>
       </div>
 
-      <div className="mt-8 rounded border border-white/15 p-4">
-        <h2 className="text-sm uppercase tracking-widest">Header-Logo</h2>
-        <p className="mt-1 text-xs text-white/45">
-          Wird oben links angezeigt (30px Höhe = 50%). WebP mit Transparenz empfohlen.
-        </p>
-        <div className="mt-4 max-w-md">
-          <UploadField
-            label="REAKTON-Logo"
-            accept="image/*"
-            value={data.brandLogo ?? "/brand/reakton-logo.webp"}
-            onChange={(url) => setData({ ...data, brandLogo: url })}
-          />
-        </div>
-        <img
-          src={data.brandLogo ?? "/brand/reakton-logo.webp"}
-          alt="Logo-Vorschau"
-          className="mt-4 h-[30px] w-auto"
-        />
-      </div>
-
-      <div className="mt-8 rounded border border-white/15 p-4">
-        <h2 className="text-sm uppercase tracking-widest">Links (Header)</h2>
-        <p className="mt-1 text-xs text-white/45">
-          Merchandise, Presse, YouTube, Instagram, Facebook. Interne Pfade wie /press sind möglich.
-        </p>
-        <div className="mt-4 max-w-md">
-          <SiteLinksEditor
-            links={data.siteLinks}
-            onChange={(siteLinks) => setData({ ...data, siteLinks })}
-          />
-        </div>
-      </div>
-
-      <div className="mt-8 space-y-8">
-        {data.worlds.map((world, wi) => (
-          <WorldEditor
-            key={world.id}
-            world={world}
-            onChange={(w) => {
-              const worlds = [...data.worlds];
-              worlds[wi] = w;
-              setData({ ...data, worlds });
-            }}
-          />
+      <nav className="mt-8 flex flex-wrap gap-2 border-b border-white/10 pb-1" aria-label="Admin-Bereiche">
+        {MAIN_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setMainTab(tab.id)}
+            className={`px-4 py-2 text-[11px] uppercase tracking-widest transition ${
+              mainTab === tab.id
+                ? "border-b-2 border-white text-white"
+                : "text-white/45 hover:text-white/75"
+            }`}
+          >
+            {tab.label}
+          </button>
         ))}
-      </div>
+      </nav>
+
+      {mainTab === "welten" && (
+        <div className="mt-6">
+          <div className="flex flex-wrap gap-2">
+            {data.worlds.map((world, wi) => {
+              const styles = WORLD_TAB_STYLES[world.atmosphere];
+              return (
+                <button
+                  key={world.id}
+                  type="button"
+                  onClick={() => setWorldTab(wi)}
+                  className={`rounded border px-3 py-2 text-[10px] uppercase tracking-widest transition ${
+                    worldTab === wi ? styles.tabActive : styles.tab
+                  }`}
+                >
+                  Welt {wi + 1}: {world.columnLabel.de}
+                </button>
+              );
+            })}
+          </div>
+
+          {activeWorld && (
+            <div className={`mt-4 rounded-t-lg border border-white/15 ${worldStyles.header} px-4 py-2`}>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-white/70">
+                Content · Welt {worldTab + 1}
+              </p>
+            </div>
+          )}
+
+          <div className="space-y-6">
+            {activeWorld && (
+              <WorldEditor
+                world={activeWorld}
+                onChange={(w) => {
+                  const worlds = [...data.worlds];
+                  worlds[worldTab] = w;
+                  setData({ ...data, worlds });
+                }}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {mainTab === "logo" && (
+        <div className="mt-6 rounded border border-white/15 p-4">
+          <h2 className="text-sm uppercase tracking-widest">Header-Logo</h2>
+          <p className="mt-1 text-xs text-white/45">WebP mit Transparenz, 30px Höhe im Header.</p>
+          <div className="mt-4 max-w-md">
+            <UploadField
+              label="REAKTON-Logo"
+              accept="image/*"
+              value={data.brandLogo ?? "/brand/reakton-logo.webp"}
+              onChange={(url) => setData({ ...data, brandLogo: url })}
+            />
+          </div>
+          <img
+            src={data.brandLogo ?? "/brand/reakton-logo.webp"}
+            alt="Logo-Vorschau"
+            className="mt-4 h-[30px] w-auto"
+          />
+        </div>
+      )}
+
+      {mainTab === "links" && (
+        <div className="mt-6 rounded border border-white/15 p-4">
+          <h2 className="text-sm uppercase tracking-widest">Links (Header)</h2>
+          <div className="mt-4 max-w-md">
+            <SiteLinksEditor
+              links={data.siteLinks}
+              onChange={(siteLinks) => setData({ ...data, siteLinks })}
+            />
+          </div>
+        </div>
+      )}
+
+      {mainTab === "legal" && (
+        <div className="mt-6 space-y-4 rounded border border-white/15 p-4">
+          <h2 className="text-sm uppercase tracking-widest">Rechtstexte</h2>
+          <LocalizedFields
+            label="Impressum"
+            value={data.impressum}
+            onChange={(impressum) => setData({ ...data, impressum })}
+            multiline
+          />
+          <LocalizedFields
+            label="Datenschutz"
+            value={data.datenschutz}
+            onChange={(datenschutz) => setData({ ...data, datenschutz })}
+            multiline
+          />
+        </div>
+      )}
 
       <button
         type="button"

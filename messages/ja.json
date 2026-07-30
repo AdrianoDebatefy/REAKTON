@@ -1,0 +1,76 @@
+{
+  "nav": {
+    "live": "ライブ",
+    "merch": "グッズ",
+    "press": "プレス",
+    "toy": "トイ",
+    "contact": "お問い合わせ",
+    "impressum": "法的情報",
+    "datenschutz": "プライバシー",
+    "back": "戻る",
+    "home": "ホーム"
+  },
+  "home": {
+    "locked": "近日公開",
+    "lockedHint": "2026年11月より利用可能",
+    "enterWorld": "ワールドへ",
+    "toyTitle": "Clap-Toy",
+    "toyDescription": "インタラクティブ体験 — reakton.de/clap-toy で近日公開",
+    "toyCta": "Clap-Toy へ"
+  },
+  "world": {
+    "watchVideo": "動画を見る",
+    "closeVideo": "閉じる",
+    "themeLabel": "welcome to",
+    "nowPlaying": "再生中",
+    "play": "再生",
+    "pause": "一時停止",
+    "noAudio": "オーディオは準備中",
+    "backToGrid": "戻る",
+    "dragCovers": "カバーをドラッグして移動",
+    "songInfo": "曲情報",
+    "closeInfo": "閉じる",
+    "noSongInfo": "この曲の情報はまだありません。"
+  },
+  "press": {
+    "title": "プレス",
+    "subtitle": "インタビュー、レビュー、メディア掲載",
+    "readMore": "記事を読む"
+  },
+  "live": {
+    "title": "ライブ",
+    "subtitle": "コンサートとパフォーマンス",
+    "consentRequired": "YouTube動画はCookie同意後に読み込まれます。"
+  },
+  "merch": {
+    "title": "グッズ",
+    "subtitle": "パートナー店舗の音楽とグッズ"
+  },
+  "contact": {
+    "title": "お問い合わせ",
+    "name": "名前",
+    "email": "メール",
+    "subject": "件名（任意）",
+    "message": "メッセージ",
+    "gdpr": "プライバシーポリシーに基づくデータ処理に同意します。",
+    "submit": "送信",
+    "success": "ありがとうございます — メッセージを送信しました。",
+    "error": "エラーが発生しました。もう一度お試しください。",
+    "captcha": "セキュリティ質問: {a} + {b} は？"
+  },
+  "cookie": {
+    "title": "Cookieと同意",
+    "description": "必須Cookieを使用し、外部コンテンツ（YouTubeなど）は同意後にのみ読み込みます。",
+    "accept": "すべて許可",
+    "essential": "必須のみ",
+    "privacy": "プライバシー"
+  },
+  "legal": {
+    "impressumTitle": "法的情報",
+    "datenschutzTitle": "プライバシーポリシー"
+  },
+  "meta": {
+    "title": "REAKTON — Robotronic Music",
+    "description": "REAKTON — ベルリンのエレクトロデュオ。電子ポップ文化の進化形としてのロボトロニック・ミュージック。"
+  }
+}

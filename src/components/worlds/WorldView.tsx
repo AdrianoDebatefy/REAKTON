@@ -6,6 +6,8 @@ import { motion } from "framer-motion";
 import type { World } from "@/types/content";
 import { AlbumSlotScene } from "./AlbumSlotScene";
 import { DecodeText, type DecodeMode } from "@/components/DecodeText";
+import type { Locale } from "@/types/content";
+import { getLocalized } from "@/lib/locale";
 import { consumeLocaleSwitch } from "@/lib/world-session";
 import cosmosLayout from "@/data/cosmos-layout.json";
 import nanoLayout from "@/data/nano-layout.json";
@@ -25,7 +27,7 @@ const atmosphereClass: Record<World["atmosphere"], string> = {
 const HEADER_DECODE_MS = 720;
 
 export function WorldView({ world, onBack }: WorldViewProps) {
-  const locale = useLocale() as "de" | "en";
+  const locale = useLocale() as Locale;
   const t = useTranslations("world");
   const tNav = useTranslations("nav");
   const localeSwitchOnMount = useRef(consumeLocaleSwitch());
@@ -131,7 +133,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
         </p>
         <DecodeText
           as="h1"
-          text={world.albumTitle[locale]}
+          text={getLocalized(world.albumTitle, locale)}
           mode={headerDecodeMode}
           duration={HEADER_DECODE_MS}
           className="mt-2 text-[40px] font-light tracking-wide md:text-[60px]"
@@ -140,7 +142,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
           <p className="mt-6 max-w-2xl text-2xl leading-relaxed text-white/45">
             <DecodeText
               as="span"
-              text={world.themeDescription[locale]}
+              text={getLocalized(world.themeDescription, locale)}
               mode={headerDecodeMode}
               duration={HEADER_DECODE_MS}
             />
@@ -161,6 +163,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
           exiting={exiting}
           skipIntro={localeSwitchOnMount.current}
           onExitComplete={handleExitComplete}
+          locale={locale}
         />
       ) : (
         <p className="relative z-10 mx-auto max-w-6xl px-4 text-sm text-white/40">—</p>

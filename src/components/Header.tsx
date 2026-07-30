@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/routing";
 import type { SiteLinks } from "@/types/content";
 import { markLocaleSwitch } from "@/lib/world-session";
+import { localeSwitchLabel, nextLocale } from "@/lib/locale";
 
 interface HeaderProps {
   logoUrl?: string;
@@ -85,7 +86,7 @@ export function Header({ logoUrl, siteLinks, clapToyUrl, onHomeClick }: HeaderPr
   const router = useRouter();
 
   const switchLocale = () => {
-    const next = locale === "de" ? "en" : "de";
+    const next = nextLocale(locale);
     markLocaleSwitch();
     router.replace(pathname, { locale: next });
   };
@@ -172,7 +173,7 @@ export function Header({ logoUrl, siteLinks, clapToyUrl, onHomeClick }: HeaderPr
             className={`rounded border border-white/15 px-2.5 py-1 ${headerTextClass} text-white/60 hover:border-white/30`}
             aria-label="Switch language"
           >
-            {locale === "de" ? "EN" : "DE"}
+            {localeSwitchLabel(locale)}
           </button>
 
           <details className="relative lg:hidden">

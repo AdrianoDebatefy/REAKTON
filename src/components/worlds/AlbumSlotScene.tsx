@@ -464,20 +464,6 @@ export function AlbumSlotScene({
     [activeId, exiting, introDone, startAudio, stopAudio]
   );
 
-  const handleBackToDefault = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      stopAudio();
-      setDragLivePos(null);
-      setDraggingIndex(null);
-      dragRef.current = null;
-      setActiveUsesLayout(false);
-      setActiveId(null);
-      setInfoPanelOpen(false);
-    },
-    [stopAudio]
-  );
-
   const handleCoverPointerDown = useCallback(
     (index: number, e: React.PointerEvent) => {
       if (!introDone || exiting) return;
@@ -660,7 +646,18 @@ export function AlbumSlotScene({
     <motion.div
       ref={sceneRef}
       className="album-slot-scene relative -mx-4 mt-4 h-[calc(100vh-12rem)] min-h-[480px] overflow-visible md:-mx-0 md:h-[calc(100vh-11rem)]"
-      onClick={() => onBackgroundClick?.()}
+      onClick={(e) => {
+        if (isPoleMode && !exiting && !infoPanelOpen && e.target === e.currentTarget) {
+          stopAudio();
+          setDragLivePos(null);
+          setDraggingIndex(null);
+          dragRef.current = null;
+          setActiveUsesLayout(false);
+          setActiveId(null);
+          return;
+        }
+        onBackgroundClick?.();
+      }}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") onBackgroundClick?.();
       }}
@@ -810,18 +807,6 @@ export function AlbumSlotScene({
             aria-label={song.title}
             aria-pressed={isActive}
           >
-            {isPoleMode && isActive && !exiting && (
-              <button
-                type="button"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={handleBackToDefault}
-                className="absolute left-1.5 top-1.5 z-50 flex h-14 w-14 items-center justify-center rounded-sm bg-black/50 text-2xl text-white/80 backdrop-blur-sm transition hover:bg-black/70 hover:text-white"
-                aria-label={t("backToGrid")}
-              >
-                ←
-              </button>
-            )}
-
             <motion.div
               className={`relative h-full w-full ${driftClass}`}
               onMouseEnter={() => isActive && setShowVolume(true)}

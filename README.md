@@ -63,4 +63,4 @@ ADMIN_SECRET=your-jwt-secret
 
 ## Clap-Toy
 
-Placeholder section on homepage links to `reakton.de/clap-toy` (configurable in admin JSON).
+Homepage footer and header link to `clapToyUrl` in `site-content.json` (default `https://reakton.de/clap-toy`). Full embed/route integration pending — see `docs/SESSION-HANDOFF-2026-07-30.md`.

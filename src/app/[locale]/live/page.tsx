@@ -15,14 +15,19 @@ export default async function LivePage() {
       <p className="mt-2 text-sm text-white/50">{t("subtitle")}</p>
       <p className="mt-4 text-xs text-white/40">{t("consentRequired")}</p>
       <div className="mt-10 space-y-10">
-        {content.liveVideos.map((video) => (
-          <section key={video.id}>
-            <h2 className="mb-4 text-sm uppercase tracking-widest text-white/60">
-              {getLocalized(video.title, locale)}
-            </h2>
-            <YouTubeEmbed url={video.youtubeUrl} title={getLocalized(video.title, locale)} />
-          </section>
-        ))}
+        {content.liveVideos
+          .filter((video) => video.youtubeUrl.trim())
+          .map((video) => {
+            const title = getLocalized(video.title, locale);
+            return (
+              <section key={video.id}>
+                {title ? (
+                  <h2 className="mb-4 text-sm uppercase tracking-widest text-white/60">{title}</h2>
+                ) : null}
+                <YouTubeEmbed url={video.youtubeUrl} title={title || t("title")} />
+              </section>
+            );
+          })}
       </div>
     </div>
   );

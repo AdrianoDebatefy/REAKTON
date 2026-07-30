@@ -8,6 +8,7 @@ import { CookieProvider } from "@/context/CookieContext";
 import { CookieBanner } from "@/components/CookieBanner";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { PageViewTracker } from "@/components/PageViewTracker";
 import { getSiteContent } from "@/lib/content";
 import "../globals.css";
 
@@ -68,6 +69,7 @@ export default async function LocaleLayout({
             <main>{children}</main>
             <Footer />
             <CookieBanner />
+            <PageViewTracker />
           </CookieProvider>
         </NextIntlClientProvider>
       </body>

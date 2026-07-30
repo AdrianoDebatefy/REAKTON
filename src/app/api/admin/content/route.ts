@@ -1,23 +1,7 @@
 import { NextResponse } from "next/server";
-import { jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { isAdmin } from "@/lib/admin-auth";
 import { getSiteContent, saveSiteContent } from "@/lib/content";
 import type { SiteContent } from "@/types/content";
-
-const secret = new TextEncoder().encode(
-  process.env.ADMIN_SECRET || "reakton-dev-secret-change-in-production"
-);
-
-async function isAdmin(): Promise<boolean> {
-  const token = cookies().get("reakton_admin")?.value;
-  if (!token) return false;
-  try {
-    await jwtVerify(token, secret);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export async function GET() {
   if (!(await isAdmin())) {

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
-import type { SiteContent, SiteLinks } from "@/types/content";
+import type { SiteContent, SiteLinks, World } from "@/types/content";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DATA_PATH = path.join(DATA_DIR, "site-content.json");
@@ -20,8 +20,16 @@ function normalizeSiteContent(raw: Record<string, unknown>): SiteContent {
     socialLinks?: { id: string; platform: string; url: string }[];
   };
 
-  if (content.siteLinks) {
-    return { ...content, siteLinks: { ...DEFAULT_SITE_LINKS, ...content.siteLinks } };
+  const worlds = (content.worlds ?? []).map((world) => {
+    const rest = { ...world } as World & { backgroundVideo?: string };
+    delete rest.backgroundVideo;
+    return rest;
+  });
+
+  const base = { ...content, worlds };
+
+  if (base.siteLinks) {
+    return { ...base, siteLinks: { ...DEFAULT_SITE_LINKS, ...base.siteLinks } };
   }
 
   const store = content.storeLinks ?? [];
@@ -30,7 +38,7 @@ function normalizeSiteContent(raw: Record<string, unknown>): SiteContent {
     social.find((s) => s.platform.toLowerCase().includes(name))?.url ?? "";
 
   return {
-    ...content,
+    ...base,
     siteLinks: {
       merchandise:
         store.find((s) => s.id === "outofline")?.url ??

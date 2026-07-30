@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import type { World } from "@/types/content";
 import { AlbumSlotScene } from "./AlbumSlotScene";
+import { WorldAmbientAudio } from "./WorldAmbientAudio";
 import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import type { Locale } from "@/types/content";
 import { getLocalized } from "@/lib/locale";
@@ -102,6 +103,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
 
   return (
     <div className={`relative min-h-screen bg-transparent pt-24 ${atmosphereClass[world.atmosphere]}`}>
+      <WorldAmbientAudio src={world.backgroundAudio} />
       {!useGlobalBackground && (
         <>
           <div className="halftone-overlay" />
@@ -155,7 +157,6 @@ export function WorldView({ world, onBack }: WorldViewProps) {
           songs={world.songs}
           positions={layout}
           backgroundImage={useGlobalBackground ? undefined : world.backgroundImage}
-          backgroundVideo={world.backgroundVideo}
           hideEarthLayer={useGlobalBackground}
           variant={world.atmosphere}
           maxSlots={world.slotCount ?? (world.atmosphere === "cosmos" ? 12 : world.atmosphere === "nano" ? 13 : 14)}

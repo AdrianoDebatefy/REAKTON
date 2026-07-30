@@ -32,6 +32,7 @@ yarn-error.log*
 # contact form submissions
 /data/messages/
 /data/site-content.local.json
+/data/analytics.json
 /public/uploads/
 
 # vercel

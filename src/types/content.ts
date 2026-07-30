@@ -36,8 +36,8 @@ export interface World {
   backgroundImage: string;
   /** Optional: Mobile-Hintergrund (9:16), z. B. Erde-mobile.jpg */
   backgroundImageMobile?: string;
-  /** Optional: Hintergrund-Animation (MP4), z. B. animierte Erde */
-  backgroundVideo?: string;
+  /** Optional: Ambient-Soundloop (MP3) für diese Welt */
+  backgroundAudio?: string;
   ogImage: string;
   songs: Song[];
   /** Max. Anzahl Cover-Slots in dieser Welt */
@@ -55,8 +55,9 @@ export interface PressEntry {
 
 export interface LiveVideo {
   id: string;
-  title: LocalizedString;
   youtubeUrl: string;
+  /** Optional — wenn leer, nur Embed ohne Titel */
+  title?: LocalizedString;
 }
 
 export interface SiteLinks {

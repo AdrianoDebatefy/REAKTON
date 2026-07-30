@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { LocalizedString, SiteContent, SiteLinks, Song, World } from "@/types/content";
+import type { LiveVideo, LocalizedString, SiteContent, SiteLinks, Song, World } from "@/types/content";
+import type { AnalyticsData } from "@/lib/analytics";
 import { CONTENT_LOCALES, LOCALE_LABELS, emptyLocalized } from "@/lib/locale";
 
 async function uploadFile(file: File): Promise<string> {
@@ -13,7 +14,7 @@ async function uploadFile(file: File): Promise<string> {
   return data.url;
 }
 
-type SectionTab = "content" | "header";
+type SectionTab = "content" | "header" | "live" | "analytics";
 
 const WORLD_THEME: Record<
   World["atmosphere"],
@@ -289,10 +290,10 @@ function WorldMetaEditor({
           inputClassName={`min-w-0 flex-1 border px-2 py-1.5 text-xs ${theme.inputBg}`}
         />
         <UploadField
-          label="Hintergrund Animation (MP4)"
-          accept="video/mp4,video/webm"
-          value={world.backgroundVideo ?? ""}
-          onChange={(url) => onChange({ ...world, backgroundVideo: url || undefined })}
+          label="Soundloop (MP3, Welt)"
+          accept="audio/mpeg,audio/mp3,audio/wav"
+          value={world.backgroundAudio ?? ""}
+          onChange={(url) => onChange({ ...world, backgroundAudio: url || undefined })}
           inputClassName={`min-w-0 flex-1 border px-2 py-1.5 text-xs ${theme.inputBg}`}
         />
       </div>
@@ -380,6 +381,169 @@ function ContentSection({
             theme={theme}
           />
         )}
+      </div>
+    </div>
+  );
+}
+
+function LiveEditor({
+  videos,
+  onChange,
+}: {
+  videos: LiveVideo[];
+  onChange: (videos: LiveVideo[]) => void;
+}) {
+  const addVideo = () => {
+    onChange([
+      ...videos,
+      { id: `live-${Date.now()}`, youtubeUrl: "" },
+    ]);
+  };
+
+  return (
+    <div className="mt-6 space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-white/60">
+          YouTube-Links für die Live-Seite — werden untereinander angezeigt.
+        </p>
+        <button
+          type="button"
+          onClick={addVideo}
+          className="rounded border border-white/25 px-4 py-2 text-[10px] uppercase tracking-widest text-white/80 hover:border-white/50"
+        >
+          + Link
+        </button>
+      </div>
+
+      {videos.length === 0 ? (
+        <p className="text-sm text-white/40">Noch keine Links — «+ Link» hinzufügen.</p>
+      ) : (
+        <ul className="space-y-3">
+          {videos.map((video, index) => (
+            <li key={video.id} className="flex flex-wrap items-center gap-3 rounded border border-white/15 p-3">
+              <span className="text-xs text-white/40">{index + 1}.</span>
+              <input
+                type="url"
+                value={video.youtubeUrl}
+                onChange={(e) => {
+                  const next = [...videos];
+                  next[index] = { ...video, youtubeUrl: e.target.value };
+                  onChange(next);
+                }}
+                placeholder="https://www.youtube.com/watch?v=…"
+                className="min-w-0 flex-1 border border-white/15 bg-black/40 px-2 py-1.5 text-xs"
+              />
+              <button
+                type="button"
+                onClick={() => onChange(videos.filter((v) => v.id !== video.id))}
+                className="text-[10px] uppercase tracking-widest text-white/45 underline hover:text-white/70"
+              >
+                Entfernen
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function AnalyticsSection() {
+  const [stats, setStats] = useState<AnalyticsData | null>(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/analytics");
+        if (!res.ok) throw new Error("unauthorized");
+        const data = (await res.json()) as AnalyticsData;
+        if (!cancelled) setStats(data);
+      } catch {
+        if (!cancelled) setError("Analytics konnten nicht geladen werden.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) return <p className="mt-6 text-sm text-white/50">Lade Analytics…</p>;
+  if (error) return <p className="mt-6 text-sm text-red-300/80">{error}</p>;
+  if (!stats) return null;
+
+  const topPaths = Object.entries(stats.byPath)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 20);
+  const topReferrers = Object.entries(stats.byReferrer)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 20);
+
+  return (
+    <div className="mt-6 space-y-8">
+      <p className="text-xs text-white/45">
+        Einfache Zählung pro Seitenaufruf (Pfad + Referrer-Domain). Keine Geo-Daten — für detaillierte
+        Herkunft z. B. Vercel Analytics oder Plausible.
+      </p>
+
+      <div className="rounded border border-white/15 p-5">
+        <p className="text-[10px] uppercase tracking-widest text-white/50">Gesamt</p>
+        <p className="mt-2 text-3xl font-light tabular-nums">{stats.total}</p>
+        <p className="mt-1 text-xs text-white/40">Page Impressions</p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="rounded border border-white/15 p-4">
+          <h2 className="text-sm uppercase tracking-widest text-white/70">Seiten</h2>
+          {topPaths.length === 0 ? (
+            <p className="mt-4 text-sm text-white/40">Noch keine Daten.</p>
+          ) : (
+            <table className="mt-4 w-full text-left text-xs">
+              <thead>
+                <tr className="text-white/45">
+                  <th className="pb-2">Pfad</th>
+                  <th className="pb-2 text-right">Views</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topPaths.map(([path, count]) => (
+                  <tr key={path} className="border-t border-white/10">
+                    <td className="py-2 font-mono text-white/75">{path}</td>
+                    <td className="py-2 text-right tabular-nums text-white/90">{count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <div className="rounded border border-white/15 p-4">
+          <h2 className="text-sm uppercase tracking-widest text-white/70">Herkunft (Referrer)</h2>
+          {topReferrers.length === 0 ? (
+            <p className="mt-4 text-sm text-white/40">Noch keine Daten.</p>
+          ) : (
+            <table className="mt-4 w-full text-left text-xs">
+              <thead>
+                <tr className="text-white/45">
+                  <th className="pb-2">Quelle</th>
+                  <th className="pb-2 text-right">Views</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topReferrers.map(([source, count]) => (
+                  <tr key={source} className="border-t border-white/10">
+                    <td className="py-2 text-white/75">{source}</td>
+                    <td className="py-2 text-right tabular-nums text-white/90">{count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -517,6 +681,28 @@ export function AdminPanel({
         >
           Header
         </button>
+        <button
+          type="button"
+          onClick={() => setSectionTab("live")}
+          className={`pb-2 text-sm uppercase tracking-[0.35em] transition ${
+            sectionTab === "live"
+              ? "border-b-2 border-white text-white"
+              : "text-white/40 hover:text-white/70"
+          }`}
+        >
+          Live
+        </button>
+        <button
+          type="button"
+          onClick={() => setSectionTab("analytics")}
+          className={`pb-2 text-sm uppercase tracking-[0.35em] transition ${
+            sectionTab === "analytics"
+              ? "border-b-2 border-white text-white"
+              : "text-white/40 hover:text-white/70"
+          }`}
+        >
+          Analytics
+        </button>
       </nav>
 
       {sectionTab === "content" && (
@@ -525,6 +711,15 @@ export function AdminPanel({
           onWorldsChange={(worlds) => setData({ ...data, worlds })}
         />
       )}
+
+      {sectionTab === "live" && (
+        <LiveEditor
+          videos={data.liveVideos}
+          onChange={(liveVideos) => setData({ ...data, liveVideos })}
+        />
+      )}
+
+      {sectionTab === "analytics" && <AnalyticsSection />}
 
       {sectionTab === "header" && (
         <div className="mt-6 space-y-8">

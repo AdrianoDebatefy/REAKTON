@@ -5,6 +5,7 @@ import type { LiveVideo, LocalizedString, PressEntry, SiteContent, SiteLinks, So
 import type { AnalyticsData } from "@/lib/analytics";
 import { CONTENT_LOCALES, LOCALE_LABELS, emptyLocalized } from "@/lib/locale";
 import { PasswordChangeForm } from "@/components/admin/PasswordChangeForm";
+import { ContactMessagesSection } from "@/components/admin/ContactMessagesSection";
 
 async function uploadFile(file: File): Promise<string> {
   const form = new FormData();
@@ -15,7 +16,7 @@ async function uploadFile(file: File): Promise<string> {
   return data.url;
 }
 
-type SectionTab = "content" | "header" | "live" | "press" | "analytics" | "account";
+type SectionTab = "content" | "header" | "live" | "press" | "kontakt" | "analytics" | "account";
 
 const WORLD_THEME: Record<
   World["atmosphere"],
@@ -818,6 +819,17 @@ export function AdminPanel({
         </button>
         <button
           type="button"
+          onClick={() => setSectionTab("kontakt")}
+          className={`pb-2 text-sm uppercase tracking-[0.35em] transition ${
+            sectionTab === "kontakt"
+              ? "border-b-2 border-white text-white"
+              : "text-white/40 hover:text-white/70"
+          }`}
+        >
+          Kontakt
+        </button>
+        <button
+          type="button"
           onClick={() => setSectionTab("analytics")}
           className={`pb-2 text-sm uppercase tracking-[0.35em] transition ${
             sectionTab === "analytics"
@@ -860,6 +872,8 @@ export function AdminPanel({
           onChange={(press) => setData({ ...data, press })}
         />
       )}
+
+      {sectionTab === "kontakt" && <ContactMessagesSection />}
 
       {sectionTab === "analytics" && <AnalyticsSection />}
 

@@ -45,8 +45,9 @@ Content is stored in `data/site-content.json`. Add worlds, songs, press entries,
 ## Contact form
 
 - Header **Kontakt** → `/contact`
-- Submissions are saved as JSON on the server: `data/messages/{timestamp}.json` (not emailed by default)
-- On Vercel/serverless, use persistent storage or email forwarding — files in `data/messages/` are gitignored
+- Submissions saved as JSON on the server: `data/messages/{timestamp}.json` (gitignored, no email)
+- Read and delete messages in Admin → tab **Kontakt**
+- For high volume or serverless without persistent disk, add email forwarding later (e.g. Resend)
 
 ## Environment
 

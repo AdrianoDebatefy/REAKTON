@@ -158,10 +158,6 @@ function ColumnCaption({
   const title = getLocalized(world.albumTitle, locale);
   return (
     <div className={`landing-column-caption ${columnClass[world.color]}`}>
-      <div
-        className={`landing-column-caption__scrim bg-gradient-to-t ${tone.scrim}`}
-        aria-hidden
-      />
       <div className="landing-column-caption__content">
         <DecodeText
           as="h2"
@@ -181,6 +177,56 @@ function ColumnCaption({
     </div>
   );
 }
+
+function LandingScrimLayer({
+  worlds,
+  opacity,
+  variant = "desktop",
+}: {
+  worlds: World[];
+  opacity: number;
+  variant?: "desktop" | "mobile";
+}) {
+  if (variant === "mobile") {
+    return (
+      <div className="pointer-events-none fixed inset-x-0 top-24 bottom-0 z-[5] flex flex-col gap-1 md:hidden">
+        {worlds.map((world) => {
+          const tone = columnCopyTone(world.atmosphere);
+          return (
+            <div key={`scrim-${world.id}`} className="relative min-h-[28vh] w-full">
+              <motion.div
+                className={`pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-36 bg-gradient-to-t ${tone.scrim}`}
+                initial={false}
+                animate={{ opacity }}
+                transition={{ opacity: EARTH_TRANSITION }}
+                aria-hidden
+              />
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 top-24 bottom-0 z-[88] hidden md:grid md:grid-cols-3">
+      {worlds.map((world) => {
+        const tone = columnCopyTone(world.atmosphere);
+        return (
+          <motion.div
+            key={`scrim-${world.id}`}
+            className={`landing-column-caption__scrim bg-gradient-to-t ${tone.scrim}`}
+            initial={false}
+            animate={{ opacity }}
+            transition={{ opacity: EARTH_TRANSITION }}
+            aria-hidden
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 function WorldBgLayer({
   desktopSrc,
   expanded,
@@ -544,6 +590,11 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
   const captionDecodeMode: DecodeMode =
     landingCaptionMode === "hidden" ? "static" : landingCaptionMode;
 
+  const scrimLayerVisible =
+    !showWorld && (landingCaptionMode !== "hidden" || isEntering || isColumnReturning);
+  const scrimFadingOut = landingCaptionMode === "out" || isEntering || showWorld;
+  const scrimOpacity = scrimFadingOut ? 0 : 1;
+
   return (
     <div className="relative min-h-screen pt-24">
       {!hidePageGrain && (
@@ -641,6 +692,13 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
           />
         )}
       </div>
+
+      {scrimLayerVisible && (
+        <>
+          <LandingScrimLayer worlds={worlds} opacity={scrimOpacity} variant="desktop" />
+          <LandingScrimLayer worlds={worlds} opacity={scrimOpacity} variant="mobile" />
+        </>
+      )}
 
       <AnimatePresence>
         {showWorld && activeWorld && (
@@ -741,10 +799,6 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
                   />
                 </motion.div>
               )}
-              <div
-                className={`pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-36 bg-gradient-to-t ${tone.scrim}`}
-                aria-hidden
-              />
               <div className="relative z-20">
                 <DecodeText
                   as="h2"

@@ -756,12 +756,6 @@ export function AlbumSlotScene({
           })}
       </svg>
 
-      {introDone && !exiting && !isPoleMode && (
-        <p className="pointer-events-none absolute left-0 top-0 z-[9] text-[18px] uppercase tracking-widest text-white/35">
-          {t("dragCovers")}
-        </p>
-      )}
-
       {items.map((song, i) => {
         const pos =
           draggingIndex === i && dragLivePos

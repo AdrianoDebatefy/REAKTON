@@ -503,3 +503,30 @@ body {
   background: rgba(0, 0, 0, 0.22);
   border-radius: 9999px;
 }
+
+.cover-info-size-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.35rem;
+  border: 1px solid rgba(0, 0, 0, 0.22);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.55);
+  color: rgba(0, 0, 0, 0.75);
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.cover-info-size-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(0, 0, 0, 0.35);
+  color: rgba(0, 0, 0, 0.9);
+}
+
+.cover-info-size-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}

@@ -30,7 +30,9 @@
     "dragCovers": "Cover ziehen zum Verschieben",
     "songInfo": "Song-Info",
     "closeInfo": "Schließen",
-    "noSongInfo": "Noch keine Informationen zu diesem Track."
+    "noSongInfo": "Noch keine Informationen zu diesem Track.",
+    "textSizeDecrease": "Text kleiner",
+    "textSizeIncrease": "Text größer"
   },
   "press": {
     "title": "Presse",

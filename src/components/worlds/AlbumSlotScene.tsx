@@ -39,6 +39,25 @@ const MOVE_TRANSITION = { duration: 2, ease: [0.4, 0, 0.2, 1] as const };
 const LINE_OUT_TRANSITION = { duration: LINE_OUT_S, ease: [0.4, 0, 0.2, 1] as const };
 const DRAG_CLICK_THRESHOLD_PX = 6;
 
+const INFO_TEXT_SIZE_KEY = "reakton-info-text-size";
+const INFO_TEXT_SIZE_MIN = 12;
+const INFO_TEXT_SIZE_MAX = 22;
+const INFO_TEXT_SIZE_STEP = 2;
+const INFO_TEXT_SIZE_DEFAULT = 14;
+
+function readStoredInfoTextSize(): number {
+  try {
+    const saved = localStorage.getItem(INFO_TEXT_SIZE_KEY);
+    if (saved) {
+      const size = Number(saved);
+      if (size >= INFO_TEXT_SIZE_MIN && size <= INFO_TEXT_SIZE_MAX) return size;
+    }
+  } catch {
+    /* ignore */
+  }
+  return INFO_TEXT_SIZE_DEFAULT;
+}
+
 function getYouTubeId(url: string): string | null {
   const trimmed = url.trim();
   const patterns = [
@@ -231,11 +250,31 @@ export function AlbumSlotScene({
   const [exitStep, setExitStep] = useState<"lines" | "covers" | null>(null);
   const [activeUsesLayout, setActiveUsesLayout] = useState(false);
   const [infoPanelOpen, setInfoPanelOpen] = useState(false);
+  const [infoTextSize, setInfoTextSize] = useState(INFO_TEXT_SIZE_DEFAULT);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const volumeRef = useRef(0.7);
   const slotVideoRef = useRef<HTMLVideoElement | null>(null);
   const exitStartedRef = useRef(false);
+
+  useEffect(() => {
+    setInfoTextSize(readStoredInfoTextSize());
+  }, []);
+
+  const adjustInfoTextSize = useCallback((delta: number) => {
+    setInfoTextSize((prev) => {
+      const next = Math.min(
+        INFO_TEXT_SIZE_MAX,
+        Math.max(INFO_TEXT_SIZE_MIN, prev + delta)
+      );
+      try {
+        localStorage.setItem(INFO_TEXT_SIZE_KEY, String(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, []);
 
   const commitLayoutPositions = useCallback((next: Position[]) => {
     layoutPositionsRef.current = next;
@@ -846,17 +885,48 @@ export function AlbumSlotScene({
                         onPointerDown={(e) => e.stopPropagation()}
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setInfoPanelOpen(false);
-                          }}
-                          className="cover-info-panel__close shrink-0 self-end px-3 py-2 text-[11px] uppercase tracking-[0.25em] text-black/55 transition hover:text-black"
+                        <div className="cover-info-panel__toolbar flex shrink-0 items-center justify-between gap-2 px-3 py-2">
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                adjustInfoTextSize(-INFO_TEXT_SIZE_STEP);
+                              }}
+                              disabled={infoTextSize <= INFO_TEXT_SIZE_MIN}
+                              className="cover-info-size-btn"
+                              aria-label={t("textSizeDecrease")}
+                            >
+                              −
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                adjustInfoTextSize(INFO_TEXT_SIZE_STEP);
+                              }}
+                              disabled={infoTextSize >= INFO_TEXT_SIZE_MAX}
+                              className="cover-info-size-btn"
+                              aria-label={t("textSizeIncrease")}
+                            >
+                              +
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setInfoPanelOpen(false);
+                            }}
+                            className="cover-info-panel__close px-2 py-1 text-[11px] uppercase tracking-[0.25em] text-black/55 transition hover:text-black"
+                          >
+                            {t("closeInfo")}
+                          </button>
+                        </div>
+                        <div
+                          className="cover-info-panel__body flex-1 overflow-y-auto px-5 pb-5 pt-1 leading-relaxed text-black/88"
+                          style={{ fontSize: `${infoTextSize}px` }}
                         >
-                          {t("closeInfo")}
-                        </button>
-                        <div className="cover-info-panel__body flex-1 overflow-y-auto px-5 pb-5 pt-1 text-sm leading-relaxed text-black/88">
                           {activeInfoText ? (
                             <p className="whitespace-pre-wrap">{activeInfoText}</p>
                           ) : (

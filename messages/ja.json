@@ -30,7 +30,9 @@
     "dragCovers": "カバーをドラッグして移動",
     "songInfo": "曲情報",
     "closeInfo": "閉じる",
-    "noSongInfo": "この曲の情報はまだありません。"
+    "noSongInfo": "この曲の情報はまだありません。",
+    "textSizeDecrease": "文字を小さく",
+    "textSizeIncrease": "文字を大きく"
   },
   "press": {
     "title": "プレス",

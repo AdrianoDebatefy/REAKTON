@@ -30,7 +30,9 @@
     "dragCovers": "Drag covers to reposition",
     "songInfo": "Song info",
     "closeInfo": "Close",
-    "noSongInfo": "No information available for this track yet."
+    "noSongInfo": "No information available for this track yet.",
+    "textSizeDecrease": "Smaller text",
+    "textSizeIncrease": "Larger text"
   },
   "press": {
     "title": "Press",

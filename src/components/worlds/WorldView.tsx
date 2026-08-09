@@ -80,24 +80,12 @@ export function WorldView({ world, onBack }: WorldViewProps) {
         : "border-red-400/30";
 
   const backLabel = `← ${tNav("back")}`;
-  const mobileBg = world.backgroundImageMobile || world.backgroundImage;
 
   return (
     <div
       className={`relative min-h-[100dvh] bg-transparent pt-[calc(5.5rem+env(safe-area-inset-top))] md:min-h-screen md:pt-24 ${atmosphereClass[world.atmosphere]}`}
     >
       <WorldAmbientAudio src={world.backgroundAudio} />
-
-      {isMobile && useGlobalBackground && mobileBg ? (
-        <div className="pointer-events-none fixed inset-0 z-0 md:hidden" aria-hidden>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={mobileBg} alt="" className="h-full w-full object-cover object-center" />
-          <div
-            className={`landing-column-overlay landing-column-overlay--${world.atmosphere} absolute inset-0`}
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/55" />
-        </div>
-      ) : null}
       {!useGlobalBackground && (
         <>
           <div className="halftone-overlay" />

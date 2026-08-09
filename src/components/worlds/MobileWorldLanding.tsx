@@ -193,8 +193,11 @@ function PanelBgLayers({
           mobileSrc={bg.mobile}
           onError={bg.onError}
         />
-        <div
+        <motion.div
           className={`landing-column-overlay landing-column-overlay--${world.atmosphere} absolute inset-0`}
+          initial={false}
+          animate={{ opacity: showWorld ? 0 : 1 }}
+          transition={{ opacity: EARTH_TRANSITION }}
           aria-hidden
         />
       </div>
@@ -263,12 +266,15 @@ export function MobileWorldLanding({
     isColumnReturning
   );
   const returnPivotSlot = pivotDisplayIndex(worlds, null, returnFromIndex, true);
+  const fullBleedBg = isImmersed || isColumnReturning;
 
   if (!landingVisible && !isColumnReturning && selectedIndex === null) return null;
 
   return (
     <div
-      className="pointer-events-none fixed inset-x-0 bottom-0 top-[calc(5.5rem+env(safe-area-inset-top))] z-[15] md:hidden"
+      className={`pointer-events-none fixed inset-x-0 bottom-0 z-[15] md:hidden ${
+        fullBleedBg ? "top-0" : "top-[calc(5.5rem+env(safe-area-inset-top))]"
+      }`}
       aria-hidden={showWorld}
     >
       <div className="relative h-full overflow-hidden">

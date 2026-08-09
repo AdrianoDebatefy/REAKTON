@@ -56,22 +56,40 @@ function mobileSlideY(
 }
 
 function mobileSlideDelay(
-  worldIndex: number,
-  selectedIndex: number | null,
+  displayIndex: number,
+  pivotDisplay: number | null,
   isEntering: boolean,
   isColumnReturning: boolean,
   worldCount: number
 ): number {
   if (isColumnReturning) {
-    return (worldCount - 1 - worldIndex) * COLUMN_STAGGER_S;
+    return (worldCount - 1 - displayIndex) * COLUMN_STAGGER_S;
   }
-  if (!isEntering || selectedIndex === null) return 0;
-  if (worldIndex === selectedIndex) return 0;
-  if (worldIndex < selectedIndex) return (selectedIndex - 1 - worldIndex) * COLUMN_STAGGER_S;
-  return (worldIndex - selectedIndex - 1) * COLUMN_STAGGER_S;
+  if (!isEntering || pivotDisplay === null) return 0;
+  if (displayIndex === pivotDisplay) return 0;
+  if (displayIndex < pivotDisplay) return (pivotDisplay - 1 - displayIndex) * COLUMN_STAGGER_S;
+  return (displayIndex - pivotDisplay - 1) * COLUMN_STAGGER_S;
 }
 
 const MOBILE_WORLD_ORDER: WorldAtmosphere[] = ["cosmos", "nano", "club"];
+
+function mobileDisplayIndex(atmosphere: WorldAtmosphere): number {
+  return MOBILE_WORLD_ORDER.indexOf(atmosphere);
+}
+
+function pivotDisplayIndex(
+  worlds: World[],
+  selectedIndex: number | null,
+  returnFromIndex: number | null,
+  isColumnReturning: boolean
+): number | null {
+  const dataIndex = isColumnReturning ? returnFromIndex : selectedIndex;
+  if (dataIndex === null) return null;
+  const world = worlds[dataIndex];
+  if (!world) return null;
+  const slot = mobileDisplayIndex(world.atmosphere);
+  return slot >= 0 ? slot : null;
+}
 
 function sortWorldsForMobile(worlds: World[]): World[] {
   return [...worlds].sort(
@@ -243,6 +261,12 @@ export function MobileWorldLanding({
   const landingVisible = !showWorld;
   const panelCount = worlds.length;
   const mobileWorlds = sortWorldsForMobile(worlds);
+  const pivotSlot = pivotDisplayIndex(
+    worlds,
+    selectedIndex,
+    returnFromIndex,
+    isColumnReturning
+  );
 
   if (!landingVisible && !isColumnReturning && selectedIndex === null) return null;
 
@@ -252,7 +276,7 @@ export function MobileWorldLanding({
       aria-hidden={showWorld}
     >
       <div className="relative h-full overflow-hidden">
-        {mobileWorlds.map((world) => {
+        {mobileWorlds.map((world, displayIndex) => {
           const index = worlds.findIndex((w) => w.id === world.id);
           if (index < 0) return null;
           if (showWorld && index !== selectedIndex) return null;
@@ -260,25 +284,25 @@ export function MobileWorldLanding({
           const locked = world.locked;
           const tone = columnCopyTone(world.atmosphere);
           const bg = bgSourcesForWorld(world);
-          const pivotIndex = isColumnReturning ? returnFromIndex : selectedIndex;
-          const isPivot = pivotIndex !== null && index === pivotIndex;
+          const pivotDataIndex = isColumnReturning ? returnFromIndex : selectedIndex;
+          const isPivot = pivotDataIndex !== null && index === pivotDataIndex;
           const fillsViewport =
             isPivot && (isEntering || isImmersed || showWorld);
-          const panelTop = `calc(100% / ${panelCount} * ${index})`;
+          const panelTop = `calc(100% / ${panelCount} * ${displayIndex})`;
           const panelHeight = `calc(100% / ${panelCount})`;
           const slideY = mobileSlideY(
-            index,
-            pivotIndex,
+            displayIndex,
+            pivotSlot,
             isEntering,
             isImmersed,
             isColumnReturning
           );
           const delay = mobileSlideDelay(
-            index,
-            pivotIndex,
+            displayIndex,
+            pivotSlot,
             isEntering,
             isColumnReturning,
-            worlds.length
+            panelCount
           );
           const slideOffscreen = isAnimating && !isPivot && !isColumnReturning;
           const slideBack = isColumnReturning && !isPivot;
@@ -289,7 +313,9 @@ export function MobileWorldLanding({
               className={`absolute inset-x-0 overflow-hidden ${columnClass[world.color]}`}
               style={{
                 backgroundColor: atmosphereFallbackBg(world.atmosphere),
-                zIndex: fillsViewport ? 20 : index + 1,
+                zIndex: fillsViewport ? 20 : displayIndex + 1,
+                top: fillsViewport ? undefined : panelTop,
+                height: fillsViewport ? undefined : panelHeight,
               }}
               initial={{ y: slideBack ? slideY : 0 }}
               animate={{

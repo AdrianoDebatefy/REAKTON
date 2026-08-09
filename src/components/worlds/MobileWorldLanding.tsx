@@ -12,6 +12,7 @@ const COLUMN_EASE = [0.4, 0, 0.2, 1] as const;
 const CAPTION_DECODE_MS = 720;
 const EARTH_TRANSITION = { duration: COLUMN_EXIT_S, ease: COLUMN_EASE };
 const MOBILE_MEDIA = "(max-width: 767px)";
+const MOBILE_WORLD_ORDER: WorldAtmosphere[] = ["cosmos", "nano", "club"];
 
 function columnCopyTone(atmosphere: WorldAtmosphere) {
   if (atmosphere === "nano") {
@@ -42,16 +43,16 @@ function atmosphereFallbackBg(atmosphere: WorldAtmosphere): string {
 }
 
 function mobileSlideY(
-  worldIndex: number,
-  pivotIndex: number | null,
+  displayIndex: number,
+  pivotDisplay: number | null,
   isEntering: boolean,
   isImmersed: boolean,
   isColumnReturning: boolean
 ): string | number {
   if (!isEntering && !isImmersed && !isColumnReturning) return 0;
-  if (pivotIndex === null) return 0;
-  if (worldIndex === pivotIndex) return 0;
-  if (worldIndex < pivotIndex) return "-100%";
+  if (pivotDisplay === null) return 0;
+  if (displayIndex === pivotDisplay) return 0;
+  if (displayIndex < pivotDisplay) return "-100%";
   return "100%";
 }
 
@@ -70,8 +71,6 @@ function mobileSlideDelay(
   if (displayIndex < pivotDisplay) return (pivotDisplay - 1 - displayIndex) * COLUMN_STAGGER_S;
   return (displayIndex - pivotDisplay - 1) * COLUMN_STAGGER_S;
 }
-
-const MOBILE_WORLD_ORDER: WorldAtmosphere[] = ["cosmos", "nano", "club"];
 
 function mobileDisplayIndex(atmosphere: WorldAtmosphere): number {
   return MOBILE_WORLD_ORDER.indexOf(atmosphere);
@@ -275,7 +274,7 @@ export function MobileWorldLanding({
       className="pointer-events-none fixed inset-x-0 bottom-0 top-[calc(5.5rem+env(safe-area-inset-top))] z-[15] md:hidden"
       aria-hidden={showWorld}
     >
-      <div className="relative h-full overflow-hidden">
+      <div className="grid h-full grid-rows-3 overflow-hidden">
         {mobileWorlds.map((world, displayIndex) => {
           const index = worlds.findIndex((w) => w.id === world.id);
           if (index < 0) return null;
@@ -288,8 +287,6 @@ export function MobileWorldLanding({
           const isPivot = pivotDataIndex !== null && index === pivotDataIndex;
           const fillsViewport =
             isPivot && (isEntering || isImmersed || showWorld);
-          const panelTop = `calc(100% / ${panelCount} * ${displayIndex})`;
-          const panelHeight = `calc(100% / ${panelCount})`;
           const slideY = mobileSlideY(
             displayIndex,
             pivotSlot,
@@ -310,28 +307,18 @@ export function MobileWorldLanding({
           return (
             <motion.div
               key={world.id}
-              className={`absolute inset-x-0 overflow-hidden ${columnClass[world.color]}`}
+              className={`relative min-h-0 overflow-hidden ${columnClass[world.color]}`}
               style={{
                 backgroundColor: atmosphereFallbackBg(world.atmosphere),
+                backgroundImage: `url(${bg.desktop})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                gridRow: fillsViewport ? "1 / -1" : undefined,
                 zIndex: fillsViewport ? 20 : displayIndex + 1,
-                top: fillsViewport ? undefined : panelTop,
-                height: fillsViewport ? undefined : panelHeight,
               }}
               initial={{ y: slideBack ? slideY : 0 }}
-              animate={{
-                top: fillsViewport ? "0%" : panelTop,
-                height: fillsViewport ? "100%" : panelHeight,
-                y: slideOffscreen ? slideY : 0,
-              }}
+              animate={{ y: slideOffscreen ? slideY : 0 }}
               transition={{
-                top:
-                  fillsViewport || isAnimating
-                    ? { ...EARTH_TRANSITION, type: "tween" }
-                    : { duration: 0 },
-                height:
-                  fillsViewport || isAnimating
-                    ? { ...EARTH_TRANSITION, type: "tween" }
-                    : { duration: 0 },
                 y: isAnimating
                   ? { duration: COLUMN_EXIT_S, delay, ease: COLUMN_EASE }
                   : { duration: 0 },

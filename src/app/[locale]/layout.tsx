@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { getMessages, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { Rajdhani } from "next/font/google";
 import { routing } from "@/i18n/routing";
 import type { Locale } from "@/types/content";
 import { CookieProvider } from "@/context/CookieContext";
@@ -11,13 +10,6 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { PageViewTracker } from "@/components/PageViewTracker";
 import { getSiteContent } from "@/lib/content";
-import "../globals.css";
-
-const rajdhani = Rajdhani({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-rajdhani",
-});
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -60,25 +52,18 @@ export default async function LocaleLayout({
   const content = getSiteContent();
 
   return (
-    <html lang={locale}>
-      <body
-        className={`${rajdhani.variable} min-h-[100dvh] bg-[#050508] font-sans text-[#e8e8ec] antialiased md:min-h-screen`}
-        style={{ fontFamily: "var(--font-rajdhani), system-ui, sans-serif" }}
-      >
-        <ClientIntlShell initialLocale={locale as Locale} initialMessages={messages}>
-          <CookieProvider>
-            <Header
-              logoUrl={content.brandLogo}
-              siteLinks={content.siteLinks}
-              clapToyUrl={content.clapToyUrl}
-            />
-            <main>{children}</main>
-            <Footer />
-            <CookieBanner />
-            <PageViewTracker />
-          </CookieProvider>
-        </ClientIntlShell>
-      </body>
-    </html>
+    <ClientIntlShell initialLocale={locale as Locale} initialMessages={messages}>
+      <CookieProvider>
+        <Header
+          logoUrl={content.brandLogo}
+          siteLinks={content.siteLinks}
+          clapToyUrl={content.clapToyUrl}
+        />
+        <main>{children}</main>
+        <Footer />
+        <CookieBanner />
+        <PageViewTracker />
+      </CookieProvider>
+    </ClientIntlShell>
   );
 }

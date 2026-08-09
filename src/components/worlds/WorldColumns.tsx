@@ -692,7 +692,6 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
       </div>
 
       <LandingScrimLayer worlds={worlds} opacity={scrimOpacity} variant="desktop" />
-      <LandingScrimLayer worlds={worlds} opacity={scrimOpacity} variant="mobile" />
 
       <AnimatePresence>
         {showWorld && activeWorld && (

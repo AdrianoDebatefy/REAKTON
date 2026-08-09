@@ -164,10 +164,9 @@ function ColumnBgImage({
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      key={src}
       src={src}
       alt=""
-      className="block h-full w-full object-cover"
+      className="absolute inset-0 block h-full w-full object-cover"
       onError={handleError}
     />
   );
@@ -188,7 +187,7 @@ function PanelBgLayers({
 }) {
   return (
     <>
-      <div className="pointer-events-none absolute inset-0">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <ColumnBgImage
           desktopSrc={bg.desktop}
           mobileSrc={bg.mobile}
@@ -317,10 +316,11 @@ export function MobileWorldLanding({
             <motion.div
               key={world.id}
               layout={false}
-              className={`absolute inset-x-0 overflow-hidden ${columnClass[world.color]}`}
+              className="absolute inset-x-0 overflow-hidden"
               style={{
+                position: "absolute",
                 backgroundColor: atmosphereFallbackBg(world.atmosphere),
-                zIndex: fillsViewport ? 20 : displayIndex + 1,
+                zIndex: fillsViewport ? 30 : displayIndex + 1,
               }}
               initial={slideBack ? { y: slideY } : false}
               animate={{

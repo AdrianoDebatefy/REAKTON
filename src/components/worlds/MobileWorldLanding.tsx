@@ -43,15 +43,15 @@ function atmosphereFallbackBg(atmosphere: WorldAtmosphere): string {
 
 function mobileSlideY(
   worldIndex: number,
-  selectedIndex: number | null,
+  pivotIndex: number | null,
   isEntering: boolean,
   isImmersed: boolean,
   isColumnReturning: boolean
 ): string | number {
-  if (isColumnReturning || selectedIndex === null) return 0;
-  if (!isEntering && !isImmersed) return 0;
-  if (worldIndex === selectedIndex) return 0;
-  if (worldIndex < selectedIndex) return "-100%";
+  if (!isEntering && !isImmersed && !isColumnReturning) return 0;
+  if (pivotIndex === null) return 0;
+  if (worldIndex === pivotIndex) return 0;
+  if (worldIndex < pivotIndex) return "-100%";
   return "100%";
 }
 
@@ -210,6 +210,7 @@ export function MobileWorldLanding({
   isEntering,
   isImmersed,
   isColumnReturning,
+  returnFromIndex,
   showWorld,
   landingCaptionMode,
   captionDecodeMode,
@@ -227,6 +228,7 @@ export function MobileWorldLanding({
   isEntering: boolean;
   isImmersed: boolean;
   isColumnReturning: boolean;
+  returnFromIndex: number | null;
   showWorld: boolean;
   landingCaptionMode: DecodeMode | "hidden";
   captionDecodeMode: DecodeMode;
@@ -239,8 +241,7 @@ export function MobileWorldLanding({
 }) {
   const isAnimating = isEntering || isColumnReturning;
   const landingVisible = !showWorld;
-  const rowPercent = 100 / worlds.length;
-  const useGridLayout = landingVisible && !isAnimating;
+  const panelCount = worlds.length;
   const mobileWorlds = sortWorldsForMobile(worlds);
 
   if (!landingVisible && !isColumnReturning && selectedIndex === null) return null;
@@ -250,11 +251,7 @@ export function MobileWorldLanding({
       className="pointer-events-none fixed inset-x-0 bottom-0 top-[calc(5.5rem+env(safe-area-inset-top))] z-[15] md:hidden"
       aria-hidden={showWorld}
     >
-      <div
-        className={`h-full overflow-hidden ${
-          useGridLayout ? "grid grid-rows-3" : "relative"
-        }`}
-      >
+      <div className="relative h-full overflow-hidden">
         {mobileWorlds.map((world) => {
           const index = worlds.findIndex((w) => w.id === world.id);
           if (index < 0) return null;
@@ -263,63 +260,28 @@ export function MobileWorldLanding({
           const locked = world.locked;
           const tone = columnCopyTone(world.atmosphere);
           const bg = bgSourcesForWorld(world);
-          const isSelected = selectedIndex === index;
+          const pivotIndex = isColumnReturning ? returnFromIndex : selectedIndex;
+          const isPivot = pivotIndex !== null && index === pivotIndex;
           const fillsViewport =
-            isSelected && (isEntering || isImmersed || showWorld);
-          const restingTop = index * rowPercent;
+            isPivot && (isEntering || isImmersed || showWorld);
+          const panelTop = `calc(100% / ${panelCount} * ${index})`;
+          const panelHeight = `calc(100% / ${panelCount})`;
           const slideY = mobileSlideY(
             index,
-            selectedIndex,
+            pivotIndex,
             isEntering,
             isImmersed,
             isColumnReturning
           );
           const delay = mobileSlideDelay(
             index,
-            selectedIndex,
+            pivotIndex,
             isEntering,
             isColumnReturning,
             worlds.length
           );
-
-          const layers = (
-            <PanelLayers
-              world={world}
-              tone={tone}
-              bg={bg}
-              showWorld={showWorld}
-              landingCaptionMode={landingCaptionMode}
-              captionDecodeMode={captionDecodeMode}
-              locale={locale}
-              locked={locked}
-              lockedHintLabel={lockedHintLabel}
-              scrimOpacity={scrimOpacity}
-              onCaptionDecodeComplete={onCaptionDecodeComplete}
-            />
-          );
-
-          if (useGridLayout) {
-            return (
-              <div
-                key={world.id}
-                className={`relative min-h-0 overflow-hidden ${columnClass[world.color]}`}
-                style={{ backgroundColor: atmosphereFallbackBg(world.atmosphere) }}
-              >
-                {layers}
-                {landingCaptionMode !== "out" && (
-                  <button
-                    type="button"
-                    disabled={locked}
-                    onClick={() => onWorldClick(world, index)}
-                    className={`pointer-events-auto absolute inset-0 z-20 border-0 bg-transparent ${
-                      locked ? "cursor-not-allowed" : "cursor-pointer"
-                    }`}
-                    aria-label={`${getLocalized(world.albumTitle, locale)} — ${enterWorldLabel}`}
-                  />
-                )}
-              </div>
-            );
-          }
+          const slideOffscreen = isAnimating && !isPivot && !isColumnReturning;
+          const slideBack = isColumnReturning && !isPivot;
 
           return (
             <motion.div
@@ -329,25 +291,39 @@ export function MobileWorldLanding({
                 backgroundColor: atmosphereFallbackBg(world.atmosphere),
                 zIndex: fillsViewport ? 20 : index + 1,
               }}
-              initial={false}
+              initial={{ y: slideBack ? slideY : 0 }}
               animate={{
-                top: fillsViewport ? "0%" : `${restingTop}%`,
-                height: fillsViewport ? "100%" : `${rowPercent}%`,
-                y: isAnimating && !isSelected ? slideY : 0,
+                top: fillsViewport ? "0%" : panelTop,
+                height: fillsViewport ? "100%" : panelHeight,
+                y: slideOffscreen ? slideY : 0,
               }}
               transition={{
-                top: fillsViewport
-                  ? { ...EARTH_TRANSITION, type: "tween" }
-                  : { duration: 0 },
-                height: fillsViewport
-                  ? { ...EARTH_TRANSITION, type: "tween" }
-                  : { duration: 0 },
+                top:
+                  fillsViewport || isAnimating
+                    ? { ...EARTH_TRANSITION, type: "tween" }
+                    : { duration: 0 },
+                height:
+                  fillsViewport || isAnimating
+                    ? { ...EARTH_TRANSITION, type: "tween" }
+                    : { duration: 0 },
                 y: isAnimating
                   ? { duration: COLUMN_EXIT_S, delay, ease: COLUMN_EASE }
                   : { duration: 0 },
               }}
             >
-              {layers}
+              <PanelLayers
+                world={world}
+                tone={tone}
+                bg={bg}
+                showWorld={showWorld}
+                landingCaptionMode={landingCaptionMode}
+                captionDecodeMode={captionDecodeMode}
+                locale={locale}
+                locked={locked}
+                lockedHintLabel={lockedHintLabel}
+                scrimOpacity={scrimOpacity}
+                onCaptionDecodeComplete={onCaptionDecodeComplete}
+              />
               {!showWorld && landingCaptionMode !== "out" && (
                 <button
                   type="button"

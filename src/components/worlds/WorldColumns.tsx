@@ -749,6 +749,7 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
         isEntering={isEntering}
         isImmersed={isImmersed}
         isColumnReturning={isColumnReturning}
+        returnFromIndex={returnFromIndex}
         showWorld={showWorld}
         landingCaptionMode={landingCaptionMode}
         captionDecodeMode={captionDecodeMode}

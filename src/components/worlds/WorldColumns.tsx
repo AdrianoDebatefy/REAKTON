@@ -9,7 +9,6 @@ import { MobileWorldLanding } from "./MobileWorldLanding";
 import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import { getInitialWorldUiState, writeWorldSession } from "@/lib/world-session";
 import { getLocalized } from "@/lib/locale";
-import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface WorldColumnsProps {
   worlds: World[];
@@ -355,7 +354,6 @@ function columnCopyTone(atmosphere: WorldAtmosphere) {
 
 export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
   const locale = useLocale() as Locale;
-  const isMobile = useIsMobile();
   const t = useTranslations("home");
   const initialUi = getInitialWorldUiState();
   const [activeId, setActiveId] = useState<string | null>(initialUi.activeId);
@@ -696,10 +694,10 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
         {showWorld && activeWorld && (
           <motion.div
             key="world-view"
-            initial={{ opacity: isMobile ? 0 : 1 }}
+            initial={{ opacity: 1 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: isMobile ? 0.35 : WORLD_VIEW_EXIT_S }}
+            transition={{ duration: WORLD_VIEW_EXIT_S }}
             className="fixed inset-0 z-30 bg-transparent"
           >
             <WorldView world={activeWorld} onBack={handleBackFromWorld} />

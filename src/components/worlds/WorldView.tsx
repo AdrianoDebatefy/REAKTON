@@ -107,8 +107,9 @@ export function WorldView({ world, onBack }: WorldViewProps) {
 
       <motion.div
         className="relative z-10 mx-auto max-w-6xl px-4 pb-2 pt-2 md:pt-6"
+        initial={false}
         animate={{ opacity: exiting ? 0 : 1 }}
-        transition={{ duration: 0.35 }}
+        transition={{ duration: isMobile ? 0.5 : 0.35, delay: isMobile ? 0.15 : 0 }}
       >
         <button
           type="button"

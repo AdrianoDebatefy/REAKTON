@@ -151,21 +151,25 @@ export function MobileWorldLanding({
 }) {
   const animatePanels = isEntering || isColumnReturning;
   const landingVisible = !showWorld;
+  const panelHeightPct = 100 / worlds.length;
 
-  if (!landingVisible && !isColumnReturning) return null;
+  if (!landingVisible && !isColumnReturning && selectedIndex === null) return null;
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 top-[calc(5.5rem+env(safe-area-inset-top))] z-[20] md:hidden"
+      className="pointer-events-none fixed inset-x-0 bottom-0 top-[calc(5.5rem+env(safe-area-inset-top))] z-[15] md:hidden"
       aria-hidden={showWorld}
     >
-      <div className="grid h-full grid-rows-3 overflow-hidden">
+      <div className="relative h-full overflow-hidden">
         {worlds.map((world, index) => {
+          if (showWorld && index !== selectedIndex) return null;
+
           const locked = world.locked;
           const tone = columnCopyTone(world.atmosphere);
           const bg = bgSourcesForWorld(world);
           const isSelected = selectedIndex === index;
-          const expanded = isSelected && (isEntering || isImmersed);
+          const fillsViewport =
+            isSelected && (isEntering || isImmersed || showWorld);
           const slideY = mobileSlideY(
             index,
             selectedIndex,
@@ -180,27 +184,32 @@ export function MobileWorldLanding({
             isColumnReturning,
             worlds.length
           );
+          const restingTop = index * panelHeightPct;
 
           return (
             <motion.div
               key={world.id}
-              className={`relative min-h-0 overflow-hidden ${columnClass[world.color]} ${
-                expanded ? "absolute inset-0 z-30" : ""
-              }`}
+              className={`absolute inset-x-0 overflow-hidden ${columnClass[world.color]}`}
               style={{
                 backgroundColor: atmosphereFallbackBg(world.atmosphere),
-                zIndex: expanded ? 30 : index + 1,
+                zIndex: fillsViewport ? 20 : index + 1,
               }}
               initial={false}
               animate={{
-                y: animatePanels ? slideY : 0,
-                opacity: landingVisible || isColumnReturning ? 1 : 0,
+                top: fillsViewport ? "0%" : `${restingTop}%`,
+                height: fillsViewport ? "100%" : `${panelHeightPct}%`,
+                y: animatePanels && !isSelected ? slideY : 0,
               }}
               transition={{
+                top: fillsViewport
+                  ? { ...EARTH_TRANSITION, type: "tween" }
+                  : { duration: 0 },
+                height: fillsViewport
+                  ? { ...EARTH_TRANSITION, type: "tween" }
+                  : { duration: 0 },
                 y: animatePanels
                   ? { duration: COLUMN_EXIT_S, delay, ease: COLUMN_EASE }
                   : { duration: 0 },
-                opacity: { duration: 0.25 },
               }}
             >
               <div className="pointer-events-none absolute inset-0">
@@ -215,43 +224,47 @@ export function MobileWorldLanding({
                 />
               </div>
 
-              <motion.div
-                className={`pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b ${tone.scrim}`}
-                initial={false}
-                animate={{ opacity: scrimOpacity }}
-                transition={{ opacity: EARTH_TRANSITION }}
-                aria-hidden
-              />
+              {!showWorld && (
+                <motion.div
+                  className={`pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b ${tone.scrim}`}
+                  initial={false}
+                  animate={{ opacity: scrimOpacity }}
+                  transition={{ opacity: EARTH_TRANSITION }}
+                  aria-hidden
+                />
+              )}
 
-              <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 text-center">
-                {!showWorld && landingCaptionMode !== "hidden" && (
-                  <>
-                    <DecodeText
-                      as="h2"
-                      text={getLocalized(world.albumTitle, locale)}
-                      mode={captionDecodeMode}
-                      className={`text-2xl font-light leading-snug tracking-wide ${tone.title}`}
-                      style={tone.titleStyle}
-                      duration={CAPTION_DECODE_MS}
-                      onComplete={() => {
-                        if (captionDecodeMode === "in") onCaptionDecodeComplete();
-                      }}
-                    />
-                    {locked && (
-                      <p className="mt-2 text-xs uppercase tracking-widest text-white/40">
-                        {lockedHintLabel}
-                      </p>
-                    )}
-                  </>
-                )}
-              </div>
+              {!showWorld && (
+                <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 text-center">
+                  {landingCaptionMode !== "hidden" && (
+                    <>
+                      <DecodeText
+                        as="h2"
+                        text={getLocalized(world.albumTitle, locale)}
+                        mode={captionDecodeMode}
+                        className={`text-2xl font-light leading-snug tracking-wide ${tone.title}`}
+                        style={tone.titleStyle}
+                        duration={CAPTION_DECODE_MS}
+                        onComplete={() => {
+                          if (captionDecodeMode === "in") onCaptionDecodeComplete();
+                        }}
+                      />
+                      {locked && (
+                        <p className="mt-2 text-xs uppercase tracking-widest text-white/40">
+                          {lockedHintLabel}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
 
               {!showWorld && landingCaptionMode !== "out" && (
                 <button
                   type="button"
                   disabled={locked}
                   onClick={() => onWorldClick(world, index)}
-                  className={`absolute inset-0 z-20 border-0 bg-transparent ${
+                  className={`pointer-events-auto absolute inset-0 z-20 border-0 bg-transparent ${
                     locked ? "cursor-not-allowed" : "cursor-pointer"
                   }`}
                   aria-label={`${getLocalized(world.albumTitle, locale)} — ${enterWorldLabel}`}

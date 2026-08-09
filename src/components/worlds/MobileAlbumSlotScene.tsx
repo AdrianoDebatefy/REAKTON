@@ -8,9 +8,12 @@ import type { Locale, Song } from "@/types/content";
 import { getLocalized } from "@/lib/locale";
 import {
   MOBILE_COVER_ACTIVE_CENTER,
+  MOBILE_COVER_ACTIVE_SCALE,
+  MOBILE_COVER_FADE_DURATION_S,
   MOBILE_COVER_FADE_S,
   MOBILE_COVER_INACTIVE_PX,
   buildMobilePadLayout,
+  buildRandomCoverFadeDelays,
 } from "@/lib/mobile-cover-layout";
 
 function getYouTubeId(url: string): string | null {
@@ -49,9 +52,12 @@ function readStoredInfoTextSize(): number {
 }
 
 function useActiveCoverSize() {
-  const [size, setSize] = useState(240);
+  const [size, setSize] = useState(360);
   useEffect(() => {
-    const update = () => setSize(Math.min(260, Math.round(window.innerWidth * 0.72)));
+    const update = () =>
+      setSize(
+        Math.min(390, Math.round(window.innerWidth * 0.72 * MOBILE_COVER_ACTIVE_SCALE))
+      );
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
@@ -77,10 +83,15 @@ export function MobileAlbumSlotScene({
   const t = useTranslations("world");
   const items = songs.slice(0, maxSlots);
   const padPositions = useMemo(() => buildMobilePadLayout(items.length), [items.length]);
+  const coverFadeDelays = useMemo(
+    () => buildRandomCoverFadeDelays(items.length),
+    [items.length]
+  );
   const activeCoverSize = useActiveCoverSize();
   const sceneRef = useRef<HTMLDivElement>(null);
 
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [introDone, setIntroDone] = useState(false);
   const [infoPanelOpen, setInfoPanelOpen] = useState(false);
   const [infoTextSize, setInfoTextSize] = useState(INFO_TEXT_SIZE_DEFAULT);
   const [youtubeUrl, setYoutubeUrl] = useState<string | null>(null);
@@ -96,6 +107,18 @@ export function MobileAlbumSlotScene({
   useEffect(() => {
     setInfoTextSize(readStoredInfoTextSize());
   }, []);
+
+  useEffect(() => {
+    setIntroDone(false);
+    const maxDelay = coverFadeDelays.length
+      ? Math.max(...coverFadeDelays)
+      : 0;
+    const timer = window.setTimeout(
+      () => setIntroDone(true),
+      (maxDelay + MOBILE_COVER_FADE_DURATION_S) * 1000
+    );
+    return () => window.clearTimeout(timer);
+  }, [coverFadeDelays, items.length]);
 
   const stopAudio = useCallback(() => {
     if (audioRef.current) {
@@ -118,13 +141,13 @@ export function MobileAlbumSlotScene({
 
   const handleSelect = useCallback(
     (song: Song) => {
-      if (exiting || isPoleMode) return;
+      if (exiting || isPoleMode || !introDone) return;
       stopAudio();
       setActiveId(song.id);
       setInfoPanelOpen(false);
       startAudio(song);
     },
-    [exiting, isPoleMode, startAudio, stopAudio]
+    [exiting, introDone, isPoleMode, startAudio, stopAudio]
   );
 
   const handleBackToGrid = useCallback(
@@ -167,7 +190,7 @@ export function MobileAlbumSlotScene({
   return (
     <motion.div
       ref={sceneRef}
-      className="album-slot-scene relative mx-auto h-[calc(100dvh-11.5rem-env(safe-area-inset-top))] min-h-[320px] w-full max-w-lg overflow-hidden"
+      className="album-slot-scene relative mx-auto h-[calc(100dvh-11.5rem-env(safe-area-inset-top))] min-h-[320px] w-full max-w-lg overflow-hidden bg-transparent"
       animate={{ opacity: exiting ? 0 : 1 }}
       transition={{ duration: 0.4 }}
     >
@@ -178,12 +201,13 @@ export function MobileAlbumSlotScene({
         const targetX = isActive ? MOBILE_COVER_ACTIVE_CENTER.x : pad.x;
         const targetY = isActive ? MOBILE_COVER_ACTIVE_CENTER.y : pad.y;
         const hidden = isPoleMode && !isActive;
+        const introDelay = coverFadeDelays[i] ?? 0;
 
         return (
           <motion.button
             key={song.id}
             type="button"
-            disabled={exiting || (isPoleMode && !isActive)}
+            disabled={exiting || !introDone || (isPoleMode && !isActive)}
             onClick={() => handleSelect(song)}
             className={`album-cover-slot absolute overflow-hidden rounded-sm border focus:outline-none ${borderClass} ${
               isActive ? "z-40 border-white/40 shadow-lg" : "z-10 shadow-md shadow-black/50"
@@ -194,7 +218,16 @@ export function MobileAlbumSlotScene({
                   ? "#080c12"
                   : "#C1E5F9",
             }}
-            initial={false}
+            initial={{
+              left: `${targetX}%`,
+              top: `${targetY}%`,
+              width: targetSize,
+              height: targetSize,
+              x: "-50%",
+              y: "-50%",
+              opacity: 0,
+              scale: 0.82,
+            }}
             animate={{
               left: `${targetX}%`,
               top: `${targetY}%`,
@@ -210,8 +243,24 @@ export function MobileAlbumSlotScene({
               top: MOVE_TRANSITION,
               width: MOVE_TRANSITION,
               height: MOVE_TRANSITION,
-              opacity: FADE_TRANSITION,
-              scale: FADE_TRANSITION,
+              opacity: hidden
+                ? FADE_TRANSITION
+                : !introDone
+                  ? {
+                      duration: MOBILE_COVER_FADE_DURATION_S,
+                      delay: introDelay,
+                      ease: [0.4, 0, 0.2, 1],
+                    }
+                  : FADE_TRANSITION,
+              scale: hidden
+                ? FADE_TRANSITION
+                : !introDone
+                  ? {
+                      duration: MOBILE_COVER_FADE_DURATION_S,
+                      delay: introDelay,
+                      ease: [0.25, 0.1, 0.25, 1],
+                    }
+                  : { duration: 0.35 },
             }}
             aria-label={song.title}
             aria-pressed={isActive}
@@ -244,7 +293,7 @@ export function MobileAlbumSlotScene({
                   alt={song.title}
                   fill
                   className="object-cover"
-                  sizes={isActive ? "280px" : "40px"}
+                  sizes={isActive ? "390px" : "60px"}
                   priority={isActive}
                   draggable={false}
                 />

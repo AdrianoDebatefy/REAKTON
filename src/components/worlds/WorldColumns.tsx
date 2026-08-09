@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import type { World, WorldAtmosphere, Locale } from "@/types/content";
 import { WorldView } from "./WorldView";
+import { MobileWorldLanding } from "./MobileWorldLanding";
 import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import { getInitialWorldUiState, writeWorldSession } from "@/lib/world-session";
 import { getLocalized } from "@/lib/locale";
@@ -29,8 +30,6 @@ const COLUMN_EASE = [0.4, 0, 0.2, 1] as const;
 const EARTH_TRANSITION = { duration: COLUMN_EXIT_S, ease: COLUMN_EASE };
 const WORLD_VIEW_EXIT_S = 0.15;
 const CAPTION_DECODE_MS = 720;
-const MOBILE_ENTER_MS = 420;
-
 function maxColumnStaggerS(columnCount: number) {
   return Math.max(0, columnCount - 2) * COLUMN_STAGGER_S;
 }
@@ -323,45 +322,6 @@ function WorldBgLayer({
   );
 }
 
-function ColumnBgImage({
-  desktopSrc,
-  mobileSrc,
-  onError,
-  className = "column-bg-image",
-}: {
-  desktopSrc: string;
-  mobileSrc: string;
-  onError?: () => void;
-  className?: string;
-}) {
-  return (
-    <picture className="pointer-events-none block h-full w-full">
-      <source media="(max-width: 767px)" srcSet={mobileSrc} />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={desktopSrc} alt="" className={className} onError={onError} />
-    </picture>
-  );
-}
-
-function worldBgSources(
-  world: World,
-  earthDesktop: string,
-  earthMobile: string,
-  nanoDesktop: string,
-  nanoMobile: string
-) {
-  if (world.atmosphere === "cosmos") {
-    return { desktop: earthDesktop, mobile: earthMobile };
-  }
-  if (world.atmosphere === "nano") {
-    return { desktop: nanoDesktop, mobile: nanoMobile };
-  }
-  return {
-    desktop: world.backgroundImage,
-    mobile: world.backgroundImageMobile || world.backgroundImage,
-  };
-}
-
 function columnSlideTransition(delay: number) {
   return {
     type: "tween" as const,
@@ -437,8 +397,7 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
   const handleColumnClick = useCallback((world: World, index: number) => {
     if (world.locked || landingCaptionMode === "out") return;
     setLandingCaptionMode("out");
-    const decodeMs = isMobile ? MOBILE_ENTER_MS : CAPTION_DECODE_MS;
-    const worldOpenMs = isMobile ? MOBILE_ENTER_MS : columnEnterMs(worlds.length);
+    const worldOpenMs = columnEnterMs(worlds.length);
     window.setTimeout(() => {
       setLandingCaptionMode("hidden");
       setSelectedIndex(index);
@@ -449,22 +408,11 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
       setReturnBgExpandHold(false);
       setReturnFromIndex(null);
       window.setTimeout(() => setShowWorld(true), worldOpenMs);
-    }, decodeMs);
-  }, [worlds.length, landingCaptionMode, isMobile]);
+    }, CAPTION_DECODE_MS);
+  }, [worlds.length, landingCaptionMode]);
 
   const handleBackFromWorld = useCallback(() => {
     writeWorldSession(null);
-    if (isMobile) {
-      setShowWorld(false);
-      setActiveId(null);
-      setSelectedIndex(null);
-      setColumnReturning(false);
-      setReturnAtmosphere(null);
-      setReturnBgExpandHold(false);
-      setReturnFromIndex(null);
-      setLandingCaptionMode("static");
-      return;
-    }
     const atmosphere = worlds.find((w) => w.id === activeId)?.atmosphere ?? null;
     const fromIndex = selectedIndex;
     const returnMs = columnEnterMs(worlds.length);
@@ -483,7 +431,7 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
       setReturnFromIndex(null);
       setLandingCaptionMode("in");
     }, returnMs);
-  }, [activeId, selectedIndex, worlds, isMobile]);
+  }, [activeId, selectedIndex, worlds]);
 
   const [earthDesktopSrc, setEarthDesktopSrc] = useState(
     () => cosmosWorld?.backgroundImage || "/worlds/earth-night.svg"
@@ -519,6 +467,47 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
     const next = fallbacks[idx + 1];
     if (next) setClubDesktopSrc(next);
   }, [clubDesktopSrc]);
+
+  const bgSourcesForWorld = useCallback(
+    (world: World) => {
+      if (world.atmosphere === "club") {
+        return {
+          desktop: clubDesktopSrc,
+          mobile: clubMobileSrc,
+          onError: handleClubError,
+        };
+      }
+      if (world.atmosphere === "cosmos") {
+        return {
+          desktop: earthDesktopSrc,
+          mobile: earthMobileSrc,
+          onError: handleEarthError,
+        };
+      }
+      if (world.atmosphere === "nano") {
+        return {
+          desktop: nanoDesktopSrc,
+          mobile: nanoMobileSrc,
+          onError: handleNanoError,
+        };
+      }
+      return {
+        desktop: world.backgroundImage || "",
+        mobile: world.backgroundImageMobile || world.backgroundImage || "",
+      };
+    },
+    [
+      clubDesktopSrc,
+      clubMobileSrc,
+      earthDesktopSrc,
+      earthMobileSrc,
+      handleClubError,
+      handleEarthError,
+      handleNanoError,
+      nanoDesktopSrc,
+      nanoMobileSrc,
+    ]
+  );
 
   const isEntering = selectedIndex !== null && !showWorld;
   const isImmersed = selectedIndex !== null;
@@ -750,85 +739,27 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
         </div>
       )}
 
-      <div
-        className={`relative z-10 flex flex-col gap-1 md:hidden ${
-          showWorld || isEntering ? "pointer-events-none hidden" : ""
-        }`}
-      >
-        {worlds.map((world, index) => {
-          const locked = world.locked;
-          const showColumnBg = isLanding && Boolean(world.backgroundImage);
-          const bgSources =
-            world.atmosphere === "club"
-              ? { desktop: clubDesktopSrc, mobile: clubMobileSrc }
-              : worldBgSources(
-                  world,
-                  earthDesktopSrc,
-                  earthMobileSrc,
-                  nanoDesktopSrc,
-                  nanoMobileSrc
-                );
-          const bgOnError =
-            world.atmosphere === "cosmos"
-              ? handleEarthError
-              : world.atmosphere === "nano"
-                ? handleNanoError
-                : world.atmosphere === "club"
-                  ? handleClubError
-                  : undefined;
-
-          const tone = columnCopyTone(world.atmosphere);
-
-          return (
-            <button
-              key={world.id}
-              type="button"
-              disabled={locked || isEntering || landingCaptionMode === "out"}
-              onClick={() => handleColumnClick(world, index)}
-              className={`group relative flex min-h-[42vh] w-full flex-col justify-end overflow-hidden p-5 text-left ${columnClass[world.color]} ${
-                locked ? "cursor-not-allowed opacity-40" : "cursor-pointer"
-              }`}
-            >
-              {showColumnBg && (
-                <motion.div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-                  <ColumnBgImage
-                    desktopSrc={bgSources.desktop}
-                    mobileSrc={bgSources.mobile}
-                    onError={bgOnError}
-                  />
-                  <motion.div
-                    className={`landing-column-overlay landing-column-overlay--${world.atmosphere}`}
-                    aria-hidden
-                  />
-                </motion.div>
-              )}
-              <motion.div
-                className={`pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-32 bg-gradient-to-t ${tone.scrim}`}
-                initial={false}
-                animate={{ opacity: scrimOpacity }}
-                transition={{ opacity: EARTH_TRANSITION }}
-                aria-hidden
-              />
-              <div className="relative z-20">
-                <DecodeText
-                  as="h2"
-                  text={getLocalized(world.albumTitle, locale)}
-                  mode={landingCaptionMode === "hidden" ? "out" : captionDecodeMode}
-                  className={`text-2xl font-light md:text-[30px] ${tone.title}`}
-                  style={tone.titleStyle}
-                  duration={CAPTION_DECODE_MS}
-                />
-                {locked && (
-                  <p className="mt-2 text-xs uppercase tracking-widest text-white/40">{t("locked")}</p>
-                )}
-              </div>
-            </button>
-          );
-        })}
-      </div>
+      <MobileWorldLanding
+        worlds={worlds}
+        locale={locale}
+        columnClass={columnClass}
+        selectedIndex={selectedIndex}
+        isEntering={isEntering}
+        isImmersed={isImmersed}
+        isColumnReturning={isColumnReturning}
+        showWorld={showWorld}
+        landingCaptionMode={landingCaptionMode}
+        captionDecodeMode={captionDecodeMode}
+        lockedHintLabel={lockedHintLabel}
+        enterWorldLabel={t("enterWorld")}
+        scrimOpacity={scrimOpacity}
+        bgSourcesForWorld={bgSourcesForWorld}
+        onWorldClick={handleColumnClick}
+        onCaptionDecodeComplete={handleCaptionDecodeComplete}
+      />
 
       {!showWorld && (
-        <section className="relative z-10 border-t border-white/10 bg-black/50 px-4 py-12 text-center md:py-16">
+        <section className="relative z-10 hidden border-t border-white/10 bg-black/50 px-4 py-12 text-center md:block md:py-16">
           <h2 className="text-sm uppercase tracking-[0.3em] text-white/50">{t("toyTitle")}</h2>
           <p className="mx-auto mt-3 max-w-md text-sm text-white/45">{t("toyDescription")}</p>
           <a

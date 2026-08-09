@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { SiteContent } from "@/types/content";
 import { AdminPanel } from "@/components/admin/AdminPanel";
+import { SITE_BUILD_LABEL } from "@/lib/site-build";
 
 export default function AdminPage() {
   const [password, setPassword] = useState("");
@@ -72,6 +73,9 @@ export default function AdminPage() {
           Passwort vom Hosting (ADMIN_PASSWORD) oder nach Login unter «Zugang» ändern.
         </p>
         {message && <p className="mt-4 text-sm text-red-400">{message}</p>}
+        <p className="mt-8 text-[10px] uppercase tracking-widest text-white/25">
+          Build: {SITE_BUILD_LABEL}
+        </p>
       </div>
     );
   }

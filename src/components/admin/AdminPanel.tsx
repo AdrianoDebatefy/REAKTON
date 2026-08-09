@@ -6,6 +6,7 @@ import type { AnalyticsData } from "@/lib/analytics";
 import { CONTENT_LOCALES, LOCALE_LABELS, emptyLocalized } from "@/lib/locale";
 import { PasswordChangeForm } from "@/components/admin/PasswordChangeForm";
 import { ContactMessagesSection } from "@/components/admin/ContactMessagesSection";
+import { SITE_BUILD_LABEL } from "@/lib/site-build";
 
 async function uploadFile(file: File): Promise<string> {
   const form = new FormData();
@@ -747,6 +748,7 @@ export function AdminPanel({
       <h1 className="text-xl font-light uppercase tracking-widest">REAKTON Admin</h1>
       <p className="mt-2 text-xs text-white/50">
         Lokale Datei: <code className="text-white/55">data/site-content.local.json</code>
+        <span className="ml-3 text-white/30">· Build {SITE_BUILD_LABEL}</span>
       </p>
 
       <div className="mt-4 flex flex-wrap gap-3">

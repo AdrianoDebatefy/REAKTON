@@ -42,6 +42,15 @@ function atmosphereFallbackBg(atmosphere: WorldAtmosphere): string {
   return "#0a1628";
 }
 
+function panelGeometry(displayIndex: number, panelCount: number) {
+  const heightPct = 100 / panelCount;
+  const topPct = (displayIndex * 100) / panelCount;
+  return {
+    top: `${topPct}%`,
+    height: `${heightPct}%`,
+  };
+}
+
 function mobileSlideY(
   displayIndex: number,
   pivotDisplay: number | null,
@@ -274,7 +283,7 @@ export function MobileWorldLanding({
       className="pointer-events-none fixed inset-x-0 bottom-0 top-[calc(5.5rem+env(safe-area-inset-top))] z-[15] md:hidden"
       aria-hidden={showWorld}
     >
-      <div className="grid h-full grid-rows-3 overflow-hidden">
+      <div className="relative h-full overflow-hidden">
         {mobileWorlds.map((world, displayIndex) => {
           const index = worlds.findIndex((w) => w.id === world.id);
           if (index < 0) return null;
@@ -287,6 +296,7 @@ export function MobileWorldLanding({
           const isPivot = pivotDataIndex !== null && index === pivotDataIndex;
           const fillsViewport =
             isPivot && (isEntering || isImmersed || showWorld);
+          const resting = panelGeometry(displayIndex, panelCount);
           const slideY = mobileSlideY(
             displayIndex,
             pivotSlot,
@@ -303,22 +313,32 @@ export function MobileWorldLanding({
           );
           const slideOffscreen = isAnimating && !isPivot && !isColumnReturning;
           const slideBack = isColumnReturning && !isPivot;
+          const geometryTransition =
+            fillsViewport || isAnimating
+              ? { ...EARTH_TRANSITION, type: "tween" as const }
+              : { duration: 0 };
 
           return (
             <motion.div
               key={world.id}
-              className={`relative min-h-0 overflow-hidden ${columnClass[world.color]}`}
+              layout={false}
+              className={`absolute inset-x-0 overflow-hidden ${columnClass[world.color]}`}
               style={{
                 backgroundColor: atmosphereFallbackBg(world.atmosphere),
                 backgroundImage: `url(${bg.desktop})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
-                gridRow: fillsViewport ? "1 / -1" : undefined,
                 zIndex: fillsViewport ? 20 : displayIndex + 1,
               }}
-              initial={{ y: slideBack ? slideY : 0 }}
-              animate={{ y: slideOffscreen ? slideY : 0 }}
+              initial={slideBack ? { y: slideY } : false}
+              animate={{
+                top: fillsViewport ? "0%" : resting.top,
+                height: fillsViewport ? "100%" : resting.height,
+                y: slideOffscreen ? slideY : 0,
+              }}
               transition={{
+                top: geometryTransition,
+                height: geometryTransition,
                 y: isAnimating
                   ? { duration: COLUMN_EXIT_S, delay, ease: COLUMN_EASE }
                   : { duration: 0 },

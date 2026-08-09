@@ -397,7 +397,7 @@ export function MobileWorldLanding({
       className="pointer-events-none fixed inset-x-0 bottom-0 top-[calc(5.5rem+env(safe-area-inset-top))] z-[15] md:hidden"
       aria-hidden={showWorld}
     >
-      <div className="landing-bg-stack relative h-full overflow-hidden">
+      <div className="relative h-full overflow-hidden">
         {mobileWorlds.map((world, displayIndex) => {
           const index = worlds.findIndex((w) => w.id === world.id);
           if (index < 0) return null;

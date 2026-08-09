@@ -9,6 +9,7 @@ import { MobileWorldLanding } from "./MobileWorldLanding";
 import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import { getInitialWorldUiState, writeWorldSession } from "@/lib/world-session";
 import { getLocalized } from "@/lib/locale";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface WorldColumnsProps {
   worlds: World[];
@@ -29,6 +30,7 @@ const COLUMN_EASE = [0.4, 0, 0.2, 1] as const;
 const EARTH_TRANSITION = { duration: COLUMN_EXIT_S, ease: COLUMN_EASE };
 const WORLD_VIEW_EXIT_S = 0.15;
 const CAPTION_DECODE_MS = 720;
+
 function maxColumnStaggerS(columnCount: number) {
   return Math.max(0, columnCount - 2) * COLUMN_STAGGER_S;
 }
@@ -354,6 +356,7 @@ function columnCopyTone(atmosphere: WorldAtmosphere) {
 
 export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
   const locale = useLocale() as Locale;
+  const isMobile = useIsMobile();
   const t = useTranslations("home");
   const initialUi = getInitialWorldUiState();
   const [activeId, setActiveId] = useState<string | null>(initialUi.activeId);
@@ -694,10 +697,10 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
         {showWorld && activeWorld && (
           <motion.div
             key="world-view"
-            initial={{ opacity: 1 }}
+            initial={{ opacity: isMobile ? 0 : 1 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: WORLD_VIEW_EXIT_S }}
+            transition={{ duration: isMobile ? 0.35 : WORLD_VIEW_EXIT_S }}
             className="fixed inset-0 z-30 bg-transparent"
           >
             <WorldView world={activeWorld} onBack={handleBackFromWorld} />

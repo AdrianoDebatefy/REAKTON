@@ -589,10 +589,10 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
 
   return (
     <div
-      className={`relative md:min-h-screen md:pt-24 ${
+      className={`relative min-h-screen pt-24 ${
         !showWorld
-          ? "max-md:h-dvh max-md:overflow-hidden max-md:pt-0"
-          : "min-h-[100dvh] pt-[calc(5.5rem+env(safe-area-inset-top))]"
+          ? "max-md:h-dvh max-md:overflow-hidden max-md:pt-0 max-md:min-h-0"
+          : "max-md:min-h-[100dvh] max-md:pt-[calc(5.5rem+env(safe-area-inset-top))]"
       }`}
     >
       {!hidePageGrain && (

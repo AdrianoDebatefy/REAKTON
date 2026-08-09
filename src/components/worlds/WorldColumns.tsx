@@ -589,7 +589,11 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
   const scrimOpacity = scrimFadingOut ? 0 : 1;
 
   return (
-    <div className="relative min-h-[100dvh] pt-[calc(5.5rem+env(safe-area-inset-top))] md:min-h-screen md:pt-24">
+    <div
+      className={`relative md:min-h-screen md:pt-24 ${
+        !showWorld ? "max-md:h-dvh max-md:overflow-hidden max-md:pt-0" : "min-h-[100dvh] pt-[calc(5.5rem+env(safe-area-inset-top))]"
+      }`}
+    >
       {!hidePageGrain && (
         <>
           <div className="halftone-overlay fixed inset-0 z-0" />

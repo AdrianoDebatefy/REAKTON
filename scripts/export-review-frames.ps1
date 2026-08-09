@@ -6,20 +6,53 @@
 
 param(
     [Parameter(Mandatory = $true)]
-    [string]$VideoPath
+    [string]$VideoPath,
+    [string]$FfmpegPath = ""
 )
 
 $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $outDir = Join-Path $repoRoot "docs\mobile-review\latest"
 
+function Resolve-Ffmpeg {
+    param([string]$ExplicitPath)
+
+    if ($ExplicitPath -and (Test-Path $ExplicitPath)) {
+        return (Resolve-Path $ExplicitPath).Path
+    }
+
+    # Refresh PATH (winget often needs a new shell; merge User + Machine PATH)
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" +
+        [System.Environment]::GetEnvironmentVariable("Path", "User")
+
+    $cmd = Get-Command ffmpeg -ErrorAction SilentlyContinue
+    if ($cmd) {
+        return $cmd.Source
+    }
+
+    $wingetRoot = Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Packages"
+    if (Test-Path $wingetRoot) {
+        $candidate = Get-ChildItem -Path $wingetRoot -Recurse -Filter "ffmpeg.exe" -ErrorAction SilentlyContinue |
+            Select-Object -First 1 -ExpandProperty FullName
+        if ($candidate) {
+            return $candidate
+        }
+    }
+
+    Write-Error @"
+ffmpeg not found.
+- Close PowerShell, open a new window, then retry
+- Or: winget install Gyan.FFmpeg
+- Or pass path: .\scripts\export-review-frames.ps1 -FfmpegPath 'C:\path\to\ffmpeg.exe' '$VideoPath'
+"@
+}
+
 if (-not (Test-Path $VideoPath)) {
     Write-Error "Video not found: $VideoPath"
 }
 
-if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
-    Write-Error "ffmpeg not found. Install: winget install Gyan.FFmpeg"
-}
+$ffmpeg = Resolve-Ffmpeg -ExplicitPath $FfmpegPath
+Write-Host "Using ffmpeg: $ffmpeg"
 
 if (Test-Path $outDir) {
     Remove-Item -Recurse -Force $outDir
@@ -27,7 +60,7 @@ if (Test-Path $outDir) {
 New-Item -ItemType Directory -Path $outDir -Force | Out-Null
 
 # 2 frames per second — enough for UI/animation review without huge commits
-& ffmpeg -hide_banner -loglevel error -i $VideoPath -vf "fps=2" -q:v 3 (Join-Path $outDir "frame_%04d.jpg")
+& $ffmpeg -hide_banner -loglevel error -i $VideoPath -vf "fps=2" -q:v 3 (Join-Path $outDir "frame_%04d.jpg")
 
 $count = (Get-ChildItem $outDir -Filter "*.jpg").Count
 Write-Host "Exported $count frames to $outDir"

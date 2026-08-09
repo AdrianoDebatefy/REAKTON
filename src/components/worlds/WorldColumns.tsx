@@ -750,8 +750,6 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
         isImmersed={isImmersed}
         isColumnReturning={isColumnReturning}
         returnFromIndex={returnFromIndex}
-        returnBgExpandHold={returnBgExpandHold}
-        returnAtmosphere={returnAtmosphere}
         showWorld={showWorld}
         landingCaptionMode={landingCaptionMode}
         captionDecodeMode={captionDecodeMode}

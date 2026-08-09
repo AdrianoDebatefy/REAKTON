@@ -76,7 +76,6 @@ body {
 .landing-bg-stack {
   pointer-events: none;
   position: fixed;
-  inset: 0;
   isolation: isolate;
 }
 
@@ -177,21 +176,6 @@ body {
   height: 100%;
   width: 100vw;
   will-change: left;
-}
-
-.landing-earth--mobile {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  will-change: clip-path;
-}
-
-.landing-earth-pan--mobile {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  will-change: top;
 }
 
 .column-bg-image--full-bleed {

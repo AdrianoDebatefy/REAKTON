@@ -42,50 +42,18 @@ function atmosphereFallbackBg(atmosphere: WorldAtmosphere): string {
   return "#0a1628";
 }
 
-/** Vertical crop — mirrors desktop columnClipPath (horizontal thirds). */
-function mobileClipPath(displayIndex: number, panelCount: number, expanded: boolean) {
-  if (expanded) return "inset(0% 0% 0% 0%)";
-  const slotHeight = 100 / panelCount;
-  const top = displayIndex * slotHeight;
-  const bottom = 100 - top - slotHeight;
-  return `inset(${top}% 0% ${bottom}% 0%)`;
-}
-
-/** Vertical pan — mirrors desktop columnPanLeft. */
-function mobilePanTop(displayIndex: number, panelCount: number, expanded: boolean) {
-  const slotHeight = 100 / panelCount;
-  const centerPct = displayIndex * slotHeight + slotHeight / 2;
-  return expanded ? "50%" : `${centerPct}%`;
-}
-
-function bgOffscreenY(displayIndex: number, pivotDisplay: number) {
-  if (displayIndex === pivotDisplay) return 0;
-  return displayIndex < pivotDisplay ? "-100%" : "100%";
-}
-
 function mobileSlideY(
   displayIndex: number,
   pivotDisplay: number | null,
   isEntering: boolean,
   isImmersed: boolean,
-  isColumnReturning: boolean,
-  returnBgExpandHold: boolean,
-  returnPivotDisplay: number | null
+  isColumnReturning: boolean
 ): string | number {
-  if (isColumnReturning) {
-    if (
-      returnBgExpandHold &&
-      returnPivotDisplay !== null &&
-      displayIndex !== returnPivotDisplay
-    ) {
-      return bgOffscreenY(displayIndex, returnPivotDisplay);
-    }
-    return 0;
-  }
-  if (pivotDisplay !== null && (isEntering || isImmersed)) {
-    return bgOffscreenY(displayIndex, pivotDisplay);
-  }
-  return 0;
+  if (!isEntering && !isImmersed && !isColumnReturning) return 0;
+  if (pivotDisplay === null) return 0;
+  if (displayIndex === pivotDisplay) return 0;
+  if (displayIndex < pivotDisplay) return "-100%";
+  return "100%";
 }
 
 function mobileSlideDelay(
@@ -93,60 +61,15 @@ function mobileSlideDelay(
   pivotDisplay: number | null,
   isEntering: boolean,
   isColumnReturning: boolean,
-  worldCount: number,
-  returnAtmosphere: WorldAtmosphere | null
+  worldCount: number
 ): number {
   if (isColumnReturning) {
-    if (returnAtmosphere === "cosmos" && displayIndex === 0) {
-      return 0;
-    }
     return (worldCount - 1 - displayIndex) * COLUMN_STAGGER_S;
   }
   if (!isEntering || pivotDisplay === null) return 0;
   if (displayIndex === pivotDisplay) return 0;
-  if (displayIndex < pivotDisplay) {
-    return (pivotDisplay - 1 - displayIndex) * COLUMN_STAGGER_S;
-  }
+  if (displayIndex < pivotDisplay) return (pivotDisplay - 1 - displayIndex) * COLUMN_STAGGER_S;
   return (displayIndex - pivotDisplay - 1) * COLUMN_STAGGER_S;
-}
-
-function mobileOverlayOpacity(
-  displayIndex: number,
-  pivotDisplay: number | null,
-  isEntering: boolean,
-  isImmersed: boolean,
-  isColumnReturning: boolean,
-  inWorld: boolean,
-  expanded: boolean
-): number {
-  if (inWorld) return 0;
-  if (isColumnReturning) return 1;
-  if (!expanded && pivotDisplay === null) return 1;
-  if (pivotDisplay === null) return 1;
-  if (displayIndex === pivotDisplay && (isEntering || isImmersed)) return 0;
-  if (isEntering || isImmersed) return 0;
-  if (!expanded) return 1;
-  return 0;
-}
-
-function mobileBgVisible(
-  isLanding: boolean,
-  isEntering: boolean,
-  isColumnReturning: boolean,
-  selectedIndex: number | null,
-  worldIndex: number,
-  isPivotActive: boolean,
-  expandHeld: boolean,
-  isImmersed: boolean
-) {
-  return (
-    isLanding ||
-    isPivotActive ||
-    expandHeld ||
-    isColumnReturning ||
-    (isEntering && selectedIndex !== worldIndex) ||
-    (isImmersed && selectedIndex !== null && worldIndex !== selectedIndex)
-  );
 }
 
 function mobileDisplayIndex(atmosphere: WorldAtmosphere): number {
@@ -172,15 +95,6 @@ function sortWorldsForMobile(worlds: World[]): World[] {
     (a, b) =>
       MOBILE_WORLD_ORDER.indexOf(a.atmosphere) - MOBILE_WORLD_ORDER.indexOf(b.atmosphere)
   );
-}
-
-function columnSlideTransition(delay: number) {
-  return {
-    type: "tween" as const,
-    duration: COLUMN_EXIT_S,
-    delay,
-    ease: COLUMN_EASE,
-  };
 }
 
 function ColumnBgImage({
@@ -222,102 +136,51 @@ function ColumnBgImage({
       key={src}
       src={src}
       alt=""
-      className="column-bg-image--full-bleed"
+      className="block h-full w-full object-cover"
       onError={handleError}
     />
   );
 }
 
-function MobileBgLayer({
+function PanelLayers({
   world,
-  displayIndex,
-  panelCount,
-  expanded,
-  visible,
-  slideY,
-  slideDelay,
-  animateSlide,
-  inWorld,
-  pivotDisplay,
-  isEntering,
-  isImmersed,
-  isColumnReturning,
+  tone,
   bg,
-  scrimOpacity,
   showWorld,
+  landingCaptionMode,
+  captionDecodeMode,
+  locale,
+  locked,
+  lockedHintLabel,
+  scrimOpacity,
+  onCaptionDecodeComplete,
 }: {
   world: World;
-  displayIndex: number;
-  panelCount: number;
-  expanded: boolean;
-  visible: boolean;
-  slideY: number | string;
-  slideDelay: number;
-  animateSlide: boolean;
-  inWorld: boolean;
-  pivotDisplay: number | null;
-  isEntering: boolean;
-  isImmersed: boolean;
-  isColumnReturning: boolean;
+  tone: ReturnType<typeof columnCopyTone>;
   bg: { desktop: string; mobile: string; onError?: () => void };
-  scrimOpacity: number;
   showWorld: boolean;
+  landingCaptionMode: DecodeMode | "hidden";
+  captionDecodeMode: DecodeMode;
+  locale: Locale;
+  locked: boolean;
+  lockedHintLabel: string;
+  scrimOpacity: number;
+  onCaptionDecodeComplete: () => void;
 }) {
-  const tone = columnCopyTone(world.atmosphere);
-  const clipPath = mobileClipPath(displayIndex, panelCount, expanded);
-  const panTop = mobilePanTop(displayIndex, panelCount, expanded);
-  const overlayOpacity = mobileOverlayOpacity(
-    displayIndex,
-    pivotDisplay,
-    isEntering,
-    isImmersed,
-    isColumnReturning,
-    inWorld,
-    expanded
-  );
-
   return (
-    <motion.div
-      className="landing-earth landing-earth--mobile"
-      style={{
-        pointerEvents: "none",
-        zIndex: expanded ? 20 : displayIndex + 1,
-        backgroundColor: atmosphereFallbackBg(world.atmosphere),
-      }}
-      initial={false}
-      animate={{
-        clipPath,
-        opacity: visible ? 1 : 0,
-        y: slideY,
-      }}
-      transition={{
-        clipPath: { ...EARTH_TRANSITION, type: "tween" },
-        opacity: { duration: 0 },
-        y: animateSlide ? columnSlideTransition(slideDelay) : { duration: 0 },
-      }}
-    >
-      <motion.div
-        className="landing-earth-pan landing-earth-pan--mobile"
-        initial={false}
-        animate={{ top: panTop, y: "-50%" }}
-        transition={{
-          top: { ...EARTH_TRANSITION, type: "tween" },
-          y: { duration: 0 },
-        }}
-      >
+    <>
+      <div className="pointer-events-none absolute inset-0">
         <ColumnBgImage
           desktopSrc={bg.desktop}
           mobileSrc={bg.mobile}
           onError={bg.onError}
         />
-      </motion.div>
-      <motion.div
-        className={`landing-column-overlay landing-column-overlay--${world.atmosphere}`}
-        initial={false}
-        animate={{ opacity: overlayOpacity }}
-        transition={{ opacity: EARTH_TRANSITION }}
-        aria-hidden
-      />
+        <div
+          className={`landing-column-overlay landing-column-overlay--${world.atmosphere} absolute inset-0`}
+          aria-hidden
+        />
+      </div>
+
       {!showWorld && (
         <motion.div
           className={`pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b ${tone.scrim}`}
@@ -327,7 +190,32 @@ function MobileBgLayer({
           aria-hidden
         />
       )}
-    </motion.div>
+
+      {!showWorld && (
+        <div className="relative z-10 flex h-full min-h-0 flex-col items-center justify-center px-4 text-center">
+          {landingCaptionMode !== "hidden" && (
+            <>
+              <DecodeText
+                as="h2"
+                text={getLocalized(world.albumTitle, locale)}
+                mode={captionDecodeMode}
+                className={`text-2xl font-light leading-snug tracking-wide ${tone.title}`}
+                style={tone.titleStyle}
+                duration={CAPTION_DECODE_MS}
+                onComplete={() => {
+                  if (captionDecodeMode === "in") onCaptionDecodeComplete();
+                }}
+              />
+              {locked && (
+                <p className="mt-2 text-xs uppercase tracking-widest text-white/40">
+                  {lockedHintLabel}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -340,8 +228,6 @@ export function MobileWorldLanding({
   isImmersed,
   isColumnReturning,
   returnFromIndex,
-  returnBgExpandHold,
-  returnAtmosphere,
   showWorld,
   landingCaptionMode,
   captionDecodeMode,
@@ -360,8 +246,6 @@ export function MobileWorldLanding({
   isImmersed: boolean;
   isColumnReturning: boolean;
   returnFromIndex: number | null;
-  returnBgExpandHold: boolean;
-  returnAtmosphere: WorldAtmosphere | null;
   showWorld: boolean;
   landingCaptionMode: DecodeMode | "hidden";
   captionDecodeMode: DecodeMode;
@@ -374,7 +258,6 @@ export function MobileWorldLanding({
 }) {
   const isAnimating = isEntering || isColumnReturning;
   const landingVisible = !showWorld;
-  const isLanding = !isImmersed && !isColumnReturning;
   const panelCount = worlds.length;
   const mobileWorlds = sortWorldsForMobile(worlds);
   const pivotSlot = pivotDisplayIndex(
@@ -382,12 +265,6 @@ export function MobileWorldLanding({
     selectedIndex,
     returnFromIndex,
     isColumnReturning
-  );
-  const returnPivotSlot = pivotDisplayIndex(
-    worlds,
-    null,
-    returnFromIndex,
-    true
   );
 
   if (!landingVisible && !isColumnReturning && selectedIndex === null) return null;
@@ -397,124 +274,84 @@ export function MobileWorldLanding({
       className="pointer-events-none fixed inset-x-0 bottom-0 top-[calc(5.5rem+env(safe-area-inset-top))] z-[15] md:hidden"
       aria-hidden={showWorld}
     >
-      <div className="relative h-full overflow-hidden">
+      <div className="grid h-full grid-rows-3 overflow-hidden">
         {mobileWorlds.map((world, displayIndex) => {
           const index = worlds.findIndex((w) => w.id === world.id);
           if (index < 0) return null;
+          if (showWorld && index !== selectedIndex) return null;
 
+          const locked = world.locked;
+          const tone = columnCopyTone(world.atmosphere);
           const bg = bgSourcesForWorld(world);
           const pivotDataIndex = isColumnReturning ? returnFromIndex : selectedIndex;
           const isPivot = pivotDataIndex !== null && index === pivotDataIndex;
-          const expanded =
-            isPivot &&
-            (isEntering ||
-              isImmersed ||
-              showWorld ||
-              (isColumnReturning && returnBgExpandHold));
-          const visible = mobileBgVisible(
-            isLanding,
-            isEntering,
-            isColumnReturning,
-            selectedIndex,
-            index,
-            Boolean(isImmersed && isPivot),
-            Boolean(returnBgExpandHold && isPivot),
-            isImmersed
-          );
+          const fillsViewport =
+            isPivot && (isEntering || isImmersed || showWorld);
           const slideY = mobileSlideY(
             displayIndex,
             pivotSlot,
             isEntering,
             isImmersed,
-            isColumnReturning,
-            returnBgExpandHold,
-            returnPivotSlot
+            isColumnReturning
           );
           const delay = mobileSlideDelay(
             displayIndex,
             pivotSlot,
             isEntering,
             isColumnReturning,
-            panelCount,
-            returnAtmosphere
+            panelCount
           );
+          const slideOffscreen = isAnimating && !isPivot && !isColumnReturning;
+          const slideBack = isColumnReturning && !isPivot;
 
           return (
-            <MobileBgLayer
+            <motion.div
               key={world.id}
-              world={world}
-              displayIndex={displayIndex}
-              panelCount={panelCount}
-              expanded={expanded}
-              visible={visible}
-              slideY={slideY}
-              slideDelay={delay}
-              animateSlide={isAnimating}
-              inWorld={showWorld && isPivot}
-              pivotDisplay={pivotSlot}
-              isEntering={isEntering}
-              isImmersed={isImmersed}
-              isColumnReturning={isColumnReturning}
-              bg={bg}
-              scrimOpacity={scrimOpacity}
-              showWorld={showWorld}
-            />
+              className={`relative min-h-0 overflow-hidden ${columnClass[world.color]}`}
+              style={{
+                backgroundColor: atmosphereFallbackBg(world.atmosphere),
+                backgroundImage: `url(${bg.desktop})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                gridRow: fillsViewport ? "1 / -1" : undefined,
+                zIndex: fillsViewport ? 20 : displayIndex + 1,
+              }}
+              initial={{ y: slideBack ? slideY : 0 }}
+              animate={{ y: slideOffscreen ? slideY : 0 }}
+              transition={{
+                y: isAnimating
+                  ? { duration: COLUMN_EXIT_S, delay, ease: COLUMN_EASE }
+                  : { duration: 0 },
+              }}
+            >
+              <PanelLayers
+                world={world}
+                tone={tone}
+                bg={bg}
+                showWorld={showWorld}
+                landingCaptionMode={landingCaptionMode}
+                captionDecodeMode={captionDecodeMode}
+                locale={locale}
+                locked={locked}
+                lockedHintLabel={lockedHintLabel}
+                scrimOpacity={scrimOpacity}
+                onCaptionDecodeComplete={onCaptionDecodeComplete}
+              />
+              {!showWorld && landingCaptionMode !== "out" && (
+                <button
+                  type="button"
+                  disabled={locked}
+                  onClick={() => onWorldClick(world, index)}
+                  className={`pointer-events-auto absolute inset-0 z-20 border-0 bg-transparent ${
+                    locked ? "cursor-not-allowed" : "cursor-pointer"
+                  }`}
+                  aria-label={`${getLocalized(world.albumTitle, locale)} — ${enterWorldLabel}`}
+                />
+              )}
+            </motion.div>
           );
         })}
       </div>
-
-      {!showWorld && landingCaptionMode !== "hidden" && (
-        <div className="pointer-events-none absolute inset-0 z-[25] grid grid-rows-3">
-          {mobileWorlds.map((world) => {
-            const tone = columnCopyTone(world.atmosphere);
-            const locked = world.locked;
-            return (
-              <div
-                key={`caption-${world.id}`}
-                className={`relative flex min-h-0 flex-col items-center justify-center px-4 text-center ${columnClass[world.color]}`}
-              >
-                <DecodeText
-                  as="h2"
-                  text={getLocalized(world.albumTitle, locale)}
-                  mode={captionDecodeMode}
-                  className={`text-2xl font-light leading-snug tracking-wide ${tone.title}`}
-                  style={tone.titleStyle}
-                  duration={CAPTION_DECODE_MS}
-                  onComplete={() => {
-                    if (captionDecodeMode === "in") onCaptionDecodeComplete();
-                  }}
-                />
-                {locked && (
-                  <p className="mt-2 text-xs uppercase tracking-widest text-white/40">
-                    {lockedHintLabel}
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {!showWorld && landingCaptionMode !== "out" && (
-        <div className="absolute inset-0 z-[30] grid grid-rows-3">
-          {mobileWorlds.map((world) => {
-            const index = worlds.findIndex((w) => w.id === world.id);
-            if (index < 0) return null;
-            return (
-              <button
-                key={`hit-${world.id}`}
-                type="button"
-                disabled={world.locked}
-                onClick={() => onWorldClick(world, index)}
-                className={`border-0 bg-transparent ${
-                  world.locked ? "cursor-not-allowed" : "cursor-pointer"
-                }`}
-                aria-label={`${getLocalized(world.albumTitle, locale)} — ${enterWorldLabel}`}
-              />
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }

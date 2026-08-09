@@ -4,7 +4,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -38,10 +37,6 @@ export function ClientIntlShell({
 }) {
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const [messages, setMessages] = useState<AbstractIntlMessages>(initialMessages);
-
-  useEffect(() => {
-    document.documentElement.lang = initialLocale;
-  }, [initialLocale]);
 
   const switchLocaleClient = useCallback(async (next: Locale) => {
     if (next === locale) return;

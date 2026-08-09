@@ -5,10 +5,12 @@ import { useLocale, useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import type { World } from "@/types/content";
 import { AlbumSlotScene } from "./AlbumSlotScene";
+import { MobileAlbumSlotScene } from "./MobileAlbumSlotScene";
 import { WorldAmbientAudio } from "./WorldAmbientAudio";
 import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import type { Locale } from "@/types/content";
 import { getLocalized } from "@/lib/locale";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import cosmosLayout from "@/data/cosmos-layout.json";
 import nanoLayout from "@/data/nano-layout.json";
 import clubLayout from "@/data/club-layout.json";
@@ -28,6 +30,7 @@ const HEADER_DECODE_MS = 720;
 
 export function WorldView({ world, onBack }: WorldViewProps) {
   const locale = useLocale() as Locale;
+  const isMobile = useIsMobile();
   const t = useTranslations("world");
   const tNav = useTranslations("nav");
   const [exiting, setExiting] = useState(false);
@@ -77,10 +80,24 @@ export function WorldView({ world, onBack }: WorldViewProps) {
         : "border-red-400/30";
 
   const backLabel = `← ${tNav("back")}`;
+  const mobileBg = world.backgroundImageMobile || world.backgroundImage;
 
   return (
-    <div className={`relative min-h-screen bg-transparent pt-24 ${atmosphereClass[world.atmosphere]}`}>
+    <div
+      className={`relative min-h-[100dvh] bg-transparent pt-[calc(5.5rem+env(safe-area-inset-top))] md:min-h-screen md:pt-24 ${atmosphereClass[world.atmosphere]}`}
+    >
       <WorldAmbientAudio src={world.backgroundAudio} />
+
+      {isMobile && useGlobalBackground && mobileBg ? (
+        <div className="pointer-events-none fixed inset-0 z-0 md:hidden" aria-hidden>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={mobileBg} alt="" className="h-full w-full object-cover object-center" />
+          <div
+            className={`landing-column-overlay landing-column-overlay--${world.atmosphere} absolute inset-0`}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/55" />
+        </div>
+      ) : null}
       {!useGlobalBackground && (
         <>
           <div className="halftone-overlay" />
@@ -89,7 +106,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
       )}
 
       <motion.div
-        className="relative z-10 mx-auto max-w-6xl px-4 pb-2 pt-4 md:pt-6"
+        className="relative z-10 mx-auto max-w-6xl px-4 pb-2 pt-2 md:pt-6"
         animate={{ opacity: exiting ? 0 : 1 }}
         transition={{ duration: 0.35 }}
       >
@@ -97,7 +114,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
           type="button"
           onClick={handleBackClick}
           disabled={exiting}
-          className="mb-4 text-2xl uppercase tracking-widest text-white/50 transition hover:text-white disabled:pointer-events-none disabled:opacity-30"
+          className="mb-3 text-lg uppercase tracking-widest text-white/50 transition hover:text-white disabled:pointer-events-none disabled:opacity-30 md:mb-4 md:text-2xl"
         >
           <DecodeText
             as="span"
@@ -107,7 +124,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
           />
         </button>
 
-        <p className="text-[20px] lowercase tracking-[0.25em] text-white/50">
+        <p className="text-sm lowercase tracking-[0.2em] text-white/50 md:text-[20px] md:tracking-[0.25em]">
           <DecodeText text={t("themeLabel")} mode={headerDecodeMode} duration={HEADER_DECODE_MS} />
         </p>
         <DecodeText
@@ -115,7 +132,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
           text={getLocalized(world.albumTitle, locale)}
           mode={headerDecodeMode}
           duration={HEADER_DECODE_MS}
-          className="mt-2 text-[40px] font-light tracking-wide md:text-[60px]"
+          className="mt-1 text-[28px] font-light tracking-wide md:mt-2 md:text-[40px] md:text-[60px]"
         />
         {!useSlotScene && (
           <p className="mt-6 max-w-2xl text-2xl leading-relaxed text-white/45">
@@ -130,18 +147,29 @@ export function WorldView({ world, onBack }: WorldViewProps) {
       </motion.div>
 
       {useSlotScene && world.songs.length > 0 ? (
-        <AlbumSlotScene
-          songs={world.songs}
-          positions={layout}
-          backgroundImage={useGlobalBackground ? undefined : world.backgroundImage}
-          hideEarthLayer={useGlobalBackground}
-          variant={world.atmosphere}
-          maxSlots={world.slotCount ?? (world.atmosphere === "cosmos" ? 12 : world.atmosphere === "nano" ? 13 : 14)}
-          borderClass={borderClass}
-          exiting={exiting}
-          onExitComplete={handleExitComplete}
-          locale={locale}
-        />
+        isMobile ? (
+          <MobileAlbumSlotScene
+            songs={world.songs}
+            maxSlots={world.slotCount ?? (world.atmosphere === "cosmos" ? 12 : world.atmosphere === "nano" ? 13 : 14)}
+            borderClass={borderClass}
+            exiting={exiting}
+            onExitComplete={handleExitComplete}
+            locale={locale}
+          />
+        ) : (
+          <AlbumSlotScene
+            songs={world.songs}
+            positions={layout}
+            backgroundImage={useGlobalBackground ? undefined : world.backgroundImage}
+            hideEarthLayer={useGlobalBackground}
+            variant={world.atmosphere}
+            maxSlots={world.slotCount ?? (world.atmosphere === "cosmos" ? 12 : world.atmosphere === "nano" ? 13 : 14)}
+            borderClass={borderClass}
+            exiting={exiting}
+            onExitComplete={handleExitComplete}
+            locale={locale}
+          />
+        )
       ) : (
         <p className="relative z-10 mx-auto max-w-6xl px-4 text-sm text-white/40">—</p>
       )}

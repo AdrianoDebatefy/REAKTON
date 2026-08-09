@@ -40,8 +40,16 @@ git push -f origin HEAD:main
 
 ## Offen
 
-1. **Mobile Version** — Landing hat Mobile-Stack; Welt-View / Cover-Szene / Feinschliff noch ausbauen
-2. **TOY (Clap-Toy)** — Header + Footer verlinken `clapToyUrl` (`site-content.json`); Einbindung als Embed oder eigene Route nach Toy-Fertigstellung
+1. **Mobile Feinschliff** — Basis-Version eingebaut (siehe unten); ggf. Animationen Landing-Eintritt, Tablet-Breakpoint
+2. **TOY (Clap-Toy)** — Header + Footer verlinken `clapToyUrl`; Einbindung als Embed oder Route
+
+## Mobile (Stand Aug 2026)
+
+- Erkennung: Viewport ≤767px (`useIsMobile`, gleich wie Tailwind `md`)
+- **Landing:** gestapelte Welt-Karten (42vh), schneller Eintritt (~420ms), Scrim pro Karte
+- **Welt:** Mobile-Hintergrund (9:16), kompakter Header, `MobileAlbumSlotScene` (2-Spalten-Grid → Cover-Detail)
+- **Zurück:** direkt zur Landing ohne Desktop-Spalten-Rückbau
+- Header: kompakteres Menu, Safe Areas (`viewport-fit=cover`)
 
 ## Empfohlene Reihenfolge (bei Rückkehr)
 

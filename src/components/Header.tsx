@@ -15,6 +15,7 @@ interface HeaderProps {
 }
 
 const headerTextClass = "text-[30px] uppercase tracking-widest";
+const headerTextClassMobile = "text-base uppercase tracking-widest";
 
 type NavChipId = "live" | "merch" | "press" | "toy" | "contact";
 
@@ -46,9 +47,10 @@ const navChipStyles: Record<NavChipId, { bg: string; text: string; hover: string
   },
 };
 
-function navChipClass(chip: NavChipId) {
+function navChipClass(chip: NavChipId, mobile = false) {
   const style = navChipStyles[chip];
-  return `${headerTextClass} ${style.bg} ${style.text} ${style.hover} inline-flex items-center px-4 py-3 transition`;
+  const textClass = mobile ? headerTextClassMobile : headerTextClass;
+  return `${textClass} ${style.bg} ${style.text} ${style.hover} inline-flex items-center px-4 py-3 transition`;
 }
 
 function isExternalUrl(url: string) {
@@ -126,19 +128,19 @@ export function Header({ logoUrl, siteLinks, clapToyUrl, onHomeClick }: HeaderPr
   const logoSrc = logoUrl?.trim() || "/brand/reakton-logo.webp";
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-black/40 backdrop-blur-md">
-      <div className="flex items-stretch justify-between gap-4 pr-4 md:pr-6">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-black/40 backdrop-blur-md pt-[env(safe-area-inset-top)]">
+      <div className="flex items-stretch justify-between gap-2 pr-3 md:gap-4 md:pr-6">
         <Link
           href="/"
           onClick={onHomeClick}
-          className="flex shrink-0 items-center py-3 pl-[50px] opacity-90 transition hover:opacity-100"
+          className="flex shrink-0 items-center py-2 pl-4 opacity-90 transition hover:opacity-100 md:py-3 md:pl-[50px]"
         >
           <img
             src={logoSrc}
             alt="REAKTON"
             width={240}
             height={30}
-            className="h-[30px] w-auto"
+            className="h-[22px] w-auto md:h-[30px]"
             decoding="async"
           />
         </Link>
@@ -175,14 +177,14 @@ export function Header({ logoUrl, siteLinks, clapToyUrl, onHomeClick }: HeaderPr
           <button
             type="button"
             onClick={switchLocale}
-            className={`rounded border border-white/15 px-2.5 py-1 ${headerTextClass} text-white/60 hover:border-white/30`}
+            className={`rounded border border-white/15 px-2 py-1 text-sm uppercase tracking-widest text-white/60 hover:border-white/30 md:px-2.5 md:text-[30px]`}
             aria-label="Switch language"
           >
             {localeSwitchLabel(locale)}
           </button>
 
           <details className="relative lg:hidden">
-            <summary className={`cursor-pointer list-none ${headerTextClass} text-white/70`}>
+            <summary className="cursor-pointer list-none text-sm uppercase tracking-widest text-white/70 md:text-[30px]">
               Menu
             </summary>
             <nav className="absolute right-0 mt-2 min-w-[10rem] rounded border border-white/10 bg-black/95 p-2">
@@ -191,7 +193,7 @@ export function Header({ logoUrl, siteLinks, clapToyUrl, onHomeClick }: HeaderPr
                   key={item.chip}
                   href={item.href}
                   external={item.external}
-                  className={`block ${navChipClass(item.chip)} my-0.5`}
+                  className={`block ${navChipClass(item.chip, true)} my-0.5 px-3 py-2 text-sm`}
                 >
                   {item.label}
                 </NavHref>

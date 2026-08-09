@@ -33,6 +33,11 @@ export async function generateMetadata({
   return {
     title: t("title"),
     description: t("description"),
+    viewport: {
+      width: "device-width",
+      initialScale: 1,
+      viewportFit: "cover",
+    },
     openGraph: {
       title: t("title"),
       description: t("description"),
@@ -57,7 +62,7 @@ export default async function LocaleLayout({
   return (
     <html lang={locale}>
       <body
-        className={`${rajdhani.variable} min-h-screen bg-[#050508] font-sans text-[#e8e8ec] antialiased`}
+        className={`${rajdhani.variable} min-h-[100dvh] bg-[#050508] font-sans text-[#e8e8ec] antialiased md:min-h-screen`}
         style={{ fontFamily: "var(--font-rajdhani), system-ui, sans-serif" }}
       >
         <ClientIntlShell initialLocale={locale as Locale} initialMessages={messages}>

@@ -8,6 +8,7 @@ import { WorldView } from "./WorldView";
 import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import { getInitialWorldUiState, writeWorldSession } from "@/lib/world-session";
 import { getLocalized } from "@/lib/locale";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface WorldColumnsProps {
   worlds: World[];
@@ -28,6 +29,7 @@ const COLUMN_EASE = [0.4, 0, 0.2, 1] as const;
 const EARTH_TRANSITION = { duration: COLUMN_EXIT_S, ease: COLUMN_EASE };
 const WORLD_VIEW_EXIT_S = 0.15;
 const CAPTION_DECODE_MS = 720;
+const MOBILE_ENTER_MS = 420;
 
 function maxColumnStaggerS(columnCount: number) {
   return Math.max(0, columnCount - 2) * COLUMN_STAGGER_S;
@@ -393,6 +395,7 @@ function columnCopyTone(atmosphere: WorldAtmosphere) {
 
 export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
   const locale = useLocale() as Locale;
+  const isMobile = useIsMobile();
   const t = useTranslations("home");
   const initialUi = getInitialWorldUiState();
   const [activeId, setActiveId] = useState<string | null>(initialUi.activeId);
@@ -434,6 +437,8 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
   const handleColumnClick = useCallback((world: World, index: number) => {
     if (world.locked || landingCaptionMode === "out") return;
     setLandingCaptionMode("out");
+    const decodeMs = isMobile ? MOBILE_ENTER_MS : CAPTION_DECODE_MS;
+    const worldOpenMs = isMobile ? MOBILE_ENTER_MS : columnEnterMs(worlds.length);
     window.setTimeout(() => {
       setLandingCaptionMode("hidden");
       setSelectedIndex(index);
@@ -443,12 +448,23 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
       setReturnAtmosphere(null);
       setReturnBgExpandHold(false);
       setReturnFromIndex(null);
-      window.setTimeout(() => setShowWorld(true), columnEnterMs(worlds.length));
-    }, CAPTION_DECODE_MS);
-  }, [worlds.length, landingCaptionMode]);
+      window.setTimeout(() => setShowWorld(true), worldOpenMs);
+    }, decodeMs);
+  }, [worlds.length, landingCaptionMode, isMobile]);
 
   const handleBackFromWorld = useCallback(() => {
     writeWorldSession(null);
+    if (isMobile) {
+      setShowWorld(false);
+      setActiveId(null);
+      setSelectedIndex(null);
+      setColumnReturning(false);
+      setReturnAtmosphere(null);
+      setReturnBgExpandHold(false);
+      setReturnFromIndex(null);
+      setLandingCaptionMode("static");
+      return;
+    }
     const atmosphere = worlds.find((w) => w.id === activeId)?.atmosphere ?? null;
     const fromIndex = selectedIndex;
     const returnMs = columnEnterMs(worlds.length);
@@ -467,7 +483,7 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
       setReturnFromIndex(null);
       setLandingCaptionMode("in");
     }, returnMs);
-  }, [activeId, selectedIndex, worlds]);
+  }, [activeId, selectedIndex, worlds, isMobile]);
 
   const [earthDesktopSrc, setEarthDesktopSrc] = useState(
     () => cosmosWorld?.backgroundImage || "/worlds/earth-night.svg"
@@ -584,7 +600,7 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
   const scrimOpacity = scrimFadingOut ? 0 : 1;
 
   return (
-    <div className="relative min-h-screen pt-24">
+    <div className="relative min-h-[100dvh] pt-[calc(5.5rem+env(safe-area-inset-top))] md:min-h-screen md:pt-24">
       {!hidePageGrain && (
         <>
           <div className="halftone-overlay fixed inset-0 z-0" />
@@ -682,16 +698,15 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
       </div>
 
       <LandingScrimLayer worlds={worlds} opacity={scrimOpacity} variant="desktop" />
-      <LandingScrimLayer worlds={worlds} opacity={scrimOpacity} variant="mobile" />
 
       <AnimatePresence>
         {showWorld && activeWorld && (
           <motion.div
             key="world-view"
-            initial={{ opacity: 1 }}
+            initial={{ opacity: isMobile ? 0 : 1 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: WORLD_VIEW_EXIT_S }}
+            transition={{ duration: isMobile ? 0.35 : WORLD_VIEW_EXIT_S }}
             className="fixed inset-0 z-30 bg-transparent"
           >
             <WorldView world={activeWorld} onBack={handleBackFromWorld} />
@@ -735,7 +750,11 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
         </div>
       )}
 
-      <div className="relative z-10 flex flex-col gap-1 md:hidden">
+      <div
+        className={`relative z-10 flex flex-col gap-1 md:hidden ${
+          showWorld || isEntering ? "pointer-events-none hidden" : ""
+        }`}
+      >
         {worlds.map((world, index) => {
           const locked = world.locked;
           const showColumnBg = isLanding && Boolean(world.backgroundImage);
@@ -766,7 +785,7 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
               type="button"
               disabled={locked || isEntering || landingCaptionMode === "out"}
               onClick={() => handleColumnClick(world, index)}
-              className={`group relative flex min-h-[28vh] w-full flex-col justify-end overflow-hidden p-6 text-left ${columnClass[world.color]} ${
+              className={`group relative flex min-h-[42vh] w-full flex-col justify-end overflow-hidden p-5 text-left ${columnClass[world.color]} ${
                 locked ? "cursor-not-allowed opacity-40" : "cursor-pointer"
               }`}
             >
@@ -783,12 +802,19 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
                   />
                 </motion.div>
               )}
+              <motion.div
+                className={`pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-32 bg-gradient-to-t ${tone.scrim}`}
+                initial={false}
+                animate={{ opacity: scrimOpacity }}
+                transition={{ opacity: EARTH_TRANSITION }}
+                aria-hidden
+              />
               <div className="relative z-20">
                 <DecodeText
                   as="h2"
                   text={getLocalized(world.albumTitle, locale)}
                   mode={landingCaptionMode === "hidden" ? "out" : captionDecodeMode}
-                  className={`text-[30px] font-light ${tone.title}`}
+                  className={`text-2xl font-light md:text-[30px] ${tone.title}`}
                   style={tone.titleStyle}
                   duration={CAPTION_DECODE_MS}
                 />
@@ -802,7 +828,7 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
       </div>
 
       {!showWorld && (
-        <section className="relative z-10 border-t border-white/10 bg-black/50 px-4 py-16 text-center">
+        <section className="relative z-10 border-t border-white/10 bg-black/50 px-4 py-12 text-center md:py-16">
           <h2 className="text-sm uppercase tracking-[0.3em] text-white/50">{t("toyTitle")}</h2>
           <p className="mx-auto mt-3 max-w-md text-sm text-white/45">{t("toyDescription")}</p>
           <a

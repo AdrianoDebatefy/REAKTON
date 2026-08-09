@@ -71,6 +71,15 @@ function mobileSlideDelay(
   return (worldIndex - selectedIndex - 1) * COLUMN_STAGGER_S;
 }
 
+const MOBILE_WORLD_ORDER: WorldAtmosphere[] = ["cosmos", "nano", "club"];
+
+function sortWorldsForMobile(worlds: World[]): World[] {
+  return [...worlds].sort(
+    (a, b) =>
+      MOBILE_WORLD_ORDER.indexOf(a.atmosphere) - MOBILE_WORLD_ORDER.indexOf(b.atmosphere)
+  );
+}
+
 function ColumnBgImage({
   desktopSrc,
   mobileSrc,
@@ -80,23 +89,24 @@ function ColumnBgImage({
   mobileSrc: string;
   onError?: () => void;
 }) {
-  const [preferMobile, setPreferMobile] = useState(false);
   const [src, setSrc] = useState(desktopSrc);
 
   useEffect(() => {
     const media = window.matchMedia(MOBILE_MEDIA);
-    const sync = () => {
-      const mobile = media.matches;
-      setPreferMobile(mobile);
-      setSrc(mobile && mobileSrc ? mobileSrc : desktopSrc);
+    const pickSrc = () => {
+      if (!media.matches || !mobileSrc || mobileSrc === desktopSrc) {
+        setSrc(desktopSrc);
+        return;
+      }
+      setSrc(mobileSrc);
     };
-    sync();
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
+    pickSrc();
+    media.addEventListener("change", pickSrc);
+    return () => media.removeEventListener("change", pickSrc);
   }, [desktopSrc, mobileSrc]);
 
   const handleError = () => {
-    if (preferMobile && mobileSrc && src !== desktopSrc) {
+    if (src !== desktopSrc) {
       setSrc(desktopSrc);
       return;
     }
@@ -106,11 +116,89 @@ function ColumnBgImage({
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
+      key={src}
       src={src}
       alt=""
-      className="h-full w-full object-cover"
+      className="block h-full w-full object-cover"
       onError={handleError}
     />
+  );
+}
+
+function PanelLayers({
+  world,
+  tone,
+  bg,
+  showWorld,
+  landingCaptionMode,
+  captionDecodeMode,
+  locale,
+  locked,
+  lockedHintLabel,
+  scrimOpacity,
+  onCaptionDecodeComplete,
+}: {
+  world: World;
+  tone: ReturnType<typeof columnCopyTone>;
+  bg: { desktop: string; mobile: string; onError?: () => void };
+  showWorld: boolean;
+  landingCaptionMode: DecodeMode | "hidden";
+  captionDecodeMode: DecodeMode;
+  locale: Locale;
+  locked: boolean;
+  lockedHintLabel: string;
+  scrimOpacity: number;
+  onCaptionDecodeComplete: () => void;
+}) {
+  return (
+    <>
+      <div className="pointer-events-none absolute inset-0">
+        <ColumnBgImage
+          desktopSrc={bg.desktop}
+          mobileSrc={bg.mobile}
+          onError={bg.onError}
+        />
+        <div
+          className={`landing-column-overlay landing-column-overlay--${world.atmosphere} absolute inset-0`}
+          aria-hidden
+        />
+      </div>
+
+      {!showWorld && (
+        <motion.div
+          className={`pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b ${tone.scrim}`}
+          initial={false}
+          animate={{ opacity: scrimOpacity }}
+          transition={{ opacity: EARTH_TRANSITION }}
+          aria-hidden
+        />
+      )}
+
+      {!showWorld && (
+        <div className="relative z-10 flex h-full min-h-0 flex-col items-center justify-center px-4 text-center">
+          {landingCaptionMode !== "hidden" && (
+            <>
+              <DecodeText
+                as="h2"
+                text={getLocalized(world.albumTitle, locale)}
+                mode={captionDecodeMode}
+                className={`text-2xl font-light leading-snug tracking-wide ${tone.title}`}
+                style={tone.titleStyle}
+                duration={CAPTION_DECODE_MS}
+                onComplete={() => {
+                  if (captionDecodeMode === "in") onCaptionDecodeComplete();
+                }}
+              />
+              {locked && (
+                <p className="mt-2 text-xs uppercase tracking-widest text-white/40">
+                  {lockedHintLabel}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -149,9 +237,11 @@ export function MobileWorldLanding({
   onWorldClick: (world: World, index: number) => void;
   onCaptionDecodeComplete: () => void;
 }) {
-  const animatePanels = isEntering || isColumnReturning;
+  const isAnimating = isEntering || isColumnReturning;
   const landingVisible = !showWorld;
-  const panelHeightPct = 100 / worlds.length;
+  const rowPercent = 100 / worlds.length;
+  const useGridLayout = landingVisible && !isAnimating;
+  const mobileWorlds = sortWorldsForMobile(worlds);
 
   if (!landingVisible && !isColumnReturning && selectedIndex === null) return null;
 
@@ -160,8 +250,14 @@ export function MobileWorldLanding({
       className="pointer-events-none fixed inset-x-0 bottom-0 top-[calc(5.5rem+env(safe-area-inset-top))] z-[15] md:hidden"
       aria-hidden={showWorld}
     >
-      <div className="relative h-full overflow-hidden">
-        {worlds.map((world, index) => {
+      <div
+        className={`h-full overflow-hidden ${
+          useGridLayout ? "grid grid-rows-3" : "relative"
+        }`}
+      >
+        {mobileWorlds.map((world) => {
+          const index = worlds.findIndex((w) => w.id === world.id);
+          if (index < 0) return null;
           if (showWorld && index !== selectedIndex) return null;
 
           const locked = world.locked;
@@ -170,6 +266,7 @@ export function MobileWorldLanding({
           const isSelected = selectedIndex === index;
           const fillsViewport =
             isSelected && (isEntering || isImmersed || showWorld);
+          const restingTop = index * rowPercent;
           const slideY = mobileSlideY(
             index,
             selectedIndex,
@@ -184,7 +281,45 @@ export function MobileWorldLanding({
             isColumnReturning,
             worlds.length
           );
-          const restingTop = index * panelHeightPct;
+
+          const layers = (
+            <PanelLayers
+              world={world}
+              tone={tone}
+              bg={bg}
+              showWorld={showWorld}
+              landingCaptionMode={landingCaptionMode}
+              captionDecodeMode={captionDecodeMode}
+              locale={locale}
+              locked={locked}
+              lockedHintLabel={lockedHintLabel}
+              scrimOpacity={scrimOpacity}
+              onCaptionDecodeComplete={onCaptionDecodeComplete}
+            />
+          );
+
+          if (useGridLayout) {
+            return (
+              <div
+                key={world.id}
+                className={`relative min-h-0 overflow-hidden ${columnClass[world.color]}`}
+                style={{ backgroundColor: atmosphereFallbackBg(world.atmosphere) }}
+              >
+                {layers}
+                {landingCaptionMode !== "out" && (
+                  <button
+                    type="button"
+                    disabled={locked}
+                    onClick={() => onWorldClick(world, index)}
+                    className={`pointer-events-auto absolute inset-0 z-20 border-0 bg-transparent ${
+                      locked ? "cursor-not-allowed" : "cursor-pointer"
+                    }`}
+                    aria-label={`${getLocalized(world.albumTitle, locale)} — ${enterWorldLabel}`}
+                  />
+                )}
+              </div>
+            );
+          }
 
           return (
             <motion.div
@@ -197,8 +332,8 @@ export function MobileWorldLanding({
               initial={false}
               animate={{
                 top: fillsViewport ? "0%" : `${restingTop}%`,
-                height: fillsViewport ? "100%" : `${panelHeightPct}%`,
-                y: animatePanels && !isSelected ? slideY : 0,
+                height: fillsViewport ? "100%" : `${rowPercent}%`,
+                y: isAnimating && !isSelected ? slideY : 0,
               }}
               transition={{
                 top: fillsViewport
@@ -207,58 +342,12 @@ export function MobileWorldLanding({
                 height: fillsViewport
                   ? { ...EARTH_TRANSITION, type: "tween" }
                   : { duration: 0 },
-                y: animatePanels
+                y: isAnimating
                   ? { duration: COLUMN_EXIT_S, delay, ease: COLUMN_EASE }
                   : { duration: 0 },
               }}
             >
-              <div className="pointer-events-none absolute inset-0">
-                <ColumnBgImage
-                  desktopSrc={bg.desktop}
-                  mobileSrc={bg.mobile}
-                  onError={bg.onError}
-                />
-                <div
-                  className={`landing-column-overlay landing-column-overlay--${world.atmosphere} absolute inset-0`}
-                  aria-hidden
-                />
-              </div>
-
-              {!showWorld && (
-                <motion.div
-                  className={`pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b ${tone.scrim}`}
-                  initial={false}
-                  animate={{ opacity: scrimOpacity }}
-                  transition={{ opacity: EARTH_TRANSITION }}
-                  aria-hidden
-                />
-              )}
-
-              {!showWorld && (
-                <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 text-center">
-                  {landingCaptionMode !== "hidden" && (
-                    <>
-                      <DecodeText
-                        as="h2"
-                        text={getLocalized(world.albumTitle, locale)}
-                        mode={captionDecodeMode}
-                        className={`text-2xl font-light leading-snug tracking-wide ${tone.title}`}
-                        style={tone.titleStyle}
-                        duration={CAPTION_DECODE_MS}
-                        onComplete={() => {
-                          if (captionDecodeMode === "in") onCaptionDecodeComplete();
-                        }}
-                      />
-                      {locked && (
-                        <p className="mt-2 text-xs uppercase tracking-widest text-white/40">
-                          {lockedHintLabel}
-                        </p>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-
+              {layers}
               {!showWorld && landingCaptionMode !== "out" && (
                 <button
                   type="button"

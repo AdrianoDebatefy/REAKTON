@@ -30,7 +30,7 @@ function MiniEq({
     if (!canvas) return undefined;
     const resize = () => {
       canvas.width = canvas.clientWidth;
-      canvas.height = 24;
+      canvas.height = 36;
     };
     resize();
     const ro = new ResizeObserver(resize);
@@ -40,32 +40,42 @@ function MiniEq({
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !analyser) return undefined;
+    if (!canvas) return undefined;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return undefined;
 
-    const buffer = new Uint8Array(analyser.frequencyBinCount);
+    const buffer = analyser ? new Uint8Array(analyser.frequencyBinCount) : null;
 
     const draw = () => {
       frameRef.current = requestAnimationFrame(draw);
-      analyser.getByteFrequencyData(buffer);
       const { width, height } = canvas;
       ctx.clearRect(0, 0, width, height);
 
-      const bars = 20;
+      ctx.strokeStyle = "rgba(255,255,255,0.12)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, height - 1);
+      ctx.lineTo(width, height - 1);
+      ctx.stroke();
+
+      const bars = 48;
       const gap = 1;
       const barWidth = (width - gap * (bars - 1)) / bars;
-      const step = Math.floor(buffer.length / bars);
 
       for (let i = 0; i < bars; i += 1) {
-        const value = buffer[i * step] ?? 0;
-        const normalized = active ? value / 255 : 0.04;
-        const barHeight = Math.max(1, normalized * height);
+        let normalized = 0.04;
+        if (active && analyser && buffer) {
+          const step = Math.floor(buffer.length / bars);
+          const value = buffer[i * step] ?? 0;
+          normalized = value / 255;
+        }
+
+        const barHeight = Math.max(2, normalized * (height - 4));
         const x = i * (barWidth + gap);
-        const y = height - barHeight;
+        const y = height - 2 - barHeight;
         ctx.fillStyle = accent;
-        ctx.globalAlpha = active ? 0.75 : 0.15;
+        ctx.globalAlpha = active ? 0.8 : 0.18;
         ctx.fillRect(x, y, barWidth, barHeight);
       }
       ctx.globalAlpha = 1;
@@ -78,18 +88,18 @@ function MiniEq({
   return (
     <canvas
       ref={canvasRef}
-      className="h-6 w-full min-w-[4.5rem] rounded-[2px] bg-black/15"
-      height={24}
+      className="h-9 w-full"
+      height={36}
       aria-hidden
     />
   );
 }
 
 function formatTime(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds <= 0) return "0:00";
+  if (!Number.isFinite(seconds) || seconds < 0) return "00:00";
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
+  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 }
 
 function VerticalVolume({
@@ -105,16 +115,10 @@ function VerticalVolume({
 }) {
   return (
     <div
-      className="flex w-11 shrink-0 flex-col items-center gap-3 border border-white/[0.07] bg-white/[0.025] px-2 py-3 backdrop-blur-[3px] self-stretch"
-      style={{ boxShadow: `inset 0 1px 0 ${accent}18` }}
+      className="flex w-10 shrink-0 flex-col items-center justify-center self-stretch px-1.5 py-3"
+      style={{ backgroundColor: accent }}
     >
-      <span
-        className="text-sm uppercase tracking-[0.28em] text-white/45 md:text-xs"
-        style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
-      >
-        {label}
-      </span>
-      <div className="relative flex min-h-[7rem] flex-1 items-center justify-center">
+      <div className="relative flex min-h-[8rem] flex-1 items-center justify-center">
         <input
           type="range"
           min={0}
@@ -122,16 +126,39 @@ function VerticalVolume({
           step={0.01}
           value={volume}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="absolute w-28 cursor-pointer appearance-none bg-transparent [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-current [&::-moz-range-track]:h-1 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/15 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/15"
-          style={{
-            accentColor: accent,
-            color: accent,
-            transform: "rotate(-90deg)",
-          }}
+          className="absolute w-32 cursor-pointer appearance-none bg-transparent [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-1.5 [&::-moz-range-thumb]:rounded-sm [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white [&::-moz-range-track]:w-1 [&::-moz-range-track]:rounded-sm [&::-moz-range-track]:bg-white/35 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-1.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-sm [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-runnable-track]:w-1 [&::-webkit-slider-runnable-track]:rounded-sm [&::-webkit-slider-runnable-track]:bg-white/35"
+          style={{ transform: "rotate(-90deg)" }}
           aria-label={label}
         />
       </div>
     </div>
+  );
+}
+
+function ProgressBar({
+  value,
+  accent,
+  disabled,
+  onChange,
+}: {
+  value: number;
+  accent: string;
+  disabled?: boolean;
+  onChange: (ratio: number) => void;
+}) {
+  return (
+    <input
+      type="range"
+      min={0}
+      max={1}
+      step={0.001}
+      value={value}
+      disabled={disabled}
+      onChange={(e) => onChange(Number(e.target.value))}
+      className="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-white/20 disabled:cursor-default disabled:opacity-40 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+      style={{ accentColor: accent }}
+      aria-label="Position"
+    />
   );
 }
 
@@ -170,128 +197,99 @@ export function PressPreviewPlayer({
   onVote: (trackId: string, stars: number) => void;
   labels: { play: string; pause: string; volume: string };
 }) {
-  const progressRatio = duration > 0 ? progress / duration : 0;
+  const activeProgressRatio = duration > 0 ? progress / duration : 0;
 
   return (
-    <div className="flex w-full max-w-3xl items-stretch gap-1.5">
-      <div className="min-w-0 flex-1 space-y-1.5">
+    <div className="flex w-full max-w-5xl items-stretch gap-0">
+      <div className="min-w-0 flex-1 space-y-1">
         {playbackError ? (
           <p className="border border-red-400/25 bg-red-500/8 px-4 py-2 text-lg text-red-200 md:text-base">
             {playbackError}
           </p>
         ) : null}
 
-        <ul className="space-y-1.5">
+        <ul className="space-y-1">
           {tracks.map((track, index) => {
             const isActive = track.id === activeTrackId;
             const isPlaying = isActive && playing;
             const slotLabel = String(index + 1).padStart(2, "0");
+            const progressRatio = isActive ? activeProgressRatio : 0;
+            const timeCurrent = isActive ? formatTime(progress) : "00:00";
+            const timeTotal = isActive ? formatTime(duration) : "00:00";
 
             return (
               <li
                 key={track.id}
-                className={`border transition-colors backdrop-blur-[3px] ${
+                className={`flex overflow-hidden border backdrop-blur-[2px] transition-colors ${
                   isActive
-                    ? "border-white/[0.14] bg-white/[0.055]"
+                    ? "border-white/[0.14] bg-white/[0.05]"
                     : "border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.035]"
                 }`}
                 style={
                   isActive
-                    ? {
-                        boxShadow: `inset 0 1px 0 ${accent}22, 0 0 0 1px ${accent}18`,
-                      }
+                    ? { boxShadow: `inset 0 1px 0 ${accent}22` }
                     : undefined
                 }
               >
-                <div className="flex items-center gap-3 px-3 py-2.5 md:gap-3.5 md:px-3.5">
-                  <span
-                    className="w-7 shrink-0 text-center text-lg tabular-nums text-white/25 md:text-base"
-                    aria-hidden
-                  >
-                    {slotLabel}
-                  </span>
-
+                <div className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 px-2 py-2.5 md:w-20">
                   <div
-                    className="h-11 w-11 shrink-0 overflow-hidden border border-white/[0.08] md:h-10 md:w-10"
-                    style={{ backgroundColor: track.coverImage ? undefined : `${accent}55` }}
+                    className="aspect-square w-full overflow-hidden"
+                    style={{ backgroundColor: track.coverImage ? undefined : accent }}
                   >
                     {track.coverImage ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={track.coverImage} alt="" className="h-full w-full object-cover" />
                     ) : null}
                   </div>
+                  <span className="text-lg tabular-nums text-white/70 md:text-base">{slotLabel}</span>
+                </div>
 
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-2xl font-light leading-tight text-white md:text-xl">
+                <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 py-2 pr-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="min-w-0 truncate text-2xl font-light leading-tight text-white md:text-xl">
                       {track.title}
                     </p>
-                    {track.artist ? (
-                      <p className="truncate text-xl text-white/40 md:text-lg">{track.artist}</p>
-                    ) : null}
-                    {isActive ? (
-                      <div className="mt-1.5 hidden sm:block">
-                        <MiniEq analyser={analyser} active={isPlaying} accent={accent} />
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => onTogglePlay(track.id)}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center border border-white/[0.14] bg-white/[0.03] text-2xl text-white transition hover:bg-white/[0.07] md:h-10 md:w-10 md:text-xl"
-                    aria-label={isPlaying ? labels.pause : labels.play}
-                  >
-                    {isPlaying ? "❚❚" : "▶"}
-                  </button>
-
-                  <div className="hidden shrink-0 lg:block">
                     <StarRating
                       value={track.votes}
                       userStars={track.userStars}
                       onVote={(stars) => onVote(track.id, stars)}
                       size="lg"
                       atmosphere={atmosphere}
+                      compact
                     />
                   </div>
-                </div>
 
-                {isActive ? (
-                  <div className="border-t border-white/[0.06] px-3 pb-2.5 pt-2 md:px-3.5">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="range"
-                        min={0}
-                        max={1}
-                        step={0.001}
-                        value={progressRatio}
-                        onChange={(e) => onSeek(Number(e.target.value))}
-                        className="flex-1"
-                        style={{ accentColor: accent }}
-                        aria-label="Position"
-                      />
-                      <button
-                        type="button"
-                        onClick={onStop}
-                        className="shrink-0 text-lg text-white/45 hover:text-white md:text-base"
-                        aria-label="Stop"
-                      >
-                        ⏹
-                      </button>
-                      <span className="shrink-0 text-lg tabular-nums text-white/35 md:text-base">
-                        {formatTime(progress)} / {formatTime(duration)}
-                      </span>
-                    </div>
-                    <div className="mt-2 lg:hidden">
-                      <StarRating
-                        value={track.votes}
-                        userStars={track.userStars}
-                        onVote={(stars) => onVote(track.id, stars)}
-                        size="lg"
-                        atmosphere={atmosphere}
-                      />
-                    </div>
+                  <MiniEq
+                    analyser={isActive ? analyser : null}
+                    active={isPlaying}
+                    accent={accent}
+                  />
+
+                  <div className="flex items-center gap-2.5">
+                    <ProgressBar
+                      value={progressRatio}
+                      accent={accent}
+                      disabled={!isActive}
+                      onChange={onSeek}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => onTogglePlay(track.id)}
+                      onDoubleClick={() => {
+                        if (isActive) onStop();
+                      }}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center text-sm text-white transition hover:brightness-110"
+                      style={{ backgroundColor: accent }}
+                      aria-label={isPlaying ? labels.pause : labels.play}
+                      title={isActive ? "Doppelklick: Stop" : undefined}
+                    >
+                      {isPlaying ? "❚❚" : "▶"}
+                    </button>
+                    <span className="shrink-0 text-base tabular-nums text-white/80 md:text-sm">
+                      {timeCurrent} / {timeTotal}
+                    </span>
                   </div>
-                ) : null}
+                </div>
               </li>
             );
           })}

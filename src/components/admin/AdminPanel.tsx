@@ -95,6 +95,14 @@ function UploadField({
           }}
         />
       </div>
+      {accept.startsWith("image") && value && !value.includes("placeholder") && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={value}
+          alt=""
+          className="mt-2 h-24 w-24 border border-white/20 object-cover"
+        />
+      )}
     </label>
   );
 }
@@ -975,7 +983,7 @@ export function AdminPanel({
     setSaving(true);
     try {
       await onSave(data);
-      setMessage("Gespeichert — die Startseite aktualisiert sich automatisch.");
+      setMessage("Gespeichert. Startseiten-Tab mit Strg+F5 aktualisieren — oder «Zur Startseite ↗» oben.");
     } catch {
       setMessage("Fehler beim Speichern");
     } finally {
@@ -1013,7 +1021,15 @@ export function AdminPanel({
         <span className="ml-3 text-white/30">· Build {SITE_BUILD_LABEL}</span>
       </p>
 
-      <div className="mt-4 flex flex-wrap gap-3">
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <a
+          href="/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded border border-white/35 bg-white/10 px-4 py-2 text-[10px] uppercase tracking-widest text-white/85 hover:border-white/55"
+        >
+          Zur Startseite ↗
+        </a>
         <button
           type="button"
           onClick={exportBackup}

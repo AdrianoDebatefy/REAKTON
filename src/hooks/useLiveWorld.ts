@@ -3,19 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import type { SiteContent, World } from "@/types/content";
 import { onContentUpdated } from "@/lib/content-events";
+import { fetchPublicWorlds } from "@/lib/fetch-public-content";
 
 async function fetchWorldById(worldId: string): Promise<World | null> {
-  try {
-    const res = await fetch(`/api/content?t=${Date.now()}`, {
-      cache: "no-store",
-      headers: { Accept: "application/json" },
-    });
-    if (!res.ok) return null;
-    const data = (await res.json()) as SiteContent;
-    return data.worlds?.find((w) => w.id === worldId) ?? null;
-  } catch {
-    return null;
-  }
+  const worlds = await fetchPublicWorlds();
+  return worlds?.find((world) => world.id === worldId) ?? null;
 }
 
 /** Always use the latest slot data from site-content.local.json for this world. */

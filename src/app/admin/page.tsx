@@ -76,9 +76,17 @@ export default function AdminPage() {
             Login
           </button>
         </form>
-        <p className="mt-4 text-xs text-white/35">
+        <p className="mt-8 text-xs text-white/35">
           Passwort vom Hosting (ADMIN_PASSWORD) oder nach Login unter «Zugang» ändern.
         </p>
+        <a
+          href="/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-6 inline-block text-xs uppercase tracking-widest text-white/55 underline hover:text-white/80"
+        >
+          Zur Startseite ↗
+        </a>
         {message && <p className="mt-4 text-sm text-red-400">{message}</p>}
         <p className="mt-8 text-[10px] uppercase tracking-widest text-white/25">
           Build: {SITE_BUILD_LABEL}

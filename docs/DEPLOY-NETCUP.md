@@ -32,7 +32,39 @@ Gleiches gilt für:
 
 ---
 
-## Schritt 1 — VPS vorbereiten (SSH)
+## Domain bei HostEurope, Hosting auf Netcup
+
+Die **Domain** `reakton.de` / `www.reakton.de` bleibt bei **HostEurope** — du kündigst nur den **Webspace**, nicht die Domain.
+
+### Reihenfolge (empfohlen)
+
+1. **Jetzt:** Seite auf Netcup installieren und testen (per VPS-IP oder hosts-Datei)
+2. **Wenn alles läuft:** DNS bei HostEurope umstellen
+3. **Danach:** SSL auf Netcup mit Certbot (oder DNS schon auf VPS, dann Certbot)
+
+### DNS-Einträge bei HostEurope (später)
+
+| Typ | Name | Wert |
+|-----|------|------|
+| **A** | `@` (reakton.de) | IPv4-Adresse deines Netcup VPS |
+| **A** | `www` | dieselbe IPv4-Adresse **oder** CNAME `www` → `reakton.de` |
+| **AAAA** | `@` / `www` | optional IPv6 vom Netcup, falls aktiv |
+
+**Entfernen / nicht mehr nutzen:** alte A- oder CNAME-Einträge, die auf den HostEurope-Webspace zeigen.
+
+**TTL** vor der Umstellung auf 300–600 Sekunden senken, dann nach stabilem Betrieb wieder erhöhen.
+
+### Vor dem Install: VPS prüfen
+
+```bash
+ssh root@DEINE-VPS-IP
+# Repo kurz klonen oder nur Skript kopieren, dann:
+bash deploy/netcup/preflight-check.sh
+```
+
+Das Skript zeigt Speicher, RAM, Load, belegte Ports und bestehende Nginx-Sites.
+
+---
 
 ```bash
 ssh root@DEINE-VPS-IP

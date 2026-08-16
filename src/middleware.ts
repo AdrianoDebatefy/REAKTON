@@ -13,16 +13,12 @@ function detectLocale(pathname: string): string {
   return routing.defaultLocale;
 }
 
-/** Behind TLS-terminating nginx, rewrite requests to the public origin (not localhost:3010). */
-function withPublicOrigin(request: NextRequest): NextRequest {
-  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-  const proto = request.headers.get("x-forwarded-proto") ?? "https";
-
-  if (!host) return request;
-
+/** Behind nginx, middleware rewrites must target the local Node port (not the public domain). */
+function withInternalOrigin(request: NextRequest): NextRequest {
   const url = request.nextUrl.clone();
-  url.protocol = `${proto}:`;
-  url.host = host.split(",")[0]!.trim();
+  url.protocol = "http:";
+  url.hostname = "127.0.0.1";
+  url.port = "3010";
 
   return new NextRequest(url, {
     headers: request.headers,
@@ -30,8 +26,8 @@ function withPublicOrigin(request: NextRequest): NextRequest {
 }
 
 export default function middleware(request: NextRequest) {
-  const publicRequest = withPublicOrigin(request);
-  const response = intlMiddleware(publicRequest);
+  const internalRequest = withInternalOrigin(request);
+  const response = intlMiddleware(internalRequest);
   response.headers.set("x-reakton-locale", detectLocale(request.nextUrl.pathname));
   return response;
 }

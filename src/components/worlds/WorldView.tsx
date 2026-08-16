@@ -101,9 +101,14 @@ export function WorldView({ world, onBack }: WorldViewProps) {
 
   const backLabel = `← ${tNav("back")}`;
 
+  const cosmosExitBackdrop =
+    isMobile && exiting && world.atmosphere === "cosmos";
+
   return (
     <div
-      className={`relative min-h-[100dvh] bg-transparent pt-[calc(5.5rem+env(safe-area-inset-top))] md:min-h-screen md:pt-24 ${atmosphereClass[world.atmosphere]}`}
+      className={`relative min-h-[100dvh] pt-[calc(5.5rem+env(safe-area-inset-top))] md:min-h-screen md:pt-24 ${atmosphereClass[world.atmosphere]} ${
+        cosmosExitBackdrop ? "bg-[#0a1628]" : "bg-transparent"
+      }`}
     >
       <WorldAmbientAudio src={world.backgroundAudio} />
       {!useGlobalBackground && (

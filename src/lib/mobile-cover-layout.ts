@@ -37,7 +37,7 @@ export const MOBILE_COVER_EXIT_MS = MOBILE_COVER_FADE_S * 1000;
 export function mobileCoverExitMs(
   exitDelays: number[],
   fadeDurationS = MOBILE_COVER_FADE_DURATION_S,
-  bufferMs = 120
+  bufferMs = 200
 ): number {
   const maxDelay = exitDelays.length ? Math.max(...exitDelays) : 0;
   return (maxDelay + fadeDurationS) * 1000 + bufferMs;

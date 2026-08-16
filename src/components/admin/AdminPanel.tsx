@@ -279,14 +279,25 @@ function SongSlotEditor({
         inputClassName={`min-w-0 flex-1 border px-2 py-1.5 text-xs ${theme.inputBg}`}
       />
       <label className="block text-xs text-white/85">
-        Video-Link (YouTube)
-        <input
-          type="url"
-          value={song.videoUrl ?? ""}
-          onChange={(e) => onChange({ ...song, videoUrl: e.target.value || undefined })}
-          placeholder="https://www.youtube.com/watch?v=..."
-          className={inputClass}
-        />
+        Video-Link (YouTube, optional)
+        <div className="mt-1 flex gap-2">
+          <input
+            type="text"
+            value={song.videoUrl ?? ""}
+            onChange={(e) => onChange({ ...song, videoUrl: e.target.value.trim() || undefined })}
+            placeholder="Leer lassen = kein Video-Button"
+            className={`${inputClass} flex-1`}
+          />
+          {song.videoUrl && (
+            <button
+              type="button"
+              onClick={() => onChange({ ...song, videoUrl: undefined })}
+              className="shrink-0 border border-white/30 px-2 py-1.5 text-[10px] uppercase tracking-widest text-white/70 hover:text-white"
+            >
+              Entfernen
+            </button>
+          )}
+        </div>
       </label>
     </div>
   );

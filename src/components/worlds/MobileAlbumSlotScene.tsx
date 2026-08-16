@@ -19,19 +19,7 @@ import {
   buildRandomCoverFadeDelays,
   mobileCoverExitMs,
 } from "@/lib/mobile-cover-layout";
-
-function getYouTubeId(url: string): string | null {
-  const trimmed = url.trim();
-  const patterns = [
-    /(?:youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([^?&/]+)/,
-    /[?&]v=([^?&/]+)/,
-  ];
-  for (const pattern of patterns) {
-    const match = trimmed.match(pattern);
-    if (match?.[1]) return match[1];
-  }
-  return null;
-}
+import { getYouTubeId, hasSongVideoUrl, resolveSongVideoUrl } from "@/lib/youtube-url";
 
 const MOVE_TRANSITION = { duration: 0.85, ease: [0.4, 0, 0.2, 1] as const };
 const FADE_TRANSITION = { duration: MOBILE_COVER_FADE_S, ease: [0.4, 0, 0.2, 1] as const };
@@ -627,13 +615,14 @@ export function MobileAlbumSlotScene({
                             aria-label={t("nowPlaying")}
                           />
                         )}
-                        {activeSong.videoUrl && (
+                        {hasSongVideoUrl(activeSong.videoUrl) && (
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               stopAudio();
-                              setYoutubeUrl(activeSong.videoUrl!.trim());
+                              const resolved = resolveSongVideoUrl(activeSong.videoUrl);
+                              if (resolved) setYoutubeUrl(resolved);
                             }}
                             className="block w-full text-center text-[11px] uppercase tracking-[0.3em] text-white/85 underline"
                           >

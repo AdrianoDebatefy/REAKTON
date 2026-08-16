@@ -18,18 +18,18 @@
       "slotCount": 12,
       "ogImage": "/og/weltall.jpg",
       "songs": [
-        { "id": "wem-01", "title": "Umlaufbahn", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-        { "id": "wem-02", "title": "Lichtgeschwindigkeit", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-        { "id": "wem-03", "title": "Datenstrom", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-        { "id": "wem-04", "title": "Fernerkundung", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-        { "id": "wem-05", "title": "Horizont", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-        { "id": "wem-06", "title": "Mensch Maschine", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-        { "id": "wem-07", "title": "Kontakt", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-        { "id": "wem-08", "title": "Signal", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-        { "id": "wem-09", "title": "Kosmos", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-        { "id": "wem-10", "title": "Erde", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-        { "id": "wem-11", "title": "Mensch", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-        { "id": "wem-12", "title": "Weltall", "coverImage": "/covers/placeholder.svg", "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }
+        { "id": "wem-01", "title": "Umlaufbahn", "coverImage": "/covers/placeholder.svg" },
+        { "id": "wem-02", "title": "Lichtgeschwindigkeit", "coverImage": "/covers/placeholder.svg" },
+        { "id": "wem-03", "title": "Datenstrom", "coverImage": "/covers/placeholder.svg" },
+        { "id": "wem-04", "title": "Fernerkundung", "coverImage": "/covers/placeholder.svg" },
+        { "id": "wem-05", "title": "Horizont", "coverImage": "/covers/placeholder.svg" },
+        { "id": "wem-06", "title": "Mensch Maschine", "coverImage": "/covers/placeholder.svg" },
+        { "id": "wem-07", "title": "Kontakt", "coverImage": "/covers/placeholder.svg" },
+        { "id": "wem-08", "title": "Signal", "coverImage": "/covers/placeholder.svg" },
+        { "id": "wem-09", "title": "Kosmos", "coverImage": "/covers/placeholder.svg" },
+        { "id": "wem-10", "title": "Erde", "coverImage": "/covers/placeholder.svg" },
+        { "id": "wem-11", "title": "Mensch", "coverImage": "/covers/placeholder.svg" },
+        { "id": "wem-12", "title": "Weltall", "coverImage": "/covers/placeholder.svg" }
       ]
     },
     {

@@ -5,14 +5,10 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
 import type { Song } from "@/types/content";
+import { getYouTubeId, hasSongVideoUrl, resolveSongVideoUrl } from "@/lib/youtube-url";
 
 interface SongCloudProps {
   songs: Song[];
-}
-
-function getYouTubeId(url: string): string | null {
-  const match = url.match(/(?:youtu\.be\/|v=)([^&]+)/);
-  return match ? match[1] : null;
 }
 
 function PlaceholderCover({ title }: { title: string }) {
@@ -123,12 +119,15 @@ export function SongCloud({ songs }: SongCloudProps) {
             exit={{ opacity: 0 }}
             className="flex justify-center gap-3 px-4 pb-8 md:pb-12"
           >
-            {songs
-              .find((s) => s.id === activeId)
-              ?.videoUrl && (
+            {hasSongVideoUrl(songs.find((s) => s.id === activeId)?.videoUrl) && (
               <button
                 type="button"
-                onClick={() => setVideoUrl(songs.find((s) => s.id === activeId)!.videoUrl!)}
+                onClick={() => {
+                  const resolved = resolveSongVideoUrl(
+                    songs.find((s) => s.id === activeId)?.videoUrl
+                  );
+                  if (resolved) setVideoUrl(resolved);
+                }}
                 className="rounded border border-white/20 px-4 py-2 text-xs uppercase tracking-widest hover:bg-white/10"
               >
                 {t("watchVideo")}

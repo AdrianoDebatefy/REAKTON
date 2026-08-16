@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
 import type { Locale, Song } from "@/types/content";
 import { getLocalized } from "@/lib/locale";
+import { getYouTubeId, hasSongVideoUrl, resolveSongVideoUrl } from "@/lib/youtube-url";
 
 interface Position {
   x: number;
@@ -56,19 +57,6 @@ function readStoredInfoTextSize(): number {
     /* ignore */
   }
   return INFO_TEXT_SIZE_DEFAULT;
-}
-
-function getYouTubeId(url: string): string | null {
-  const trimmed = url.trim();
-  const patterns = [
-    /(?:youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([^?&/]+)/,
-    /[?&]v=([^?&/]+)/,
-  ];
-  for (const pattern of patterns) {
-    const match = trimmed.match(pattern);
-    if (match?.[1]) return match[1];
-  }
-  return null;
 }
 
 function isPlayerUiTarget(target: EventTarget | null): boolean {
@@ -379,9 +367,11 @@ export function AlbumSlotScene({
 
   const openYoutube = useCallback(
     (url: string) => {
+      const resolved = resolveSongVideoUrl(url);
+      if (!resolved) return;
       stopAudio();
       slotVideoRef.current?.pause();
-      setYoutubeUrl(url.trim());
+      setYoutubeUrl(resolved);
     },
     [stopAudio]
   );
@@ -938,7 +928,7 @@ export function AlbumSlotScene({
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="motif-bottom-bar bg-black/28 px-4 py-2.5 backdrop-blur-sm">
-                      {activeSong.videoUrl && (
+                      {hasSongVideoUrl(activeSong.videoUrl) && (
                         <button
                           type="button"
                           onClick={(e) => {

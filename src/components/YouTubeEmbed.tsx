@@ -1,11 +1,7 @@
 "use client";
 
 import { useCookieConsent } from "@/context/CookieContext";
-
-function getYouTubeId(url: string): string | null {
-  const match = url.match(/(?:youtu\.be\/|v=)([^&]+)/);
-  return match ? match[1] : null;
-}
+import { getYouTubeId } from "@/lib/youtube-url";
 
 export function YouTubeEmbed({ url, title }: { url: string; title: string }) {
   const { canLoadYouTube } = useCookieConsent();

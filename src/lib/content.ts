@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
 import type { SiteContent, SiteLinks, World } from "@/types/content";
+import { resolveSongVideoUrl } from "@/lib/youtube-url";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DATA_PATH = path.join(DATA_DIR, "site-content.json");
@@ -23,7 +24,13 @@ function normalizeSiteContent(raw: Record<string, unknown>): SiteContent {
   const worlds = (content.worlds ?? []).map((world) => {
     const rest = { ...world } as World & { backgroundVideo?: string };
     delete rest.backgroundVideo;
-    return rest;
+    return {
+      ...rest,
+      songs: (rest.songs ?? []).map((song) => ({
+        ...song,
+        videoUrl: resolveSongVideoUrl(song.videoUrl),
+      })),
+    };
   });
 
   const base = { ...content, worlds };

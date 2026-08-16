@@ -1,4 +1,5 @@
 import type { Song, World, SiteContent } from "@/types/content";
+import { resolveSongVideoUrl } from "@/lib/youtube-url";
 
 function isPlaceholderCover(url?: string): boolean {
   return !url || url.includes("placeholder");
@@ -14,7 +15,7 @@ function mergeSong(server: Song, client: Song): Song {
         : client.coverImage,
     videoSnippet: client.videoSnippet || server.videoSnippet,
     audioSnippet: client.audioSnippet || server.audioSnippet,
-    videoUrl: client.videoUrl || server.videoUrl,
+    videoUrl: resolveSongVideoUrl(client.videoUrl),
     infoText: client.infoText?.de?.trim() ? client.infoText : server.infoText ?? client.infoText,
     title: client.title || server.title,
   };

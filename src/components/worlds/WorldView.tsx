@@ -21,6 +21,7 @@ import clubLayout from "@/data/club-layout.json";
 interface WorldViewProps {
   world: World;
   onBack: () => void;
+  onCoverExitChange?: (exiting: boolean) => void;
 }
 
 const atmosphereClass: Record<World["atmosphere"], string> = {
@@ -31,7 +32,7 @@ const atmosphereClass: Record<World["atmosphere"], string> = {
 
 const HEADER_DECODE_MS = 720;
 
-export function WorldView({ world, onBack }: WorldViewProps) {
+export function WorldView({ world, onBack, onCoverExitChange }: WorldViewProps) {
   const locale = useLocale() as Locale;
   const isMobile = useIsMobile();
   const t = useTranslations("world");
@@ -48,6 +49,12 @@ export function WorldView({ world, onBack }: WorldViewProps) {
     const timer = window.setTimeout(() => setHeaderDecodeMode("static"), HEADER_DECODE_MS);
     return () => window.clearTimeout(timer);
   }, [world.id]);
+
+  useEffect(() => {
+    if (!isMobile || world.atmosphere !== "cosmos") return;
+    onCoverExitChange?.(exiting);
+    return () => onCoverExitChange?.(false);
+  }, [exiting, isMobile, onCoverExitChange, world.atmosphere]);
 
   const headerDecodeMs =
     headerDecodeMode === "out" && isMobile ? MOBILE_BACK_TEXT_MS : HEADER_DECODE_MS;
@@ -103,6 +110,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
 
   const cosmosExitBackdrop =
     isMobile && exiting && world.atmosphere === "cosmos";
+  const cosmosSceneLevelExit = cosmosExitBackdrop;
 
   return (
     <div
@@ -110,6 +118,12 @@ export function WorldView({ world, onBack }: WorldViewProps) {
         cosmosExitBackdrop ? "bg-[#0a1628]" : "bg-transparent"
       }`}
     >
+      {cosmosExitBackdrop && (
+        <div
+          className="pointer-events-none fixed inset-0 z-0 bg-[#0a1628]"
+          aria-hidden
+        />
+      )}
       <WorldAmbientAudio src={world.backgroundAudio} />
       {!useGlobalBackground && (
         <>
@@ -167,6 +181,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
             maxSlots={world.slotCount ?? (world.atmosphere === "cosmos" ? 12 : world.atmosphere === "nano" ? 13 : 14)}
             borderClass={borderClass}
             exiting={exiting}
+            sceneLevelExit={cosmosSceneLevelExit}
             onExitComplete={handleExitComplete}
             locale={locale}
           />

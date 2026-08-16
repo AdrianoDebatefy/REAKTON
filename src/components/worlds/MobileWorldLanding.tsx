@@ -234,6 +234,7 @@ function PanelBgLayers({
   returnRevealLanding,
   scrimOpacity,
   usesLandingRowBgShift,
+  cosmosCoverExiting = false,
 }: {
   world: World;
   tone: ReturnType<typeof columnCopyTone>;
@@ -244,11 +245,13 @@ function PanelBgLayers({
   returnRevealLanding: boolean;
   scrimOpacity: number;
   usesLandingRowBgShift: boolean;
+  cosmosCoverExiting?: boolean;
 }) {
   const hideOverlays =
     showWorld || isEntering || (isColumnReturning && !returnRevealLanding);
   const landingBgStyle = cosmosLandingBgStyle(world.atmosphere, usesLandingRowBgShift);
   const stabilizeCosmosOverlay = showWorld && usesLandingRowBgShift;
+  const hideCosmosBg = world.atmosphere === "cosmos" && cosmosCoverExiting;
   const overlayFade =
     isColumnReturning && returnRevealLanding
       ? { duration: MOBILE_RETURN_OVERLAY_FADE_S, ease: COLUMN_EASE }
@@ -258,11 +261,12 @@ function PanelBgLayers({
     <>
       <div
         className="pointer-events-none absolute inset-0 overflow-hidden"
-        style={
-          stabilizeCosmosOverlay
-            ? undefined
-            : { ...GPU_COMPOSIT_LAYER, contain: "paint" }
-        }
+        style={{
+          ...(stabilizeCosmosOverlay
+            ? {}
+            : { ...GPU_COMPOSIT_LAYER, contain: "paint" }),
+          opacity: hideCosmosBg ? 0 : 1,
+        }}
       >
         <ColumnBgImage
           desktopSrc={bg.desktop}
@@ -303,6 +307,7 @@ export function MobileWorldLanding({
   returnAtmosphere,
   returnRevealLanding,
   showWorld,
+  cosmosCoverExiting = false,
   landingCaptionMode,
   captionDecodeMode,
   lockedHintLabel,
@@ -323,6 +328,7 @@ export function MobileWorldLanding({
   returnAtmosphere: WorldAtmosphere | null;
   returnRevealLanding: boolean;
   showWorld: boolean;
+  cosmosCoverExiting?: boolean;
   landingCaptionMode: DecodeMode | "hidden";
   captionDecodeMode: DecodeMode;
   lockedHintLabel: string;
@@ -444,9 +450,12 @@ export function MobileWorldLanding({
               className={`absolute inset-x-0 ${panelOverflow}`}
               style={{
                 position: "absolute",
-                backgroundColor: showWorld
-                  ? "transparent"
-                  : atmosphereFallbackBg(world.atmosphere),
+                backgroundColor:
+                  cosmosCoverExiting && isPivot && world.atmosphere === "cosmos"
+                    ? "#0a1628"
+                    : showWorld
+                      ? "transparent"
+                      : atmosphereFallbackBg(world.atmosphere),
                 zIndex: panelZIndex,
                 pointerEvents: parkedOffscreen ? "none" : undefined,
                 ...(stabilizeCosmosPanel ? {} : GPU_COMPOSIT_LAYER),
@@ -480,6 +489,7 @@ export function MobileWorldLanding({
                 returnRevealLanding={returnRevealLanding}
                 scrimOpacity={scrimOpacity}
                 usesLandingRowBgShift={usesLandingRowBgShift}
+                cosmosCoverExiting={cosmosCoverExiting}
               />
             </motion.div>
           );

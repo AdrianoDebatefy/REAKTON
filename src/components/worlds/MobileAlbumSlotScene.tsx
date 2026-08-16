@@ -75,6 +75,7 @@ export function MobileAlbumSlotScene({
   maxSlots = 12,
   borderClass = "border-white/30",
   exiting = false,
+  sceneLevelExit = false,
   onExitComplete,
   locale = "de",
 }: {
@@ -82,6 +83,8 @@ export function MobileAlbumSlotScene({
   maxSlots?: number;
   borderClass?: string;
   exiting?: boolean;
+  /** Cosmos: fade the whole scene as one layer to avoid GPU flicker over the earth BG. */
+  sceneLevelExit?: boolean;
   onExitComplete?: () => void;
   locale?: Locale;
 }) {
@@ -113,6 +116,11 @@ export function MobileAlbumSlotScene({
     () => mobileCoverExitMs(coverExitDelays),
     [coverExitDelays]
   );
+  const sceneFadeDuration = useMemo(() => {
+    const maxDelay = coverExitDelays.length ? Math.max(...coverExitDelays) : 0;
+    return maxDelay + MOBILE_COVER_FADE_DURATION_S;
+  }, [coverExitDelays]);
+  const useSceneFade = sceneLevelExit && exiting;
 
   const activeSong = items.find((s) => s.id === activeId) ?? null;
   const activeInfoText = activeSong ? getLocalized(activeSong.infoText, locale) : "";
@@ -224,6 +232,12 @@ export function MobileAlbumSlotScene({
     <motion.div
       ref={sceneRef}
       className="album-slot-scene relative z-20 mx-auto h-[calc(100dvh-11.5rem-env(safe-area-inset-top))] min-h-[320px] w-full max-w-lg overflow-hidden bg-transparent"
+      animate={{ opacity: useSceneFade ? 0 : 1 }}
+      transition={
+        useSceneFade
+          ? { duration: sceneFadeDuration, ease: [0.4, 0, 0.2, 1] }
+          : { duration: 0 }
+      }
       style={{
         isolation: "isolate",
         transform: `translateY(-${MOBILE_COVER_BLOCK_SHIFT_PX}px)`,
@@ -276,7 +290,7 @@ export function MobileAlbumSlotScene({
               height: targetSize,
               x: "-50%",
               y: "-50%",
-              opacity: exiting || hidden ? 0 : 1,
+              opacity: useSceneFade ? (hidden ? 0 : 1) : exiting || hidden ? 0 : 1,
               scale: exiting ? restingScale : hidden ? 0.85 : 1,
             }}
             transition={{
@@ -284,7 +298,10 @@ export function MobileAlbumSlotScene({
               top: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
               width: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
               height: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
-              opacity: exiting
+              opacity:
+                useSceneFade
+                  ? NO_TRANSITION
+                  : exiting
                 ? {
                     duration: MOBILE_COVER_FADE_DURATION_S,
                     delay: exitDelay,

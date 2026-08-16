@@ -46,6 +46,10 @@ const EXIT_FREEZE_TRANSITION = {
 
 type FrozenCoverSlot = { x: number; y: number; size: number };
 
+type ExitSceneMetrics = {
+  height: number;
+};
+
 const INFO_TEXT_SIZE_KEY = "reakton-info-text-size";
 const INFO_TEXT_SIZE_MIN = 12;
 const INFO_TEXT_SIZE_MAX = 22;
@@ -118,8 +122,12 @@ export function MobileAlbumSlotScene({
   const slotVideoRef = useRef<HTMLVideoElement | null>(null);
   const exitStartedRef = useRef(false);
   const exitLayoutRef = useRef<FrozenCoverSlot[] | null>(null);
+  const exitFadeTargetRef = useRef(0);
+  const exitFadeDoneIdsRef = useRef(new Set<string>());
+  const exitHandoffTimerRef = useRef<number | null>(null);
+  const [exitMetrics, setExitMetrics] = useState<ExitSceneMetrics | null>(null);
   const exitTotalMs = useMemo(
-    () => mobileCoverExitMs(coverExitDelays),
+    () => mobileCoverExitMs(coverExitDelays, MOBILE_COVER_FADE_DURATION_S, 500),
     [coverExitDelays]
   );
 
@@ -214,28 +222,93 @@ export function MobileAlbumSlotScene({
     if (!exiting) exitLayoutRef.current = null;
   }, [exiting]);
 
+  useLayoutEffect(() => {
+    if (!exiting) {
+      setExitMetrics(null);
+      return;
+    }
+    if (exitMetrics) return;
+    const scene = sceneRef.current;
+    if (!scene) return;
+    setExitMetrics({ height: scene.clientHeight });
+  }, [exiting, exitMetrics]);
+
+  const scheduleExitHandoff = useCallback(() => {
+    if (exitHandoffTimerRef.current !== null) return;
+    exitHandoffTimerRef.current = window.setTimeout(() => {
+      exitHandoffTimerRef.current = null;
+      onExitComplete?.();
+    }, 500);
+  }, [onExitComplete]);
+
+  const handleCoverFadeComplete = useCallback(
+    (songId: string) => {
+      if (!exiting || exitFadeDoneIdsRef.current.has(songId)) return;
+      exitFadeDoneIdsRef.current.add(songId);
+      if (exitFadeDoneIdsRef.current.size >= exitFadeTargetRef.current) {
+        scheduleExitHandoff();
+      }
+    },
+    [exiting, scheduleExitHandoff]
+  );
+
   useEffect(() => {
     if (!exiting) {
       exitStartedRef.current = false;
+      exitFadeDoneIdsRef.current.clear();
+      exitFadeTargetRef.current = 0;
+      if (exitHandoffTimerRef.current !== null) {
+        window.clearTimeout(exitHandoffTimerRef.current);
+        exitHandoffTimerRef.current = null;
+      }
       return;
     }
     if (exitStartedRef.current) return;
     exitStartedRef.current = true;
     stopAudio();
     setInfoPanelOpen(false);
-    const timer = window.setTimeout(() => onExitComplete?.(), exitTotalMs);
-    return () => window.clearTimeout(timer);
-  }, [exiting, exitTotalMs, onExitComplete, stopAudio]);
+    exitFadeTargetRef.current = items.filter(
+      (song) => !(isPoleMode && song.id !== activeId)
+    ).length;
+    const fallbackTimer = window.setTimeout(() => scheduleExitHandoff(), exitTotalMs);
+    return () => window.clearTimeout(fallbackTimer);
+  }, [
+    activeId,
+    exiting,
+    exitTotalMs,
+    isPoleMode,
+    items,
+    scheduleExitHandoff,
+    stopAudio,
+  ]);
+
+  useEffect(
+    () => () => {
+      if (exitHandoffTimerRef.current !== null) {
+        window.clearTimeout(exitHandoffTimerRef.current);
+      }
+    },
+    []
+  );
 
   useEffect(() => () => stopAudio(), [stopAudio]);
 
   return (
     <div
       ref={sceneRef}
-      className="album-slot-scene relative z-20 mx-auto h-[calc(100dvh-11.5rem-env(safe-area-inset-top))] min-h-[320px] w-full max-w-lg overflow-hidden bg-transparent"
+      className={`album-slot-scene relative z-20 mx-auto w-full max-w-lg overflow-hidden bg-transparent ${
+        exitMetrics ? "min-h-0" : "h-[calc(100svh-11.5rem-env(safe-area-inset-top))] min-h-[320px]"
+      }`}
       style={{
         isolation: "isolate",
         transform: `translateY(-${MOBILE_COVER_BLOCK_SHIFT_PX}px)`,
+        ...(exitMetrics
+          ? {
+              height: exitMetrics.height,
+              minHeight: exitMetrics.height,
+              maxHeight: exitMetrics.height,
+            }
+          : {}),
       }}
     >
       {items.map((song, i) => {
@@ -328,6 +401,11 @@ export function MobileAlbumSlotScene({
             }
             aria-label={song.title}
             aria-pressed={isActive}
+            onAnimationComplete={
+              exiting && !hidden
+                ? () => handleCoverFadeComplete(song.id)
+                : undefined
+            }
           >
             {isActive && !infoPanelOpen && (
               <button

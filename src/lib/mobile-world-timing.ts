@@ -9,6 +9,9 @@ export const MOBILE_BACK_TEXT_MS = 1500;
 export const MOBILE_COVER_FADE_S = 3;
 export const MOBILE_BACK_TOTAL_MS = MOBILE_COVER_FADE_S * 1000;
 
+/** WorldView crossfade on mobile before landing takes over. */
+export const MOBILE_WORLD_VIEW_EXIT_MS = 250;
+
 export const MOBILE_OVERLAY_FADE_S = 0.45;
 
 /** Post-slide reveal on return: 150 % longer than enter (×2.5). */

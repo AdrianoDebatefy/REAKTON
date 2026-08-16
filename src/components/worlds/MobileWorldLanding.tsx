@@ -210,6 +210,10 @@ function PanelBgLayers({
       ? { duration: MOBILE_RETURN_OVERLAY_FADE_S, ease: COLUMN_EASE }
       : { duration: OVERLAY_EXIT_S, ease: COLUMN_EASE };
 
+  if (showWorld) {
+    return null;
+  }
+
   return (
     <>
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -302,7 +306,7 @@ export function MobileWorldLanding({
   const stackTop = fullBleedBg
     ? "0px"
     : "calc(5.5rem + env(safe-area-inset-top))";
-  const stackOverflow = isAnimating ? "overflow-visible" : "overflow-hidden";
+  const stackOverflow = isEntering ? "overflow-visible" : "overflow-hidden";
 
   const stackTransition = returnSlidePhase
     ? { duration: MOBILE_RETURN_SLIDE_S, ease: COLUMN_EASE }
@@ -375,7 +379,7 @@ export function MobileWorldLanding({
             isPivot &&
             (fillsViewport || isEntering || returnSlidePhase);
           const panelZIndex = keepPivotOnTop ? panelCount + 1 : displayIndex + 1;
-          const panelOverflow = isAnimating ? "overflow-visible" : "overflow-hidden";
+          const panelOverflow = isEntering ? "overflow-visible" : "overflow-hidden";
 
           return (
             <motion.div
@@ -384,7 +388,9 @@ export function MobileWorldLanding({
               className={`absolute inset-x-0 ${panelOverflow}`}
               style={{
                 position: "absolute",
-                backgroundColor: atmosphereFallbackBg(world.atmosphere),
+                backgroundColor: showWorld
+                  ? "transparent"
+                  : atmosphereFallbackBg(world.atmosphere),
                 zIndex: panelZIndex,
                 pointerEvents: parkedOffscreen ? "none" : undefined,
                 backfaceVisibility: "hidden",

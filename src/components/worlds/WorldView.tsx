@@ -11,6 +11,7 @@ import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import type { Locale } from "@/types/content";
 import { getLocalized } from "@/lib/locale";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useLiveWorld } from "@/hooks/useLiveWorld";
 import {
   MOBILE_BACK_TEXT_MS,
 } from "@/lib/mobile-world-timing";
@@ -31,7 +32,8 @@ const atmosphereClass: Record<World["atmosphere"], string> = {
 
 const HEADER_DECODE_MS = 720;
 
-export function WorldView({ world, onBack }: WorldViewProps) {
+export function WorldView({ world: initialWorld, onBack }: WorldViewProps) {
+  const world = useLiveWorld(initialWorld);
   const locale = useLocale() as Locale;
   const isMobile = useIsMobile();
   const t = useTranslations("world");
@@ -158,6 +160,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
         isMobile ? (
           <div className="relative z-20 isolate">
             <MobileAlbumSlotScene
+            key={`${world.id}-${world.songs.map((s) => `${s.id}:${s.coverImage}`).join("|")}`}
             songs={world.songs}
             maxSlots={world.slotCount ?? (world.atmosphere === "cosmos" ? 12 : world.atmosphere === "nano" ? 13 : 14)}
             borderClass={borderClass}
@@ -168,6 +171,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
           </div>
         ) : (
           <AlbumSlotScene
+            key={`${world.id}-${world.songs.map((s) => `${s.id}:${s.coverImage}`).join("|")}`}
             songs={world.songs}
             positions={layout}
             backgroundImage={useGlobalBackground ? undefined : world.backgroundImage}

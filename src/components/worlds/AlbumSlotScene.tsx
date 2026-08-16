@@ -940,7 +940,7 @@ export function AlbumSlotScene({
                           {t("watchVideo")}
                         </button>
                       )}
-                      <p className="mt-1 text-center text-xl lowercase tracking-[0.2em] text-white">
+                      <p className="mt-1 text-center text-xl uppercase tracking-[0.2em] text-white">
                         {activeSong.title}
                       </p>
                     </div>

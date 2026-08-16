@@ -629,7 +629,7 @@ export function MobileAlbumSlotScene({
                             {t("watchVideo")}
                           </button>
                         )}
-                        <p className="mt-1 text-center text-sm lowercase tracking-[0.15em] text-white">
+                        <p className="mt-1 text-center text-sm uppercase tracking-[0.15em] text-white">
                           {activeSong.title}
                         </p>
                       </div>

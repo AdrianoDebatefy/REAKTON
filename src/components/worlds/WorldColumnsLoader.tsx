@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import type { SiteContent, World } from "@/types/content";
 
@@ -11,7 +11,10 @@ const WorldColumns = dynamic(
 
 async function fetchWorlds(): Promise<World[] | null> {
   try {
-    const res = await fetch("/api/content", { cache: "no-store" });
+    const res = await fetch(`/api/content?t=${Date.now()}`, {
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    });
     if (!res.ok) return null;
     const data = (await res.json()) as SiteContent;
     return data.worlds?.length ? data.worlds : null;
@@ -21,23 +24,30 @@ async function fetchWorlds(): Promise<World[] | null> {
 }
 
 export function WorldColumnsLoader({ worlds: initialWorlds }: { worlds: World[] }) {
-  const [worlds, setWorlds] = useState(initialWorlds);
+  const [worlds, setWorlds] = useState<World[] | null>(null);
+
+  const refresh = useCallback(async () => {
+    const next = await fetchWorlds();
+    setWorlds(next ?? initialWorlds);
+  }, [initialWorlds]);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function refresh() {
-      const next = await fetchWorlds();
-      if (!cancelled && next) setWorlds(next);
-    }
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
 
     void refresh();
     window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
-      cancelled = true;
       window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", onVisible);
     };
-  }, []);
+  }, [refresh]);
+
+  if (!worlds) {
+    return <div className="min-h-[100dvh] bg-black" aria-hidden />;
+  }
 
   return <WorldColumns worlds={worlds} />;
 }

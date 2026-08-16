@@ -1,2 +1,2 @@
 /** Shown in Admin footer — verify you run the expected build after git pull. */
-export const SITE_BUILD_LABEL = "press-eq-color-freq-2026-08-16";
+export const SITE_BUILD_LABEL = "press-eq-3band-layers-2026-08-16";

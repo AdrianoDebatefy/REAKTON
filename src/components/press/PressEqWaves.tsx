@@ -2,92 +2,101 @@
 
 import { useEffect, useRef } from "react";
 
-const POINT_COUNT = 48;
-const IDLE_LEVEL = 0.06;
-
-/** Frequency window: skip sub rumble, keep highs visible on the right (log-spaced). */
-const FREQ = {
-  MIN_BIN_RATIO: 0.03,
-  MAX_BIN_RATIO: 0.96,
-  WINDOW_BINS: 2,
-  HIGH_END_BOOST: 1.55,
-} as const;
+const POINT_COUNT = 40;
+const IDLE_LEVEL = 0.05;
+const DEFAULT_SAMPLE_RATE = 44100;
 
 const DYNAMICS = {
-  SESSION_PEAK_DECAY: 0.9992,
-  SESSION_PEAK_RISE: 0.32,
-  ENVELOPE_ATTACK: 0.44,
-  ENVELOPE_RELEASE: 0.07,
-  LOUDNESS_EXPONENT: 0.52,
-  INPUT_BOOST: 1.65,
-  POINT_ATTACK: 0.48,
-  POINT_RELEASE: 0.74,
-  LEVEL_BAND_START: 0.04,
-  LEVEL_BAND_END: 0.88,
+  SESSION_PEAK_DECAY: 0.9994,
+  SESSION_PEAK_RISE: 0.3,
+  ENVELOPE_ATTACK: 0.4,
+  ENVELOPE_RELEASE: 0.08,
+  LOUDNESS_EXPONENT: 0.62,
+  INPUT_BOOST: 1.25,
+  POINT_ATTACK: 0.5,
+  POINT_RELEASE: 0.76,
 } as const;
 
-const COLOR_QUIET: [number, number, number] = [61, 125, 212];
-const COLOR_MID: [number, number, number] = [255, 154, 60];
-const COLOR_LOUD: [number, number, number] = [232, 50, 74];
+/** Additive frequency layers — fixed hues, amplitude follows band energy only */
+const LAYERS = [
+  {
+    minHz: 20,
+    maxHz: 200,
+    colorTop: [107, 63, 160] as const,
+    colorBottom: [26, 42, 110] as const,
+    opacity: 0.58,
+    glow: 8,
+  },
+  {
+    minHz: 200,
+    maxHz: 3000,
+    colorTop: [78, 205, 196] as const,
+    colorBottom: [30, 107, 138] as const,
+    opacity: 0.52,
+    glow: 10,
+  },
+  {
+    minHz: 3000,
+    maxHz: 20000,
+    colorTop: [232, 244, 255] as const,
+    colorBottom: [94, 179, 255] as const,
+    opacity: 0.5,
+    glow: 12,
+  },
+] as const;
 
-function mixRgb(
-  a: [number, number, number],
-  b: [number, number, number],
-  t: number
-): string {
-  const clamped = Math.max(0, Math.min(1, t));
-  const r = Math.round(a[0] + (b[0] - a[0]) * clamped);
-  const g = Math.round(a[1] + (b[1] - a[1]) * clamped);
-  const bl = Math.round(a[2] + (b[2] - a[2]) * clamped);
-  return `rgb(${r},${g},${bl})`;
+function rgbString([r, g, b]: readonly [number, number, number], alpha: number): string {
+  return `rgba(${r},${g},${b},${alpha})`;
 }
 
-function loudnessColor(level: number): string {
-  const clamped = Math.max(0, Math.min(1, level));
-  if (clamped < 0.5) return mixRgb(COLOR_QUIET, COLOR_MID, clamped / 0.5);
-  return mixRgb(COLOR_MID, COLOR_LOUD, (clamped - 0.5) / 0.5);
+function hzToBin(hz: number, fftSize: number, sampleRate: number): number {
+  return (hz * fftSize) / sampleRate;
 }
 
-function rgbaFromRgb(rgb: string, alpha: number): string {
-  const match = rgb.match(/\d+/g);
-  if (!match || match.length < 3) return `rgba(255,255,255,${alpha})`;
-  return `rgba(${match[0]},${match[1]},${match[2]},${alpha})`;
+function logHzForPoint(
+  pointIndex: number,
+  minHz: number,
+  maxHz: number,
+  pointCount: number
+): number {
+  const t = pointIndex / (pointCount - 1);
+  const logMin = Math.log(minHz);
+  const logMax = Math.log(maxHz);
+  return Math.exp(logMin + t * (logMax - logMin));
 }
 
-function logBinCenter(pointIndex: number, bufferLength: number): number {
-  const minBin = Math.max(1, Math.floor(bufferLength * FREQ.MIN_BIN_RATIO));
-  const maxBin = Math.max(minBin + 2, Math.floor(bufferLength * FREQ.MAX_BIN_RATIO));
-  const t = pointIndex / (POINT_COUNT - 1);
-  const logMin = Math.log(minBin + 1);
-  const logMax = Math.log(maxBin + 1);
-  return Math.exp(logMin + t * (logMax - logMin)) - 1;
-}
-
-function sampleBinEnergy(buffer: Uint8Array, centerBin: number): number {
-  const radius = FREQ.WINDOW_BINS;
-  const from = Math.max(0, Math.floor(centerBin - radius));
-  const to = Math.min(buffer.length, Math.ceil(centerBin + radius + 1));
+function sampleBandEnergy(
+  buffer: Uint8Array,
+  hz: number,
+  fftSize: number,
+  sampleRate: number
+): number {
+  const center = hzToBin(hz, fftSize, sampleRate);
+  const window = Math.max(1, Math.round(hzToBin(40, fftSize, sampleRate)));
+  const from = Math.max(0, Math.floor(center - window));
+  const to = Math.min(buffer.length, Math.ceil(center + window + 1));
   let sum = 0;
   for (let i = from; i < to; i += 1) sum += buffer[i] ?? 0;
   return sum / (to - from);
 }
 
-function measureLevelBand(buffer: Uint8Array): { rms: number; peak: number } {
-  const start = Math.floor(buffer.length * DYNAMICS.LEVEL_BAND_START);
-  const end = Math.floor(buffer.length * DYNAMICS.LEVEL_BAND_END);
-  let sumSq = 0;
-  let count = 0;
-  let peak = 0;
+function measureBandRms(
+  buffer: Uint8Array,
+  minHz: number,
+  maxHz: number,
+  fftSize: number,
+  sampleRate: number
+): number {
+  const start = Math.max(0, Math.floor(hzToBin(minHz, fftSize, sampleRate)));
+  const end = Math.min(buffer.length, Math.ceil(hzToBin(maxHz, fftSize, sampleRate)));
+  if (end <= start) return 0;
 
+  let sumSq = 0;
   for (let i = start; i < end; i += 1) {
     const value = buffer[i] ?? 0;
     sumSq += value * value;
-    count += 1;
-    if (value > peak) peak = value;
   }
-
-  const rms = count > 0 ? Math.sqrt(sumSq / count) / 255 : 0;
-  return { rms, peak: peak / 255 };
+  return Math.sqrt(sumSq / (end - start)) / 255;
 }
 
 function updateDynamicsState(
@@ -97,7 +106,6 @@ function updateDynamicsState(
 ) {
   if (!active) {
     state.envelope += (IDLE_LEVEL - state.envelope) * 0.12;
-    state.sessionPeak += (Math.max(state.sessionPeak * 0.995, IDLE_LEVEL) - state.sessionPeak) * 0.05;
     return IDLE_LEVEL;
   }
 
@@ -108,62 +116,49 @@ function updateDynamicsState(
       state.sessionPeak * DYNAMICS.SESSION_PEAK_DECAY + rms * (1 - DYNAMICS.SESSION_PEAK_DECAY);
   }
 
-  state.sessionPeak = Math.max(state.sessionPeak, 0.035);
+  state.sessionPeak = Math.max(state.sessionPeak, 0.03);
 
   const followRate =
     rms > state.envelope ? DYNAMICS.ENVELOPE_ATTACK : DYNAMICS.ENVELOPE_RELEASE;
   state.envelope += (rms - state.envelope) * followRate;
 
   const relative = state.envelope / state.sessionPeak;
-  const expanded = Math.pow(Math.min(1, relative * DYNAMICS.INPUT_BOOST), DYNAMICS.LOUDNESS_EXPONENT);
-
-  return Math.max(0.02, Math.min(1, expanded));
+  return Math.max(
+    0.04,
+    Math.min(1, Math.pow(relative * DYNAMICS.INPUT_BOOST, DYNAMICS.LOUDNESS_EXPONENT))
+  );
 }
 
-function sampleWaveTargets(
-  buffer: Uint8Array | null,
+function sampleLayerTargets(
+  buffer: Uint8Array,
+  layer: (typeof LAYERS)[number],
   displayLevel: number,
-  visible: boolean,
-  active: boolean,
-  time: number
+  fftSize: number,
+  sampleRate: number
 ): number[] {
   const targets = new Array<number>(POINT_COUNT);
 
   for (let i = 0; i < POINT_COUNT; i += 1) {
-    let target = visible ? IDLE_LEVEL : 0.03;
-
-    if (active && buffer) {
-      const centerBin = logBinCenter(i, buffer.length);
-      const energy = sampleBinEnergy(buffer, centerBin) / 255;
-      const t = i / (POINT_COUNT - 1);
-      const hfBoost = 1 + t * (FREQ.HIGH_END_BOOST - 1);
-      target = Math.min(1, energy * displayLevel * hfBoost * 1.75);
-    } else if (visible) {
-      target =
-        IDLE_LEVEL +
-        0.028 * Math.sin(time * 1.05 + i * 0.2) +
-        0.016 * Math.sin(time * 0.65 + i * 0.1);
-    }
-
-    targets[i] = target;
+    const hz = logHzForPoint(i, layer.minHz, layer.maxHz, POINT_COUNT);
+    const energy = sampleBandEnergy(buffer, hz, fftSize, sampleRate) / 255;
+    targets[i] = Math.min(1, energy * displayLevel * 1.85);
   }
 
   return targets;
 }
 
-function drawWave(
+function drawWaveLayer(
   ctx: CanvasRenderingContext2D,
   points: number[],
   width: number,
   height: number,
   baseline: number,
-  color: string,
+  layer: (typeof LAYERS)[number],
   displayLevel: number,
   active: boolean
 ) {
   const maxLift = height - 6;
-  const opacity = active ? 0.42 + displayLevel * 0.5 : 0.28;
-  const glow = active ? 6 + displayLevel * 16 : 4;
+  const layerOpacity = active ? layer.opacity * (0.35 + displayLevel * 0.65) : layer.opacity * 0.3;
 
   ctx.beginPath();
   ctx.moveTo(0, baseline);
@@ -186,13 +181,14 @@ function drawWave(
   ctx.closePath();
 
   const gradient = ctx.createLinearGradient(0, 0, 0, height);
-  gradient.addColorStop(0, rgbaFromRgb(color, Math.min(1, opacity + 0.25)));
-  gradient.addColorStop(0.5, rgbaFromRgb(color, opacity * 0.65));
-  gradient.addColorStop(1, rgbaFromRgb(color, 0));
+  gradient.addColorStop(0, rgbString(layer.colorTop, Math.min(1, layerOpacity + 0.15)));
+  gradient.addColorStop(0.55, rgbString(layer.colorBottom, layerOpacity * 0.75));
+  gradient.addColorStop(1, rgbString(layer.colorBottom, 0));
 
   ctx.save();
-  ctx.shadowBlur = glow;
-  ctx.shadowColor = rgbaFromRgb(color, 0.85);
+  ctx.globalCompositeOperation = "lighter";
+  ctx.shadowBlur = active ? layer.glow * (0.4 + displayLevel * 0.6) : 3;
+  ctx.shadowColor = rgbString(layer.colorTop, 0.55);
   ctx.fillStyle = gradient;
   ctx.fill();
   ctx.restore();
@@ -210,13 +206,17 @@ export function PressEqWaves({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef(0);
-  const pointsRef = useRef<number[]>(Array.from({ length: POINT_COUNT }, () => IDLE_LEVEL));
-  const dynamicsRef = useRef({ envelope: IDLE_LEVEL, sessionPeak: 0.1 });
+  const layersRef = useRef<number[][]>(
+    LAYERS.map(() => Array.from({ length: POINT_COUNT }, () => IDLE_LEVEL))
+  );
+  const dynamicsRef = useRef(
+    LAYERS.map(() => ({ envelope: IDLE_LEVEL, sessionPeak: 0.08 }))
+  );
 
   useEffect(() => {
     if (!active) {
-      dynamicsRef.current = { envelope: IDLE_LEVEL, sessionPeak: 0.1 };
-      pointsRef.current = Array.from({ length: POINT_COUNT }, () => IDLE_LEVEL);
+      layersRef.current = LAYERS.map(() => Array.from({ length: POINT_COUNT }, () => IDLE_LEVEL));
+      dynamicsRef.current = LAYERS.map(() => ({ envelope: IDLE_LEVEL, sessionPeak: 0.08 }));
     }
   }, [active]);
 
@@ -242,7 +242,7 @@ export function PressEqWaves({
     if (!ctx) return undefined;
 
     const buffer = analyser ? new Uint8Array(analyser.frequencyBinCount) : null;
-    const smoothed = pointsRef.current;
+    const smoothedLayers = layersRef.current;
     const dynamics = dynamicsRef.current;
 
     const draw = () => {
@@ -253,34 +253,57 @@ export function PressEqWaves({
 
       ctx.clearRect(0, 0, width, height);
 
-      ctx.strokeStyle = "rgba(255,255,255,0.1)";
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(0, baseline);
       ctx.lineTo(width, baseline);
       ctx.stroke();
 
-      let displayLevel = IDLE_LEVEL;
+      const fftSize = analyser?.fftSize ?? 1024;
+      const sampleRate =
+        analyser?.context instanceof AudioContext
+          ? analyser.context.sampleRate
+          : DEFAULT_SAMPLE_RATE;
 
       if (active && analyser && buffer) {
         analyser.getByteFrequencyData(buffer);
-        const measured = measureLevelBand(buffer);
-        displayLevel = updateDynamicsState(dynamics, measured.rms, true);
-      } else if (visible) {
-        displayLevel = updateDynamicsState(dynamics, IDLE_LEVEL, false);
       }
 
-      const waveColor = loudnessColor(displayLevel);
-      const targets = sampleWaveTargets(buffer, displayLevel, visible, active, time);
+      LAYERS.forEach((layer, layerIndex) => {
+        const layerDynamics = dynamics[layerIndex]!;
+        const smoothed = smoothedLayers[layerIndex]!;
 
-      for (let i = 0; i < POINT_COUNT; i += 1) {
-        const target = targets[i]!;
-        const smoothRate =
-          target > smoothed[i]! ? DYNAMICS.POINT_ATTACK : DYNAMICS.POINT_RELEASE;
-        smoothed[i] = smoothed[i]! * smoothRate + target * (1 - smoothRate);
-      }
+        let displayLevel = IDLE_LEVEL;
 
-      drawWave(ctx, smoothed, width, height, baseline, waveColor, displayLevel, active);
+        if (active && buffer) {
+          const bandRms = measureBandRms(buffer, layer.minHz, layer.maxHz, fftSize, sampleRate);
+          displayLevel = updateDynamicsState(layerDynamics, bandRms, true);
+        } else if (visible) {
+          displayLevel =
+            IDLE_LEVEL +
+            0.02 * Math.sin(time * 1.05 + layerIndex * 0.9) +
+            0.012 * Math.sin(time * 0.7 + layerIndex * 1.3);
+        }
+
+        const targets =
+          active && buffer
+            ? sampleLayerTargets(buffer, layer, displayLevel, fftSize, sampleRate)
+            : Array.from({ length: POINT_COUNT }, (_, i) =>
+                visible
+                  ? IDLE_LEVEL + 0.02 * Math.sin(time * 1.1 + i * 0.18 + layerIndex)
+                  : 0.03
+              );
+
+        for (let i = 0; i < POINT_COUNT; i += 1) {
+          const target = targets[i]!;
+          const smoothRate =
+            target > smoothed[i]! ? DYNAMICS.POINT_ATTACK : DYNAMICS.POINT_RELEASE;
+          smoothed[i] = smoothed[i]! * smoothRate + target * (1 - smoothRate);
+        }
+
+        drawWaveLayer(ctx, smoothed, width, height, baseline, layer, displayLevel, active);
+      });
     };
 
     draw();

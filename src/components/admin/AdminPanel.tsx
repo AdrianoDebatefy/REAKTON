@@ -66,10 +66,27 @@ function UploadField({
   inputClassName?: string;
 }) {
   const [busy, setBusy] = useState(false);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const isImage = accept.includes("image");
+  const showServerPreview = isImage && Boolean(value) && !value.includes("placeholder");
+
+  useEffect(() => {
+    return () => {
+      if (localPreview) URL.revokeObjectURL(localPreview);
+    };
+  }, [localPreview]);
+
+  useEffect(() => {
+    if (showServerPreview) {
+      setPreviewError(false);
+    }
+  }, [value, showServerPreview]);
 
   return (
-    <label className="block text-xs text-white/75">
-      {label}
+    <div className="block text-xs text-white/75">
+      <span>{label}</span>
       <div className="mt-1 flex gap-2">
         <input
           type="text"
@@ -86,24 +103,51 @@ function UploadField({
           onChange={async (e) => {
             const f = e.target.files?.[0];
             if (!f) return;
+            setUploadError("");
+            setPreviewError(false);
+            if (isImage) {
+              if (localPreview) URL.revokeObjectURL(localPreview);
+              setLocalPreview(URL.createObjectURL(f));
+            }
             setBusy(true);
             try {
               onChange(await uploadFile(f));
+            } catch {
+              setUploadError("Upload fehlgeschlagen — bitte erneut versuchen.");
             } finally {
               setBusy(false);
+              e.target.value = "";
             }
           }}
         />
       </div>
-      {accept.startsWith("image") && value && !value.includes("placeholder") && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={value}
-          alt=""
-          className="mt-2 h-24 w-24 border border-white/20 object-cover"
-        />
+      {uploadError && <p className="mt-2 text-xs text-red-300">{uploadError}</p>}
+      {busy && <p className="mt-2 text-xs text-white/45">Upload läuft…</p>}
+      {isImage && (localPreview || showServerPreview) && (
+        <div className="mt-3 rounded border border-white/20 bg-black/30 p-2">
+          <p className="mb-2 text-[10px] uppercase tracking-widest text-white/50">Vorschau</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={localPreview ?? value}
+            alt=""
+            className="max-h-40 w-auto max-w-full border border-white/15 object-contain"
+            onLoad={() => {
+              if (localPreview && showServerPreview) {
+                URL.revokeObjectURL(localPreview);
+                setLocalPreview(null);
+              }
+              setPreviewError(false);
+            }}
+            onError={() => setPreviewError(true)}
+          />
+          {previewError && !localPreview && (
+            <p className="mt-2 text-xs text-amber-300">
+              Server-Vorschau nicht ladbar: <code className="text-white/70">{value}</code>
+            </p>
+          )}
+        </div>
       )}
-    </label>
+    </div>
   );
 }
 
@@ -991,7 +1035,7 @@ export function AdminPanel({
     setSaving(true);
     try {
       await onSave(data);
-      const uploads = countUploadedCovers(data);
+      const uploads = countUploadedCovers(data.worlds);
       setMessage(
         `Gespeichert (${uploads} Cover mit /uploads/…). Prüfe: Textfeld zeigt Upload-Pfad + Vorschau sichtbar. Startseite: Strg+F5.`
       );

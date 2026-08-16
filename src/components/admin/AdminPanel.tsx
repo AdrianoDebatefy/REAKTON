@@ -963,6 +963,14 @@ function SiteLinksEditor({
   );
 }
 
+function countUploadedCovers(worlds: World[]): number {
+  return worlds.reduce(
+    (total, world) =>
+      total + world.songs.filter((song) => song.coverImage?.includes("/uploads/")).length,
+    0
+  );
+}
+
 export function AdminPanel({
   content,
   onSave,
@@ -983,7 +991,10 @@ export function AdminPanel({
     setSaving(true);
     try {
       await onSave(data);
-      setMessage("Gespeichert. Startseiten-Tab mit Strg+F5 aktualisieren — oder «Zur Startseite ↗» oben.");
+      const uploads = countUploadedCovers(data);
+      setMessage(
+        `Gespeichert (${uploads} Cover mit /uploads/…). Prüfe: Textfeld zeigt Upload-Pfad + Vorschau sichtbar. Startseite: Strg+F5.`
+      );
     } catch {
       setMessage("Fehler beim Speichern");
     } finally {

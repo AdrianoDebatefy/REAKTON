@@ -310,6 +310,7 @@ export function MobileWorldLanding({
   const stackTop = fullBleedBg
     ? "0px"
     : "calc(5.5rem + env(safe-area-inset-top))";
+  const stackOverflow = isAnimating ? "overflow-visible" : "overflow-hidden";
 
   return (
     <motion.div
@@ -318,8 +319,9 @@ export function MobileWorldLanding({
       animate={{ top: stackTop }}
       transition={EARTH_TRANSITION}
       aria-hidden={showWorld}
+      style={{ isolation: "isolate" }}
     >
-      <div className="relative h-full overflow-hidden">
+      <div className={`relative h-full ${stackOverflow}`}>
         {mobileWorlds.map((world, displayIndex) => {
           const index = worlds.findIndex((w) => w.id === world.id);
           if (index < 0) return null;
@@ -368,17 +370,22 @@ export function MobileWorldLanding({
               : resting.top;
           const animateY = slideOffscreen ? slideY : 0;
           const animateOpacity = parkedOffscreen ? 0 : 1;
+          const keepPivotOnTop =
+            isPivot && (fillsViewport || isEntering || isColumnReturning);
+          const panelZIndex = keepPivotOnTop ? panelCount + 1 : displayIndex + 1;
+          const panelOverflow = isAnimating ? "overflow-visible" : "overflow-hidden";
 
           return (
             <motion.div
               key={world.id}
               layout={false}
-              className="absolute inset-x-0 overflow-hidden"
+              className={`absolute inset-x-0 ${panelOverflow}`}
               style={{
                 position: "absolute",
                 backgroundColor: atmosphereFallbackBg(world.atmosphere),
-                zIndex: fillsViewport ? 30 : displayIndex + 1,
+                zIndex: panelZIndex,
                 pointerEvents: parkedOffscreen ? "none" : undefined,
+                willChange: isAnimating ? "transform, top, height" : undefined,
               }}
               initial={false}
               animate={{
@@ -393,7 +400,9 @@ export function MobileWorldLanding({
                 y: isAnimating
                   ? { duration: returnSlideS, delay, ease: COLUMN_EASE }
                   : { duration: 0 },
-                opacity: { duration: 0 },
+                opacity: isColumnReturning
+                  ? { duration: 0.2, ease: COLUMN_EASE }
+                  : { duration: 0 },
               }}
             >
               <PanelBgLayers

@@ -3,11 +3,16 @@ export interface PadPosition {
   y: number;
 }
 
+/** Vertikale Positionen: 30 % näher an den oberen Rand (×0.7). */
+export function mobileCoverY(y: number): number {
+  return y * 0.7;
+}
+
 /** Symmetrisches 3-Spalten-Pad-Grid für Mobile (unteres ~65 % der Szene). */
 export function buildMobilePadLayout(slotCount: number): PadPosition[] {
   const cols = 3;
   const colX = [20, 50, 80];
-  const startY = 38;
+  const startY = mobileCoverY(38);
   const rowStep = 14;
 
   return Array.from({ length: slotCount }, (_, i) => {
@@ -18,8 +23,8 @@ export function buildMobilePadLayout(slotCount: number): PadPosition[] {
 }
 
 export const MOBILE_COVER_INACTIVE_PX = 60;
-export const MOBILE_COVER_ACTIVE_SCALE = 1.5;
-export const MOBILE_COVER_ACTIVE_CENTER = { x: 50, y: 54 };
+export const MOBILE_COVER_ACTIVE_SCALE = 0.8;
+export const MOBILE_COVER_ACTIVE_CENTER = { x: 50, y: mobileCoverY(54) };
 export const MOBILE_COVER_FADE_S = 2;
 export const MOBILE_COVER_FADE_DURATION_S = 0.45;
 export const MOBILE_COVER_EXIT_MS = MOBILE_COVER_FADE_S * 1000;

@@ -156,7 +156,8 @@ export function WorldView({ world, onBack }: WorldViewProps) {
 
       {useSlotScene && world.songs.length > 0 ? (
         isMobile ? (
-          <MobileAlbumSlotScene
+          <div className="relative z-20 isolate">
+            <MobileAlbumSlotScene
             songs={world.songs}
             maxSlots={world.slotCount ?? (world.atmosphere === "cosmos" ? 12 : world.atmosphere === "nano" ? 13 : 14)}
             borderClass={borderClass}
@@ -164,6 +165,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
             onExitComplete={handleExitComplete}
             locale={locale}
           />
+          </div>
         ) : (
           <AlbumSlotScene
             songs={world.songs}

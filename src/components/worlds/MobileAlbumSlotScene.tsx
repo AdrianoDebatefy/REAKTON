@@ -195,7 +195,10 @@ export function MobileAlbumSlotScene({
   return (
     <motion.div
       ref={sceneRef}
-      className="album-slot-scene relative mx-auto h-[calc(100dvh-11.5rem-env(safe-area-inset-top))] min-h-[320px] w-full max-w-lg overflow-hidden bg-transparent"
+      className={`album-slot-scene relative z-20 mx-auto h-[calc(100dvh-11.5rem-env(safe-area-inset-top))] min-h-[320px] w-full max-w-lg bg-transparent ${
+        exiting ? "overflow-visible" : "overflow-hidden"
+      }`}
+      style={{ isolation: "isolate" }}
     >
       {items.map((song, i) => {
         const pad = padPositions[i] ?? MOBILE_COVER_ACTIVE_CENTER;
@@ -214,8 +217,8 @@ export function MobileAlbumSlotScene({
             disabled={exiting || !introDone || (isPoleMode && !isActive)}
             onClick={() => handleSelect(song)}
             className={`album-cover-slot absolute overflow-hidden rounded-sm border focus:outline-none ${borderClass} ${
-              isActive ? "z-40 border-white/40 shadow-lg" : "z-10 shadow-md shadow-black/50"
-            }`}
+              exiting ? "z-10" : isActive ? "z-40" : "z-10"
+            } ${isActive ? "border-white/40 shadow-lg" : "shadow-md shadow-black/50"}`}
             style={{
               backgroundColor:
                 song.coverImage && !song.coverImage.includes("placeholder")

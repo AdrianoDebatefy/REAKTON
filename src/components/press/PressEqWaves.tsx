@@ -4,7 +4,18 @@ import { useEffect, useRef } from "react";
 
 const POINT_COUNT = 44;
 const IDLE_LEVEL = 0.07;
-const SMOOTHING = 0.78;
+
+/** Tune dynamics here — lower exponent = more contrast between quiet/loud sections */
+const DYNAMICS = {
+  SESSION_PEAK_DECAY: 0.9985,
+  SESSION_PEAK_RISE: 0.28,
+  ENVELOPE_ATTACK: 0.38,
+  ENVELOPE_RELEASE: 0.09,
+  LOUDNESS_EXPONENT: 0.68,
+  INPUT_BOOST: 1.4,
+  POINT_ATTACK: 0.52,
+  POINT_RELEASE: 0.78,
+} as const;
 
 const LAYERS = [
   { start: 0, end: 0.18, opacity: 0.28, amp: 1, phase: 0, glow: 6 },
@@ -30,15 +41,59 @@ function averageBinRange(buffer: Uint8Array, start: number, end: number): number
   return sum / (to - from);
 }
 
+function measureBuffer(buffer: Uint8Array): { rms: number; peak: number } {
+  let sumSq = 0;
+  let peak = 0;
+  for (let i = 0; i < buffer.length; i += 1) {
+    const value = buffer[i] ?? 0;
+    sumSq += value * value;
+    if (value > peak) peak = value;
+  }
+  const rms = Math.sqrt(sumSq / buffer.length) / 255;
+  return { rms, peak: peak / 255 };
+}
+
+function updateDynamicsState(
+  state: { envelope: number; sessionPeak: number },
+  rms: number,
+  active: boolean
+) {
+  if (!active) {
+    state.envelope += (IDLE_LEVEL - state.envelope) * 0.12;
+    state.sessionPeak += (Math.max(state.sessionPeak * 0.995, IDLE_LEVEL) - state.sessionPeak) * 0.05;
+    return IDLE_LEVEL;
+  }
+
+  if (rms > state.sessionPeak) {
+    state.sessionPeak += (rms - state.sessionPeak) * DYNAMICS.SESSION_PEAK_RISE;
+  } else {
+    state.sessionPeak =
+      state.sessionPeak * DYNAMICS.SESSION_PEAK_DECAY + rms * (1 - DYNAMICS.SESSION_PEAK_DECAY);
+  }
+
+  state.sessionPeak = Math.max(state.sessionPeak, 0.04);
+
+  const followRate =
+    rms > state.envelope ? DYNAMICS.ENVELOPE_ATTACK : DYNAMICS.ENVELOPE_RELEASE;
+  state.envelope += (rms - state.envelope) * followRate;
+
+  const relative = state.envelope / state.sessionPeak;
+  const expanded = Math.pow(Math.min(1, relative * DYNAMICS.INPUT_BOOST), DYNAMICS.LOUDNESS_EXPONENT);
+
+  return Math.max(0.03, Math.min(1, expanded));
+}
+
 function sampleLayerTargets(
   buffer: Uint8Array | null,
-  gain: number,
+  displayLevel: number,
+  peak: number,
   layer: (typeof LAYERS)[number],
   visible: boolean,
   active: boolean,
   time: number
 ): number[] {
   const targets = new Array<number>(POINT_COUNT);
+  const peakFloor = Math.max(peak, 0.035);
 
   for (let i = 0; i < POINT_COUNT; i += 1) {
     let target = visible ? IDLE_LEVEL : 0.04;
@@ -48,12 +103,15 @@ function sampleLayerTargets(
       const binStart = (layer.start + t * (layer.end - layer.start)) * buffer.length;
       const binEnd = binStart + buffer.length / POINT_COUNT;
       const avg = averageBinRange(buffer, binStart, binEnd);
-      target = Math.min(1, ((avg * gain) / 255) * layer.amp);
+      const absolute = avg / 255;
+      const relative = absolute / peakFloor;
+      const shape = absolute * 0.45 + relative * 0.55;
+      target = Math.min(1, shape * displayLevel * layer.amp * 1.15);
     } else if (visible) {
       target =
         IDLE_LEVEL +
-        0.035 * Math.sin(time * 1.1 + i * 0.22 + layer.phase) +
-        0.02 * Math.sin(time * 0.7 + i * 0.11);
+        0.03 * Math.sin(time * 1.1 + i * 0.22 + layer.phase) +
+        0.018 * Math.sin(time * 0.7 + i * 0.11);
     }
 
     targets[i] = target;
@@ -125,6 +183,13 @@ export function PressEqWaves({
   const layersRef = useRef<number[][]>(
     LAYERS.map(() => Array.from({ length: POINT_COUNT }, () => IDLE_LEVEL))
   );
+  const dynamicsRef = useRef({ envelope: IDLE_LEVEL, sessionPeak: 0.12 });
+
+  useEffect(() => {
+    if (!active) {
+      dynamicsRef.current = { envelope: IDLE_LEVEL, sessionPeak: 0.12 };
+    }
+  }, [active]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -149,6 +214,7 @@ export function PressEqWaves({
 
     const buffer = analyser ? new Uint8Array(analyser.frequencyBinCount) : null;
     const layers = layersRef.current;
+    const dynamics = dynamicsRef.current;
 
     const draw = () => {
       frameRef.current = requestAnimationFrame(draw);
@@ -165,25 +231,39 @@ export function PressEqWaves({
       ctx.lineTo(width, baseline);
       ctx.stroke();
 
+      let displayLevel = IDLE_LEVEL;
       let peak = 0;
+
       if (active && analyser && buffer) {
         analyser.getByteFrequencyData(buffer);
-        for (let i = 0; i < buffer.length; i += 1) {
-          if (buffer[i]! > peak) peak = buffer[i]!;
-        }
+        const measured = measureBuffer(buffer);
+        peak = measured.peak;
+        displayLevel = updateDynamicsState(dynamics, measured.rms, true);
+      } else if (visible) {
+        displayLevel = updateDynamicsState(dynamics, IDLE_LEVEL, false);
       }
 
-      const gain = peak > 12 ? 255 / peak : 1;
-
       LAYERS.forEach((layer, layerIndex) => {
-        const targets = sampleLayerTargets(buffer, gain, layer, visible, active, time);
+        const targets = sampleLayerTargets(
+          buffer,
+          displayLevel,
+          peak,
+          layer,
+          visible,
+          active,
+          time
+        );
         const smoothed = layers[layerIndex]!;
 
         for (let i = 0; i < POINT_COUNT; i += 1) {
-          smoothed[i] = smoothed[i]! * SMOOTHING + targets[i]! * (1 - SMOOTHING);
+          const target = targets[i]!;
+          const smoothRate =
+            target > smoothed[i]! ? DYNAMICS.POINT_ATTACK : DYNAMICS.POINT_RELEASE;
+          smoothed[i] = smoothed[i]! * smoothRate + target * (1 - smoothRate);
         }
 
-        const layerOpacity = active ? layer.opacity : visible ? layer.opacity * 0.45 : 0.12;
+        const layerOpacity =
+          active ? layer.opacity * (0.45 + displayLevel * 0.55) : visible ? layer.opacity * 0.4 : 0.12;
         drawWaveLayer(
           ctx,
           smoothed,
@@ -192,7 +272,7 @@ export function PressEqWaves({
           baseline,
           accent,
           layerOpacity,
-          active ? layer.glow : 4
+          active ? layer.glow * (0.5 + displayLevel * 0.5) : 4
         );
       });
     };

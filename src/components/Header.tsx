@@ -51,6 +51,26 @@ function navChipClass(chip: NavChipId) {
   return `${headerTextClass} ${style.bg} ${style.text} ${style.hover} inline-flex items-center px-4 py-3 transition`;
 }
 
+function HamburgerIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="28"
+      height="28"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      aria-hidden
+    >
+      <line x1="4" y1="7" x2="20" y2="7" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <line x1="4" y1="17" x2="20" y2="17" />
+    </svg>
+  );
+}
+
 function isExternalUrl(url: string) {
   return /^https?:\/\//i.test(url);
 }
@@ -131,7 +151,7 @@ export function Header({ logoUrl, siteLinks, clapToyUrl, onHomeClick }: HeaderPr
         <Link
           href="/"
           onClick={onHomeClick}
-          className="flex shrink-0 items-center py-3 pl-[50px] opacity-90 transition hover:opacity-100"
+          className="flex shrink-0 origin-left items-center py-3 pl-[50px] opacity-90 transition hover:opacity-100 max-md:scale-[0.7] max-md:-translate-x-[30%]"
         >
           <img
             src={logoSrc}
@@ -182,8 +202,11 @@ export function Header({ logoUrl, siteLinks, clapToyUrl, onHomeClick }: HeaderPr
           </button>
 
           <details className="relative lg:hidden">
-            <summary className={`cursor-pointer list-none ${headerTextClass} text-white/70`}>
-              Menu
+            <summary
+              className={`inline-flex origin-center scale-[0.6] cursor-pointer list-none items-center justify-center text-white/70`}
+              aria-label={t("menu")}
+            >
+              <HamburgerIcon />
             </summary>
             <nav className="absolute right-0 mt-2 min-w-[10rem] rounded border border-white/10 bg-black/95 p-2">
               {navItems.map((item) => (

@@ -7,6 +7,8 @@ import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import { getLocalized } from "@/lib/locale";
 import {
   MOBILE_OVERLAY_FADE_S,
+  MOBILE_RETURN_LABEL_IN_MS,
+  MOBILE_RETURN_OVERLAY_FADE_S,
   MOBILE_RETURN_SLIDE_S,
 } from "@/lib/mobile-world-timing";
 
@@ -186,6 +188,8 @@ function PanelBgLayers({
   bg,
   showWorld,
   isEntering,
+  isColumnReturning,
+  returnRevealLanding,
   scrimOpacity,
 }: {
   world: World;
@@ -193,11 +197,17 @@ function PanelBgLayers({
   bg: { desktop: string; mobile: string; onError?: () => void };
   showWorld: boolean;
   isEntering: boolean;
+  isColumnReturning: boolean;
+  returnRevealLanding: boolean;
   scrimOpacity: number;
 }) {
-  const hideOverlays = showWorld || isEntering;
+  const hideOverlays =
+    showWorld || isEntering || (isColumnReturning && !returnRevealLanding);
   const objectPosition = mobileBgObjectPosition();
-  const overlayFade = { duration: OVERLAY_EXIT_S, ease: COLUMN_EASE };
+  const overlayFade =
+    isColumnReturning && returnRevealLanding
+      ? { duration: MOBILE_RETURN_OVERLAY_FADE_S, ease: COLUMN_EASE }
+      : { duration: OVERLAY_EXIT_S, ease: COLUMN_EASE };
 
   return (
     <>
@@ -270,6 +280,10 @@ export function MobileWorldLanding({
 }) {
   const isAnimating = isEntering || isColumnReturning;
   const landingVisible = !showWorld;
+  const captionDuration =
+    isColumnReturning && returnRevealLanding
+      ? MOBILE_RETURN_LABEL_IN_MS
+      : CAPTION_DECODE_MS;
   const panelCount = worlds.length;
   const mobileWorlds = sortWorldsForMobile(worlds);
   const pivotSlot = pivotDisplayIndex(
@@ -392,6 +406,8 @@ export function MobileWorldLanding({
                 bg={bg}
                 showWorld={showWorld}
                 isEntering={isEntering}
+                isColumnReturning={isColumnReturning}
+                returnRevealLanding={returnRevealLanding}
                 scrimOpacity={scrimOpacity}
               />
             </motion.div>
@@ -417,7 +433,7 @@ export function MobileWorldLanding({
                   mode={captionDecodeMode}
                   className={`text-2xl font-light leading-snug tracking-wide ${tone.title}`}
                   style={tone.titleStyle}
-                  duration={CAPTION_DECODE_MS}
+                  duration={captionDuration}
                   onComplete={() => {
                     if (captionDecodeMode === "in") onCaptionDecodeComplete();
                   }}

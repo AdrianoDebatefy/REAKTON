@@ -11,7 +11,8 @@ import { getInitialWorldUiState, writeWorldSession } from "@/lib/world-session";
 import { getLocalized } from "@/lib/locale";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import {
-  MOBILE_RETURN_SLIDE_S,
+  MOBILE_COLUMN_SLIDE_S,
+  MOBILE_RETURN_REVEAL_MS,
 } from "@/lib/mobile-world-timing";
 
 interface WorldColumnsProps {
@@ -422,8 +423,8 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
     const fromIndex = selectedIndex;
 
     if (isMobile) {
-      const returnMs = columnEnterMs(worlds.length, MOBILE_RETURN_SLIDE_S);
-      const revealMs = Math.max(0, returnMs - CAPTION_DECODE_MS);
+      const slideMs = columnEnterMs(worlds.length, MOBILE_COLUMN_SLIDE_S);
+      const totalMs = slideMs + MOBILE_RETURN_REVEAL_MS;
       setReturnRevealLanding(false);
       setShowWorld(false);
       setColumnReturning(true);
@@ -435,13 +436,13 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
       window.setTimeout(() => {
         setReturnRevealLanding(true);
         setLandingCaptionMode("in");
-      }, revealMs);
+      }, slideMs);
       window.setTimeout(() => {
         setColumnReturning(false);
         setReturnRevealLanding(false);
         setReturnAtmosphere(null);
         setReturnFromIndex(null);
-      }, returnMs);
+      }, totalMs);
       return;
     }
 
@@ -619,7 +620,10 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
     landingCaptionMode === "hidden" ? "static" : landingCaptionMode;
 
   const scrimFadingOut =
-    landingCaptionMode === "out" || isEntering || showWorld;
+    landingCaptionMode === "out" ||
+    isEntering ||
+    showWorld ||
+    (isColumnReturning && !returnRevealLanding);
   const scrimOpacity = scrimFadingOut ? 0 : 1;
 
   return (

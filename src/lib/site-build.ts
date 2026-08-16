@@ -1,2 +1,2 @@
 /** Shown in Admin footer — verify you run the expected build after git pull. */
-export const SITE_BUILD_LABEL = "mobile-2026-08-16-cover-exit-viewport-portal";
+export const SITE_BUILD_LABEL = "desktop-2026-08-16-font-scale-70";

@@ -186,6 +186,8 @@ export function MobileAlbumSlotScene({
     if (exitStartedRef.current) return;
     exitStartedRef.current = true;
     stopAudio();
+    setActiveId(null);
+    setInfoPanelOpen(false);
     const timer = window.setTimeout(() => onExitComplete?.(), MOBILE_COVER_EXIT_MS);
     return () => window.clearTimeout(timer);
   }, [exiting, onExitComplete, stopAudio]);
@@ -195,9 +197,11 @@ export function MobileAlbumSlotScene({
   return (
     <motion.div
       ref={sceneRef}
-      className={`album-slot-scene relative z-20 mx-auto h-[calc(100dvh-11.5rem-env(safe-area-inset-top))] min-h-[320px] w-full max-w-lg bg-transparent ${
-        exiting ? "overflow-visible" : "overflow-hidden"
-      }`}
+      className={
+        exiting
+          ? "album-slot-scene fixed inset-x-0 bottom-0 top-[calc(5.5rem+env(safe-area-inset-top))] z-50 mx-auto w-full max-w-lg overflow-visible bg-transparent"
+          : "album-slot-scene relative z-20 mx-auto h-[calc(100dvh-11.5rem-env(safe-area-inset-top))] min-h-[320px] w-full max-w-lg overflow-hidden bg-transparent"
+      }
       style={{ isolation: "isolate" }}
     >
       {items.map((song, i) => {

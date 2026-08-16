@@ -414,15 +414,38 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
     }, CAPTION_DECODE_MS);
   }, [worlds.length, landingCaptionMode]);
 
-  const handleBackFromWorld = useCallback(() => {
-    writeWorldSession(null);
+  const handleMobileReturnPrepare = useCallback(() => {
     const atmosphere = worlds.find((w) => w.id === activeId)?.atmosphere ?? null;
     const fromIndex = selectedIndex;
-    const returnSlideS = isMobile ? MOBILE_RETURN_SLIDE_S : COLUMN_EXIT_S;
+    const returnMs = columnEnterMs(worlds.length, MOBILE_RETURN_SLIDE_S);
+    const bgExpandDelayMs = MOBILE_RETURN_BG_DELAY_S * 1000;
+    setColumnReturning(true);
+    setReturnAtmosphere(atmosphere);
+    setReturnBgExpandHold(true);
+    setReturnFromIndex(fromIndex);
+    setSelectedIndex(null);
+    setLandingCaptionMode("hidden");
+    window.setTimeout(() => setReturnBgExpandHold(false), bgExpandDelayMs);
+    window.setTimeout(() => {
+      setColumnReturning(false);
+      setReturnAtmosphere(null);
+      setReturnFromIndex(null);
+      setLandingCaptionMode("in");
+    }, returnMs);
+  }, [activeId, selectedIndex, worlds.length]);
+
+  const handleBackFromWorld = useCallback(() => {
+    writeWorldSession(null);
+    if (isMobile) {
+      setShowWorld(false);
+      setActiveId(null);
+      return;
+    }
+    const atmosphere = worlds.find((w) => w.id === activeId)?.atmosphere ?? null;
+    const fromIndex = selectedIndex;
+    const returnSlideS = COLUMN_EXIT_S;
     const returnMs = columnEnterMs(worlds.length, returnSlideS);
-    const bgExpandDelayMs = isMobile
-      ? MOBILE_RETURN_BG_DELAY_S * 1000
-      : EARTH_RETURN_DELAY_S * 1000;
+    const bgExpandDelayMs = EARTH_RETURN_DELAY_S * 1000;
     setShowWorld(false);
     setColumnReturning(true);
     setReturnAtmosphere(atmosphere);
@@ -711,7 +734,11 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
             transition={{ duration: isMobile ? 0 : WORLD_VIEW_EXIT_S }}
             className="fixed inset-0 z-30 bg-transparent max-md:isolate"
           >
-            <WorldView world={activeWorld} onBack={handleBackFromWorld} />
+            <WorldView
+              world={activeWorld}
+              onBack={handleBackFromWorld}
+              onBackPrepare={isMobile ? handleMobileReturnPrepare : undefined}
+            />
           </motion.div>
         )}
       </AnimatePresence>

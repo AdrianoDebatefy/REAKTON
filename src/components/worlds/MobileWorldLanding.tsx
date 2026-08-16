@@ -338,10 +338,11 @@ export function MobileWorldLanding({
           const pivotDataIndex = isColumnReturning ? returnFromIndex : selectedIndex;
           const isPivot = pivotDataIndex !== null && index === pivotDataIndex;
           const pivotDisplay = pivotSlot ?? returnPivotSlot ?? displayIndex;
-          const parkedOffscreen = !isPivot && showWorld;
+          const parkedOffscreen = !isPivot && showWorld && !isColumnReturning;
           const offscreenY = bgOffscreenY(displayIndex, pivotDisplay);
           const fillsViewport =
-            isPivot && (isEntering || isImmersed || showWorld);
+            isPivot &&
+            (isEntering || isImmersed || (showWorld && !isColumnReturning));
           const resting = panelGeometry(displayIndex, panelCount);
           const slideY = mobileSlideY(
             displayIndex,
@@ -405,9 +406,7 @@ export function MobileWorldLanding({
                 y: isAnimating
                   ? { duration: returnSlideS, delay, ease: COLUMN_EASE }
                   : { duration: 0 },
-                opacity: isColumnReturning
-                  ? { duration: 0.2, ease: COLUMN_EASE }
-                  : { duration: 0 },
+                opacity: { duration: 0 },
               }}
             >
               <PanelBgLayers

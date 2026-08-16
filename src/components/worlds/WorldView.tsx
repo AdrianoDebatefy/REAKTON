@@ -18,6 +18,7 @@ import clubLayout from "@/data/club-layout.json";
 interface WorldViewProps {
   world: World;
   onBack: () => void;
+  onBackPrepare?: () => void;
 }
 
 const atmosphereClass: Record<World["atmosphere"], string> = {
@@ -29,29 +30,28 @@ const atmosphereClass: Record<World["atmosphere"], string> = {
 const HEADER_DECODE_MS = 720;
 const MOBILE_BACK_TEXT_MS = 1000;
 const MOBILE_BACK_TOTAL_MS = 2000;
+const MOBILE_RETURN_PREPARE_LEAD_MS = 300;
 
-export function WorldView({ world, onBack }: WorldViewProps) {
+export function WorldView({ world, onBack, onBackPrepare }: WorldViewProps) {
   const locale = useLocale() as Locale;
   const isMobile = useIsMobile();
   const t = useTranslations("world");
   const tNav = useTranslations("nav");
   const [exiting, setExiting] = useState(false);
-  const [headerDecodeMode, setHeaderDecodeMode] = useState<DecodeMode>(() =>
-    typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches
-      ? "static"
-      : "in"
-  );
+  const [headerDecodeMode, setHeaderDecodeMode] = useState<DecodeMode>("in");
 
   const useSlotScene =
     world.atmosphere === "cosmos" || world.atmosphere === "nano" || world.atmosphere === "club";
   const useGlobalBackground = useSlotScene;
 
   useEffect(() => {
+    setHeaderDecodeMode("in");
     const timer = window.setTimeout(() => setHeaderDecodeMode("static"), HEADER_DECODE_MS);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [world.id]);
 
-  const headerDecodeMs = isMobile ? MOBILE_BACK_TEXT_MS : HEADER_DECODE_MS;
+  const headerDecodeMs =
+    headerDecodeMode === "out" && isMobile ? MOBILE_BACK_TEXT_MS : HEADER_DECODE_MS;
 
   const handleBackClick = useCallback(() => {
     if (headerDecodeMode === "out") return;
@@ -61,6 +61,10 @@ export function WorldView({ world, onBack }: WorldViewProps) {
       if (useSlotScene && world.songs.length > 0) {
         setExiting(true);
       }
+      window.setTimeout(
+        () => onBackPrepare?.(),
+        MOBILE_BACK_TOTAL_MS - MOBILE_RETURN_PREPARE_LEAD_MS
+      );
       window.setTimeout(() => {
         setExiting(false);
         onBack();
@@ -77,7 +81,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
     };
 
     window.setTimeout(continueBack, HEADER_DECODE_MS);
-  }, [headerDecodeMode, isMobile, onBack, useSlotScene, world.songs.length]);
+  }, [headerDecodeMode, isMobile, onBack, onBackPrepare, useSlotScene, world.songs.length]);
 
   const handleExitComplete = useCallback(() => {
     if (isMobile) return;
@@ -115,8 +119,8 @@ export function WorldView({ world, onBack }: WorldViewProps) {
 
       <motion.div
         className="relative z-10 mx-auto max-w-6xl px-4 pb-2 pt-2 md:pt-6"
-        animate={{ opacity: exiting && !isMobile ? 0 : 1 }}
-        transition={{ duration: 0.35 }}
+        animate={{ opacity: exiting ? 0 : 1 }}
+        transition={{ duration: isMobile ? 0.25 : 0.35 }}
       >
         <button
           type="button"

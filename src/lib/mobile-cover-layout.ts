@@ -13,7 +13,7 @@ export function buildMobilePadLayout(slotCount: number): PadPosition[] {
   const cols = 3;
   const colX = [20, 50, 80];
   const startY = mobileCoverY(38);
-  const rowStep = 14;
+  const rowStep = 14 * 1.05;
 
   return Array.from({ length: slotCount }, (_, i) => {
     const col = i % cols;

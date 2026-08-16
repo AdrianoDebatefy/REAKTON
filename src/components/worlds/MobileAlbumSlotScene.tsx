@@ -603,7 +603,7 @@ export function MobileAlbumSlotScene({
                             </button>
                           </div>
                           <div
-                            className="cover-info-panel__body flex-1 overflow-y-auto px-5 pb-5 pt-1 leading-relaxed text-black/88"
+                            className="cover-info-panel__body flex-1 overflow-y-auto px-5 pb-5 pt-1 leading-relaxed text-black"
                             style={{ fontSize: `${infoTextSize}px` }}
                           >
                             {activeInfoText ? (

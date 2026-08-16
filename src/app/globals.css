@@ -532,13 +532,19 @@ html.site-public.site-press {
 }
 
 .cover-info-panel {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.97);
   box-shadow: -8px 0 24px rgba(0, 0, 0, 0.18);
+  color: #0a0a0a;
 }
 
 .cover-info-panel__body {
+  color: #0a0a0a;
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
+}
+
+.cover-info-panel__body p {
+  color: #0a0a0a;
 }
 
 .cover-info-panel__body::-webkit-scrollbar {

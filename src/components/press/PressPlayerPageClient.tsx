@@ -375,12 +375,12 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
             volume={volume}
             analyser={analyserReady ? analyserRef.current : null}
             playbackError={playbackError}
-            onTogglePlay={(id) => void togglePlay(id)}
+            onPlay={(id) => void playTrackById(id)}
             onStop={stopPlayback}
             onSeek={seekToRatio}
             onVolumeChange={setVolume}
             onVote={handleVote}
-            labels={{ play: t("play"), pause: t("pause"), volume: t("volume") }}
+            labels={{ play: t("play"), stop: t("stop"), volume: t("volume") }}
           />
         </div>
       )}

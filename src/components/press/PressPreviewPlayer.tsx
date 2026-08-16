@@ -110,9 +110,8 @@ export function PressPreviewPlayer({
   volume,
   analyser,
   playbackError,
-  onTogglePlay,
+  onPlay,
   onStop,
-  onSeek,
   onVolumeChange,
   onVote,
   labels,
@@ -127,12 +126,12 @@ export function PressPreviewPlayer({
   volume: number;
   analyser: AnalyserNode | null;
   playbackError: string | null;
-  onTogglePlay: (trackId: string) => void;
+  onPlay: (trackId: string) => void;
   onStop: () => void;
   onSeek: (ratio: number) => void;
   onVolumeChange: (ratio: number) => void;
   onVote: (trackId: string, stars: number) => void;
-  labels: { play: string; pause: string; volume: string };
+  labels: { play: string; stop: string; volume: string };
 }) {
   const activeProgressRatio = duration > 0 ? progress / duration : 0;
 
@@ -175,11 +174,11 @@ export function PressPreviewPlayer({
               </div>
 
               <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 py-2 pr-2">
-                <div className="flex items-start gap-3">
-                  <p className="min-w-0 flex-1 truncate text-2xl font-light leading-tight text-white/90 md:text-xl">
+                <div className="relative flex min-h-8 items-start">
+                  <p className="min-w-0 flex-1 truncate pr-36 text-2xl font-light leading-tight text-white/90 md:pr-40 md:text-xl">
                     {track.title}
                   </p>
-                  <div className="mr-[25%] shrink-0 -translate-x-1/2">
+                  <div className="absolute right-[20%] top-0 shrink-0">
                     <StarRating
                       value={track.votes}
                       userStars={track.userStars}
@@ -208,15 +207,19 @@ export function PressPreviewPlayer({
                 <div className="flex items-center justify-end gap-3 pr-6">
                   <button
                     type="button"
-                    onClick={() => onTogglePlay(track.id)}
-                    onDoubleClick={() => {
-                      if (isActive) onStop();
+                    onClick={() => {
+                      if (isPlaying) {
+                        onStop();
+                      } else {
+                        onPlay(track.id);
+                      }
                     }}
-                    className="h-[17px] w-[17px] shrink-0 transition hover:brightness-110"
+                    className="flex h-[17px] w-[17px] shrink-0 items-center justify-center text-[10px] leading-none text-white transition hover:brightness-110"
                     style={{ backgroundColor: accent }}
-                    aria-label={isPlaying ? labels.pause : labels.play}
-                    title={isActive ? "Doppelklick: Stop" : undefined}
-                  />
+                    aria-label={isPlaying ? labels.stop : labels.play}
+                  >
+                    {isPlaying ? "⏹" : "▶"}
+                  </button>
                   <span className="shrink-0 text-2xl tabular-nums text-white/80 md:text-xl">
                     {timeCurrent} / {timeTotal}
                   </span>

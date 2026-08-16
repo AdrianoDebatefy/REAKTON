@@ -741,7 +741,7 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: isMobile ? 1 : 0 }}
             transition={{ duration: isMobile ? 0 : WORLD_VIEW_EXIT_S }}
-            className="fixed inset-0 z-30 bg-transparent max-md:isolate"
+            className="fixed inset-0 z-30 bg-transparent max-md:isolate max-md:[transform:translateZ(0)]"
           >
             <WorldView world={activeWorld} onBack={handleBackFromWorld} />
           </motion.div>

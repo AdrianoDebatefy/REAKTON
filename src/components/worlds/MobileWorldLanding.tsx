@@ -12,6 +12,10 @@ import {
   MOBILE_RETURN_REVEAL_MS,
   MOBILE_RETURN_SLIDE_S,
 } from "@/lib/mobile-world-timing";
+import {
+  GPU_COMPOSIT_LAYER,
+  mobileBgOverscanTransform,
+} from "@/lib/mobile-compositor";
 
 const COLUMN_EXIT_S = 2;
 const COLUMN_STAGGER_S = 0.01;
@@ -189,12 +193,15 @@ function ColumnBgImage({
     <img
       src={src}
       alt=""
-        className={`absolute left-0 right-0 w-full object-cover ${
-          landingBgStyle ? "" : "inset-y-0 h-full"
-        }`}
+      className={`absolute left-0 right-0 w-full object-cover ${
+        landingBgStyle ? "" : "inset-y-0 h-full"
+      }`}
       style={{
         objectPosition,
         ...landingBgStyle,
+        ...GPU_COMPOSIT_LAYER,
+        transform: mobileBgOverscanTransform(),
+        transformOrigin: "center center",
       }}
       onError={handleError}
       decoding="async"
@@ -233,7 +240,10 @@ function PanelBgLayers({
 
   return (
     <>
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div
+        className="pointer-events-none absolute inset-0 overflow-hidden"
+        style={{ ...GPU_COMPOSIT_LAYER, contain: "paint" }}
+      >
         <ColumnBgImage
           desktopSrc={bg.desktop}
           mobileSrc={bg.mobile}
@@ -303,7 +313,6 @@ export function MobileWorldLanding({
 }) {
   const returnSlidePhase = isColumnReturning && !returnRevealLanding;
   const returnSettlePhase = isColumnReturning && returnRevealLanding;
-  const isAnimating = isEntering || isColumnReturning;
   const landingVisible = !showWorld;
   const captionDuration =
     returnSettlePhase ? MOBILE_RETURN_LABEL_IN_MS : CAPTION_DECODE_MS;
@@ -321,10 +330,9 @@ export function MobileWorldLanding({
 
   if (!landingVisible && !isColumnReturning && selectedIndex === null) return null;
 
-  const stackTop = fullBleedBg
+  const stackOffset = fullBleedBg
     ? "0px"
     : "calc(5.5rem + env(safe-area-inset-top))";
-  const stackOverflow = isAnimating ? "overflow-visible" : "overflow-hidden";
 
   const stackTransition = returnSlidePhase
     ? { duration: MOBILE_RETURN_SLIDE_S, ease: COLUMN_EASE }
@@ -334,14 +342,17 @@ export function MobileWorldLanding({
         ? { duration: COLUMN_EXIT_S, ease: COLUMN_EASE }
         : { duration: 0.35, ease: COLUMN_EASE };
 
+  const stackOverflow =
+    isEntering || returnSlidePhase ? "overflow-visible" : "overflow-hidden";
+
   return (
     <motion.div
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-[15] md:hidden"
+      className="pointer-events-none fixed inset-x-0 top-0 z-[15] h-dvh md:hidden"
       initial={false}
-      animate={{ top: stackTop }}
+      animate={{ y: stackOffset }}
       transition={stackTransition}
       aria-hidden={showWorld}
-      style={{ isolation: "isolate" }}
+      style={{ isolation: "isolate", ...GPU_COMPOSIT_LAYER }}
     >
       <div className={`relative h-full ${stackOverflow}`}>
         {mobileWorlds.map((world, displayIndex) => {
@@ -397,7 +408,8 @@ export function MobileWorldLanding({
             isPivot &&
             (fillsViewport || isEntering || returnSlidePhase);
           const panelZIndex = keepPivotOnTop ? panelCount + 1 : displayIndex + 1;
-          const panelOverflow = isAnimating ? "overflow-visible" : "overflow-hidden";
+          const panelOverflow =
+            isEntering || returnSlidePhase ? "overflow-visible" : "overflow-hidden";
           const usesLandingRowBgShift = cosmosUsesLandingRowBgShift(
             world.atmosphere,
             parkedOffscreen
@@ -410,12 +422,14 @@ export function MobileWorldLanding({
               className={`absolute inset-x-0 ${panelOverflow}`}
               style={{
                 position: "absolute",
-                backgroundColor: atmosphereFallbackBg(world.atmosphere),
+                backgroundColor: showWorld
+                  ? "transparent"
+                  : atmosphereFallbackBg(world.atmosphere),
                 zIndex: panelZIndex,
                 pointerEvents: parkedOffscreen ? "none" : undefined,
-                backfaceVisibility: "hidden",
-                WebkitBackfaceVisibility: "hidden",
-                willChange: isAnimating ? "transform, top, height" : undefined,
+                ...GPU_COMPOSIT_LAYER,
+                willChange:
+                  isEntering || returnSlidePhase ? "transform" : undefined,
               }}
               initial={false}
               animate={{

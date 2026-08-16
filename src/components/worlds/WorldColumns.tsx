@@ -371,7 +371,6 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
   const [returnBgExpandHold, setReturnBgExpandHold] = useState(false);
   const [returnFromIndex, setReturnFromIndex] = useState<number | null>(null);
   const [returnRevealLanding, setReturnRevealLanding] = useState(false);
-  const [cosmosCoverExiting, setCosmosCoverExiting] = useState(false);
   const [landingCaptionMode, setLandingCaptionMode] = useState<DecodeMode | "hidden">(
     initialUi.landingCaptionMode
   );
@@ -379,14 +378,6 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
   const handleCaptionDecodeComplete = useCallback(() => {
     setLandingCaptionMode((mode) => (mode === "in" ? "static" : mode));
   }, []);
-
-  const handleCosmosCoverExitChange = useCallback((exiting: boolean) => {
-    setCosmosCoverExiting(exiting);
-  }, []);
-
-  useEffect(() => {
-    if (!showWorld) setCosmosCoverExiting(false);
-  }, [showWorld]);
 
   useEffect(() => {
     if (activeId && showWorld && selectedIndex !== null) {
@@ -750,17 +741,9 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: isMobile ? 1 : 0 }}
             transition={{ duration: isMobile ? 0 : WORLD_VIEW_EXIT_S }}
-            className={`fixed inset-0 z-30 max-md:isolate ${
-              isMobile && cosmosCoverExiting ? "bg-[#0a1628]" : "bg-transparent"
-            }`}
+            className="fixed inset-0 z-30 bg-transparent max-md:isolate"
           >
-            <WorldView
-              world={activeWorld}
-              onBack={handleBackFromWorld}
-              onCoverExitChange={
-                activeWorld.atmosphere === "cosmos" ? handleCosmosCoverExitChange : undefined
-              }
-            />
+            <WorldView world={activeWorld} onBack={handleBackFromWorld} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -813,7 +796,6 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
         returnAtmosphere={returnAtmosphere}
         returnRevealLanding={returnRevealLanding}
         showWorld={showWorld}
-        cosmosCoverExiting={cosmosCoverExiting}
         landingCaptionMode={landingCaptionMode}
         captionDecodeMode={captionDecodeMode}
         lockedHintLabel={lockedHintLabel}

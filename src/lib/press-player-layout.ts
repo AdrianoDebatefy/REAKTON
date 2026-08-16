@@ -55,14 +55,37 @@ export const PRESS_PLAYER_FOLDER: Partial<Record<WorldAtmosphere, string>> = {
   // club: "ccc",
 };
 
+/** URL slug (folder name) → atmosphere for API / tracks */
+export const PLAYER_SLUG_TO_ATMOSPHERE: Record<string, WorldAtmosphere> = {
+  wem: "cosmos",
+};
+
+export function playerSlugFromAtmosphere(atmosphere: WorldAtmosphere): string | undefined {
+  return PRESS_PLAYER_FOLDER[atmosphere];
+}
+
+export function atmosphereFromPlayerSlug(slug: string): WorldAtmosphere | null {
+  return PLAYER_SLUG_TO_ATMOSPHERE[slug] ?? null;
+}
+
 export function isPressPlayerAssetsReady(world: WorldAtmosphere): boolean {
   return Boolean(PRESS_PLAYER_FOLDER[world]);
 }
 
+export function isPlayerSlugReady(slug: string): boolean {
+  const atmosphere = atmosphereFromPlayerSlug(slug);
+  return atmosphere ? isPressPlayerAssetsReady(atmosphere) : false;
+}
+
 /** All assets for a world live in one folder, e.g. public/press-player/wem/ */
+export function pressPlayerAssetFromFolder(folder: string, filename: string): string {
+  return `/press-player/${folder}/${filename}`;
+}
+
+/** @deprecated use pressPlayerAssetFromFolder with playerSlugFromAtmosphere */
 export function pressPlayerAsset(world: WorldAtmosphere, filename: string): string {
   const folder = PRESS_PLAYER_FOLDER[world] ?? "wem";
-  return `/press-player/${folder}/${filename}`;
+  return pressPlayerAssetFromFolder(folder, filename);
 }
 
 export const PRESS_PLAYER_FALLBACK_COVER = "#2a5590";

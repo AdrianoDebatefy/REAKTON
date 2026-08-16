@@ -1,8 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { WorldAtmosphere } from "@/types/content";
-import { WemEqDisplay } from "@/components/press/WemEqDisplay";
 import {
   WEM_COVER,
   WEM_ICONS,
@@ -11,9 +9,10 @@ import {
   WEM_PLAYER_HEIGHT,
   WEM_PLAYER_WIDTH,
   lerpCoord,
-  pressPlayerAsset,
+  pressPlayerAssetFromFolder,
   PRESS_PLAYER_FALLBACK_COVER,
 } from "@/lib/press-player-layout";
+import { WemEqDisplay } from "@/components/press/WemEqDisplay";
 
 export interface WemPlayerTrack {
   id: string;
@@ -24,7 +23,7 @@ export interface WemPlayerTrack {
 }
 
 interface WemPressPlayerProps {
-  world: WorldAtmosphere;
+  assetFolder: string;
   accent: string;
   tracks: WemPlayerTrack[];
   activeTrack: WemPlayerTrack | null;
@@ -76,13 +75,13 @@ function IconButton({
 }
 
 function KnobSlider({
-  world,
+  assetFolder,
   range,
   value,
   onChange,
   showLight,
 }: {
-  world: WorldAtmosphere;
+  assetFolder: string;
   range: typeof WEM_KNOB_TRACK | typeof WEM_KNOB_VOLUME;
   value: number;
   onChange: (ratio: number) => void;
@@ -136,7 +135,7 @@ function KnobSlider({
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={pressPlayerAsset(world, "wem_Player_sliderlight.png")}
+            src={pressPlayerAssetFromFolder(assetFolder, "wem_Player_sliderlight.png")}
             alt=""
             className="h-full w-full object-cover object-left"
             draggable={false}
@@ -145,7 +144,7 @@ function KnobSlider({
       ) : null}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={pressPlayerAsset(world, "wem_knob.png")}
+        src={pressPlayerAssetFromFolder(assetFolder, "wem_knob.png")}
         alt=""
         className="relative z-10 block h-auto w-auto cursor-grab select-none active:cursor-grabbing"
         draggable={false}
@@ -155,7 +154,7 @@ function KnobSlider({
 }
 
 export function WemPressPlayer({
-  world,
+  assetFolder,
   accent,
   tracks,
   activeTrack,
@@ -211,7 +210,7 @@ export function WemPressPlayer({
           {/* Chassis — screws are baked into this PNG */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={pressPlayerAsset(world, "wem_PlayerClean.png")}
+            src={pressPlayerAssetFromFolder(assetFolder, "wem_PlayerClean.png")}
             alt=""
             className="pointer-events-none absolute inset-0 h-full w-full"
             width={WEM_PLAYER_WIDTH}
@@ -222,7 +221,7 @@ export function WemPressPlayer({
           {/* Side indicator lights */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={pressPlayerAsset(world, "wem_Player_on_left.png")}
+            src={pressPlayerAssetFromFolder(assetFolder, "wem_Player_on_left.png")}
             alt=""
             className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2"
             style={{
@@ -234,7 +233,7 @@ export function WemPressPlayer({
           />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={pressPlayerAsset(world, "wem_Player_on_right.png")}
+            src={pressPlayerAssetFromFolder(assetFolder, "wem_Player_on_right.png")}
             alt=""
             className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2"
             style={{
@@ -284,7 +283,7 @@ export function WemPressPlayer({
 
           {/* Transport */}
           <IconButton
-            src={pressPlayerAsset(world, "wem_Player_Icon_skip_rew.png")}
+            src={pressPlayerAssetFromFolder(assetFolder, "wem_Player_Icon_skip_rew.png")}
             x={WEM_ICONS.skipRew.x}
             y={WEM_ICONS.skipRew.y}
             label="Previous"
@@ -292,14 +291,14 @@ export function WemPressPlayer({
             visible={tracks.length > 1}
           />
           <IconButton
-            src={pressPlayerAsset(world, "wem_Player_Icon_Stop.png")}
+            src={pressPlayerAssetFromFolder(assetFolder, "wem_Player_Icon_Stop.png")}
             x={WEM_ICONS.stop.x}
             y={WEM_ICONS.stop.y}
             label="Stop"
             onClick={onStop}
           />
           <IconButton
-            src={pressPlayerAsset(world, "wem_Player_Icon_play.png")}
+            src={pressPlayerAssetFromFolder(assetFolder, "wem_Player_Icon_play.png")}
             x={WEM_ICONS.play.x}
             y={WEM_ICONS.play.y}
             label="Play"
@@ -307,7 +306,7 @@ export function WemPressPlayer({
             visible={!playing}
           />
           <IconButton
-            src={pressPlayerAsset(world, "wem_Player_Icon_pause.png")}
+            src={pressPlayerAssetFromFolder(assetFolder, "wem_Player_Icon_pause.png")}
             x={WEM_ICONS.pause.x}
             y={WEM_ICONS.pause.y}
             label="Pause"
@@ -315,7 +314,7 @@ export function WemPressPlayer({
             visible={playing}
           />
           <IconButton
-            src={pressPlayerAsset(world, "wem_Player_Icon_skip_ffd.png")}
+            src={pressPlayerAssetFromFolder(assetFolder, "wem_Player_Icon_skip_ffd.png")}
             x={WEM_ICONS.skipFwd.x}
             y={WEM_ICONS.skipFwd.y}
             label="Next"
@@ -330,7 +329,7 @@ export function WemPressPlayer({
             return (
               <IconButton
                 key={starValue}
-                src={pressPlayerAsset(world, "wem_Player_Icon_star.png")}
+                src={pressPlayerAssetFromFolder(assetFolder, "wem_Player_Icon_star.png")}
                 x={star.x}
                 y={star.y}
                 label={`${starValue} stars`}
@@ -342,13 +341,13 @@ export function WemPressPlayer({
 
           {/* Knobs */}
           <KnobSlider
-            world={world}
+            assetFolder={assetFolder}
             range={WEM_KNOB_TRACK}
             value={progressRatio}
             onChange={onSeek}
           />
           <KnobSlider
-            world={world}
+            assetFolder={assetFolder}
             range={WEM_KNOB_VOLUME}
             value={volume}
             onChange={onVolumeChange}

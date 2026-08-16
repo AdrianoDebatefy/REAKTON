@@ -57,7 +57,8 @@
     "play": "Abspielen",
     "pause": "Pause",
     "logout": "Logout",
-    "playerWorldSoon": "Player folgt in Kürze"
+    "playerWorldSoon": "Player folgt in Kürze",
+    "backToPress": "Zurück zur Presse"
   },
   "live": {
     "title": "Live",

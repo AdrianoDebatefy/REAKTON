@@ -205,7 +205,10 @@ export function PressPreviewPlayer({
                   onChange={onSeek}
                 />
 
-                <div className="flex items-center justify-end gap-3 pr-6">
+                <div className="flex items-center justify-end gap-3 pr-2">
+                  <span className="shrink-0 text-xl tabular-nums text-white/75 md:text-lg">
+                    {timeCurrent} / {timeTotal}
+                  </span>
                   <button
                     type="button"
                     onClick={() => {
@@ -215,15 +218,15 @@ export function PressPreviewPlayer({
                         onPlay(track.id);
                       }
                     }}
-                    className="flex h-[17px] w-[17px] shrink-0 items-center justify-center text-[10px] leading-none text-white transition hover:brightness-110"
-                    style={{ backgroundColor: accent }}
+                    className="flex h-9 min-w-[7.5rem] max-w-[11rem] flex-[1.15] items-center justify-center gap-2 border border-white/[0.14] bg-white/[0.05] text-base uppercase tracking-[0.22em] text-white/85 backdrop-blur-[3px] transition hover:border-white/25 hover:bg-white/[0.09] md:h-8 md:min-w-[6.5rem] md:text-sm"
+                    style={{ boxShadow: `inset 0 1px 0 ${accent}22` }}
                     aria-label={isPlaying ? labels.stop : labels.play}
                   >
-                    {isPlaying ? "⏹" : "▶"}
+                    <span className="text-sm leading-none md:text-xs">
+                      {isPlaying ? "⏹" : "▶"}
+                    </span>
+                    <span>{isPlaying ? labels.stop : labels.play}</span>
                   </button>
-                  <span className="shrink-0 text-2xl tabular-nums text-white/80 md:text-xl">
-                    {timeCurrent} / {timeTotal}
-                  </span>
                 </div>
               </div>
 

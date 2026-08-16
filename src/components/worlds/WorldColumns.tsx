@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/routing";
 import { motion, AnimatePresence } from "framer-motion";
 import type { World, WorldAtmosphere, Locale } from "@/types/content";
 import { WorldView } from "./WorldView";
@@ -17,7 +18,6 @@ import {
 
 interface WorldColumnsProps {
   worlds: World[];
-  clapToyUrl: string;
 }
 
 const columnClass: Record<World["color"], string> = {
@@ -358,7 +358,7 @@ function columnCopyTone(atmosphere: WorldAtmosphere) {
   };
 }
 
-export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
+export function WorldColumns({ worlds }: WorldColumnsProps) {
   const locale = useLocale() as Locale;
   const t = useTranslations("home");
   const isMobile = useIsMobile();
@@ -810,12 +810,12 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
         <section className="relative z-10 hidden border-t border-white/10 bg-black/50 px-4 py-12 text-center md:block md:py-16">
           <h2 className="text-sm uppercase tracking-[0.3em] text-white/50">{t("toyTitle")}</h2>
           <p className="mx-auto mt-3 max-w-md text-sm text-white/45">{t("toyDescription")}</p>
-          <a
-            href={clapToyUrl}
+          <Link
+            href="/toy"
             className="mt-6 inline-block rounded border border-white/25 px-6 py-3 text-xs uppercase tracking-widest transition hover:bg-white/10"
           >
             {t("toyCta")}
-          </a>
+          </Link>
         </section>
       )}
     </div>

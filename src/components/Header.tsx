@@ -10,7 +10,6 @@ import type { Locale } from "@/types/content";
 interface HeaderProps {
   logoUrl?: string;
   siteLinks: SiteLinks;
-  clapToyUrl: string;
   onHomeClick?: () => void;
 }
 
@@ -103,7 +102,7 @@ function NavHref({
   );
 }
 
-export function Header({ logoUrl, siteLinks, clapToyUrl, onHomeClick }: HeaderProps) {
+export function Header({ logoUrl, siteLinks, onHomeClick }: HeaderProps) {
   const t = useTranslations("nav");
   const locale = useLocale();
   const pathname = usePathname();
@@ -136,7 +135,7 @@ export function Header({ logoUrl, siteLinks, clapToyUrl, onHomeClick }: HeaderPr
       external: isExternalUrl(pressHref),
       chip: "press",
     },
-    { href: clapToyUrl, label: t("toy"), external: true, chip: "toy" },
+    { href: "/toy", label: t("toy"), chip: "toy" },
     { href: "/contact", label: t("contact"), chip: "contact" },
   ];
 

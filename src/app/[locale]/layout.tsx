@@ -54,7 +54,6 @@ export default async function LocaleLayout({
         <Header
           logoUrl={content.brandLogo}
           siteLinks={content.siteLinks}
-          clapToyUrl={content.clapToyUrl}
         />
         <main>{children}</main>
         <Footer />

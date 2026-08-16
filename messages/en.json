@@ -16,7 +16,7 @@
     "lockedHint": "Available from November 2026",
     "enterWorld": "Enter world",
     "toyTitle": "Clap-Toy",
-    "toyDescription": "Interactive experience — coming soon at reakton.de/clap-toy",
+    "toyDescription": "Interactive experience — coming soon.",
     "toyCta": "Go to Clap-Toy"
   },
   "world": {
@@ -72,6 +72,14 @@
   "merch": {
     "title": "Merchandise",
     "subtitle": "Music and merch at our partners"
+  },
+  "toy": {
+    "eyebrow": "REAKTON Toy",
+    "title": "Clap-Toy",
+    "subtitle": "An interactive clap experience across the REAKTON worlds.",
+    "comingSoon": "Coming Soon",
+    "hint": "We're still building the Clap-Toy. Check back soon.",
+    "backHome": "Back to home"
   },
   "contact": {
     "title": "Contact",

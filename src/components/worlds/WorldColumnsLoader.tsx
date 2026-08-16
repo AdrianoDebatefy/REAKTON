@@ -8,12 +8,6 @@ const WorldColumns = dynamic(
   { ssr: false }
 );
 
-export function WorldColumnsLoader({
-  worlds,
-  clapToyUrl,
-}: {
-  worlds: World[];
-  clapToyUrl?: string;
-}) {
-  return <WorldColumns worlds={worlds} clapToyUrl={clapToyUrl ?? ""} />;
+export function WorldColumnsLoader({ worlds }: { worlds: World[] }) {
+  return <WorldColumns worlds={worlds} />;
 }

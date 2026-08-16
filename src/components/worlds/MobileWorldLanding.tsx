@@ -12,10 +12,6 @@ import {
   MOBILE_RETURN_REVEAL_MS,
   MOBILE_RETURN_SLIDE_S,
 } from "@/lib/mobile-world-timing";
-import {
-  GPU_COMPOSIT_LAYER,
-  mobileWorldBgImageStyle,
-} from "@/lib/mobile-compositor";
 
 const COLUMN_EXIT_S = 2;
 const COLUMN_STAGGER_S = 0.01;
@@ -122,6 +118,16 @@ function pivotDisplayIndex(
   return slot >= 0 ? slot : null;
 }
 
+function mobileBgObjectPosition(
+  atmosphere: WorldAtmosphere,
+  isLandingDefault: boolean
+): string {
+  if (isLandingDefault && atmosphere === "cosmos") {
+    return "center 35%";
+  }
+  return "center center";
+}
+
 function sortWorldsForMobile(worlds: World[]): World[] {
   return [...worlds].sort(
     (a, b) =>
@@ -132,13 +138,15 @@ function sortWorldsForMobile(worlds: World[]): World[] {
 function ColumnBgImage({
   desktopSrc,
   mobileSrc,
-  atmosphere,
   onError,
+  objectPosition = "center center",
+  objectPositionTransition,
 }: {
   desktopSrc: string;
   mobileSrc: string;
-  atmosphere: WorldAtmosphere;
   onError?: () => void;
+  objectPosition?: string;
+  objectPositionTransition?: { duration: number; ease: [number, number, number, number] };
 }) {
   const [src, setSrc] = useState(desktopSrc);
 
@@ -165,13 +173,18 @@ function ColumnBgImage({
   };
 
   return (
-    <img
+    <motion.img
       src={src}
       alt=""
-      className="pointer-events-none absolute left-1/2 top-1/2 block h-full w-full max-w-none object-cover"
-      style={mobileWorldBgImageStyle(atmosphere)}
+      className="absolute inset-0 block h-full w-full object-cover"
+      initial={false}
+      animate={{ objectPosition }}
+      transition={
+        objectPositionTransition
+          ? { objectPosition: objectPositionTransition }
+          : { duration: 0 }
+      }
       onError={handleError}
-      decoding="async"
     />
   );
 }
@@ -185,6 +198,7 @@ function PanelBgLayers({
   isColumnReturning,
   returnRevealLanding,
   scrimOpacity,
+  isLandingDefault,
 }: {
   world: World;
   tone: ReturnType<typeof columnCopyTone>;
@@ -194,29 +208,24 @@ function PanelBgLayers({
   isColumnReturning: boolean;
   returnRevealLanding: boolean;
   scrimOpacity: number;
+  isLandingDefault: boolean;
 }) {
   const hideOverlays =
     showWorld || isEntering || (isColumnReturning && !returnRevealLanding);
+  const objectPosition = mobileBgObjectPosition(world.atmosphere, isLandingDefault);
   const overlayFade =
     isColumnReturning && returnRevealLanding
       ? { duration: MOBILE_RETURN_OVERLAY_FADE_S, ease: COLUMN_EASE }
       : { duration: OVERLAY_EXIT_S, ease: COLUMN_EASE };
 
-  if (showWorld) {
-    return null;
-  }
-
   return (
     <>
-      <div
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-        style={{ ...GPU_COMPOSIT_LAYER, contain: "paint" }}
-      >
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <ColumnBgImage
           desktopSrc={bg.desktop}
           mobileSrc={bg.mobile}
-          atmosphere={world.atmosphere}
           onError={bg.onError}
+          objectPosition={objectPosition}
         />
         <motion.div
           className={`landing-column-overlay landing-column-overlay--${world.atmosphere} absolute inset-0`}
@@ -280,6 +289,9 @@ export function MobileWorldLanding({
 }) {
   const returnSlidePhase = isColumnReturning && !returnRevealLanding;
   const returnSettlePhase = isColumnReturning && returnRevealLanding;
+  const isAnimating = isEntering || isColumnReturning;
+  const isLandingDefault =
+    !showWorld && !isEntering && !isColumnReturning && selectedIndex === null;
   const landingVisible = !showWorld;
   const captionDuration =
     returnSettlePhase ? MOBILE_RETURN_LABEL_IN_MS : CAPTION_DECODE_MS;
@@ -300,7 +312,7 @@ export function MobileWorldLanding({
   const stackTop = fullBleedBg
     ? "0px"
     : "calc(5.5rem + env(safe-area-inset-top))";
-  const stackOverflow = isEntering ? "overflow-visible" : "overflow-hidden";
+  const stackOverflow = isAnimating ? "overflow-visible" : "overflow-hidden";
 
   const stackTransition = returnSlidePhase
     ? { duration: MOBILE_RETURN_SLIDE_S, ease: COLUMN_EASE }
@@ -373,7 +385,7 @@ export function MobileWorldLanding({
             isPivot &&
             (fillsViewport || isEntering || returnSlidePhase);
           const panelZIndex = keepPivotOnTop ? panelCount + 1 : displayIndex + 1;
-          const panelOverflow = isEntering ? "overflow-visible" : "overflow-hidden";
+          const panelOverflow = isAnimating ? "overflow-visible" : "overflow-hidden";
 
           return (
             <motion.div
@@ -382,17 +394,12 @@ export function MobileWorldLanding({
               className={`absolute inset-x-0 ${panelOverflow}`}
               style={{
                 position: "absolute",
-                backgroundColor: showWorld
-                  ? "transparent"
-                  : atmosphereFallbackBg(world.atmosphere),
+                backgroundColor: atmosphereFallbackBg(world.atmosphere),
                 zIndex: panelZIndex,
                 pointerEvents: parkedOffscreen ? "none" : undefined,
                 backfaceVisibility: "hidden",
                 WebkitBackfaceVisibility: "hidden",
-                willChange:
-                  isEntering || returnSlidePhase
-                    ? "transform"
-                    : undefined,
+                willChange: isAnimating ? "transform, top, height" : undefined,
               }}
               initial={false}
               animate={{
@@ -420,6 +427,7 @@ export function MobileWorldLanding({
                 isColumnReturning={isColumnReturning}
                 returnRevealLanding={returnRevealLanding}
                 scrimOpacity={scrimOpacity}
+                isLandingDefault={isLandingDefault}
               />
             </motion.div>
           );

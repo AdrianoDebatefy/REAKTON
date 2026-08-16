@@ -15,59 +15,9 @@ import {
   MOBILE_BACK_TEXT_MS,
   MOBILE_BACK_TOTAL_MS,
 } from "@/lib/mobile-world-timing";
-import {
-  GPU_COMPOSIT_LAYER,
-  mobileWorldBgImageStyle,
-} from "@/lib/mobile-compositor";
-import type { WorldAtmosphere } from "@/types/content";
 import cosmosLayout from "@/data/cosmos-layout.json";
 import nanoLayout from "@/data/nano-layout.json";
 import clubLayout from "@/data/club-layout.json";
-
-const MOBILE_MEDIA = "(max-width: 767px)";
-
-function MobileWorldBackground({
-  desktopSrc,
-  mobileSrc,
-  atmosphere,
-}: {
-  desktopSrc: string;
-  mobileSrc: string;
-  atmosphere: WorldAtmosphere;
-}) {
-  const [src, setSrc] = useState(desktopSrc);
-
-  useEffect(() => {
-    const media = window.matchMedia(MOBILE_MEDIA);
-    const pickSrc = () => {
-      if (!media.matches || !mobileSrc || mobileSrc === desktopSrc) {
-        setSrc(desktopSrc);
-        return;
-      }
-      setSrc(mobileSrc);
-    };
-    pickSrc();
-    media.addEventListener("change", pickSrc);
-    return () => media.removeEventListener("change", pickSrc);
-  }, [desktopSrc, mobileSrc]);
-
-  return (
-    <div
-      className="pointer-events-none fixed inset-0 z-0 overflow-hidden md:hidden"
-      aria-hidden
-      style={{ ...GPU_COMPOSIT_LAYER, contain: "paint" }}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt=""
-        className="pointer-events-none absolute left-1/2 top-1/2 block h-full w-full max-w-none object-cover"
-        style={mobileWorldBgImageStyle(atmosphere)}
-        decoding="async"
-      />
-    </div>
-  );
-}
 
 interface WorldViewProps {
   world: World;
@@ -153,13 +103,6 @@ export function WorldView({ world, onBack }: WorldViewProps) {
       className={`relative min-h-[100dvh] bg-transparent pt-[calc(5.5rem+env(safe-area-inset-top))] md:min-h-screen md:pt-24 ${atmosphereClass[world.atmosphere]}`}
     >
       <WorldAmbientAudio src={world.backgroundAudio} />
-      {isMobile && useSlotScene && (
-        <MobileWorldBackground
-          desktopSrc={world.backgroundImage}
-          mobileSrc={world.backgroundImageMobile || world.backgroundImage}
-          atmosphere={world.atmosphere}
-        />
-      )}
       {!useGlobalBackground && (
         <>
           <div className="halftone-overlay" />

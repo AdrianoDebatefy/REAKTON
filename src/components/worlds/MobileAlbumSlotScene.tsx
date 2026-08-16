@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
 import type { Locale, Song } from "@/types/content";
 import { getLocalized } from "@/lib/locale";
-import { GPU_COMPOSIT_LAYER } from "@/lib/mobile-compositor";
 import {
   MOBILE_COVER_ACTIVE_CENTER,
   MOBILE_COVER_ACTIVE_SCALE,
@@ -225,8 +225,7 @@ export function MobileAlbumSlotScene({
       className="album-slot-scene relative z-20 mx-auto h-[calc(100dvh-11.5rem-env(safe-area-inset-top))] min-h-[320px] w-full max-w-lg overflow-hidden bg-transparent"
       style={{
         isolation: "isolate",
-        transform: `translateY(-${MOBILE_COVER_BLOCK_SHIFT_PX}px) translateZ(0)`,
-        contain: "paint",
+        transform: `translateY(-${MOBILE_COVER_BLOCK_SHIFT_PX}px)`,
       }}
     >
       {items.map((song, i) => {
@@ -240,34 +239,32 @@ export function MobileAlbumSlotScene({
         const introDelay = coverFadeDelays[i] ?? 0;
         const exitDelay = coverExitDelays[i] ?? 0;
         const freezeLayout = exiting;
-        const layoutTransition = freezeLayout ? NO_TRANSITION : MOVE_TRANSITION;
-        const opacityTransition = exiting
-          ? {
-              duration: MOBILE_COVER_FADE_DURATION_S,
-              delay: exitDelay,
-              ease: [0.4, 0, 0.2, 1] as const,
-            }
-          : hidden
-            ? FADE_TRANSITION
-            : !introDone
-              ? {
-                  duration: MOBILE_COVER_FADE_DURATION_S,
-                  delay: introDelay,
-                  ease: [0.4, 0, 0.2, 1] as const,
-                }
-              : FADE_TRANSITION;
 
         return (
-          <motion.div
+          <motion.button
             key={song.id}
-            className={`album-cover-slot absolute overflow-hidden rounded-sm border ${borderClass} ${
+            type="button"
+            disabled={exiting || !introDone || (isPoleMode && !isActive)}
+            onClick={() => handleSelect(song)}
+            className={`album-cover-slot absolute overflow-hidden rounded-sm border focus:outline-none ${borderClass} ${
               exiting ? "z-10" : isActive ? "z-40" : "z-10"
             } ${isActive ? "border-white/40 shadow-lg" : "shadow-md shadow-black/50"}`}
             style={{
-              ...GPU_COMPOSIT_LAYER,
-              backgroundColor: "#080c12",
+              backgroundColor:
+                song.coverImage && !song.coverImage.includes("placeholder")
+                  ? "#080c12"
+                  : "#C1E5F9",
             }}
-            initial={false}
+            initial={{
+              left: `${targetX}%`,
+              top: `${targetY}%`,
+              width: targetSize,
+              height: targetSize,
+              x: "-50%",
+              y: "-50%",
+              opacity: 0,
+              scale: 0.94,
+            }}
             animate={{
               left: `${targetX}%`,
               top: `${targetY}%`,
@@ -276,53 +273,43 @@ export function MobileAlbumSlotScene({
               x: "-50%",
               y: "-50%",
               opacity: exiting || hidden ? 0 : 1,
+              scale: hidden ? 0.85 : 1,
             }}
             transition={{
-              left: layoutTransition,
-              top: layoutTransition,
-              width: layoutTransition,
-              height: layoutTransition,
-              x: { duration: 0 },
-              y: { duration: 0 },
-              opacity: opacityTransition,
+              left: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
+              top: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
+              width: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
+              height: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
+              opacity: exiting
+                ? {
+                    duration: MOBILE_COVER_FADE_DURATION_S,
+                    delay: exitDelay,
+                    ease: [0.4, 0, 0.2, 1],
+                  }
+                : hidden
+                  ? FADE_TRANSITION
+                  : !introDone
+                    ? {
+                        duration: MOBILE_COVER_FADE_DURATION_S,
+                        delay: introDelay,
+                        ease: [0.4, 0, 0.2, 1],
+                      }
+                    : FADE_TRANSITION,
+              scale: freezeLayout
+                ? NO_TRANSITION
+                : hidden
+                  ? FADE_TRANSITION
+                  : !introDone
+                    ? {
+                        duration: MOBILE_COVER_FADE_DURATION_S,
+                        delay: introDelay,
+                        ease: [0.25, 0.1, 0.25, 1],
+                      }
+                    : { duration: 0.35 },
             }}
+            aria-label={song.title}
+            aria-pressed={isActive}
           >
-            <button
-              type="button"
-              disabled={exiting || !introDone || (isPoleMode && !isActive)}
-              onClick={() => handleSelect(song)}
-              className="relative h-full w-full border-0 bg-transparent p-0 focus:outline-none"
-              aria-label={song.title}
-              aria-pressed={isActive}
-            >
-              {isActive && activeSong?.videoSnippet ? (
-                <video
-                  ref={slotVideoRef}
-                  src={activeSong.videoSnippet}
-                  className="h-full w-full object-cover"
-                  autoPlay
-                  loop
-                  playsInline
-                  muted={!!activeSong.audioSnippet}
-                />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={song.coverImage || "/covers/placeholder.svg"}
-                  alt={song.title}
-                  className="h-full w-full object-cover"
-                  draggable={false}
-                  decoding="async"
-                />
-              )}
-
-              {!isActive && (
-                <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-0.5 py-0.5 text-[8px] uppercase tracking-wider text-white/85">
-                  {song.title}
-                </span>
-              )}
-            </button>
-
             {isActive && !exiting && !infoPanelOpen && (
               <button
                 type="button"
@@ -334,7 +321,36 @@ export function MobileAlbumSlotScene({
               </button>
             )}
 
-            {isActive && activeSong && !exiting && (
+            <div className="relative h-full w-full">
+              {isActive && activeSong?.videoSnippet ? (
+                <video
+                  ref={slotVideoRef}
+                  src={activeSong.videoSnippet}
+                  className="h-full w-full object-cover"
+                  autoPlay
+                  loop
+                  playsInline
+                  muted={!!activeSong.audioSnippet}
+                />
+              ) : (
+                <Image
+                  src={song.coverImage || "/covers/placeholder.svg"}
+                  alt={song.title}
+                  fill
+                  className="object-cover"
+                  sizes={isActive ? "390px" : "60px"}
+                  priority={isActive}
+                  draggable={false}
+                />
+              )}
+
+              {!isActive && (
+                <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-0.5 py-0.5 text-[8px] uppercase tracking-wider text-white/85">
+                  {song.title}
+                </span>
+              )}
+
+              {isActive && activeSong && !exiting && (
                 <>
                   {!infoPanelOpen && (
                     <button
@@ -448,7 +464,8 @@ export function MobileAlbumSlotScene({
                   </motion.div>
                 </>
               )}
-          </motion.div>
+            </div>
+          </motion.button>
         );
       })}
 

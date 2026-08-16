@@ -13,7 +13,6 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import {
   MOBILE_COLUMN_SLIDE_S,
   MOBILE_RETURN_REVEAL_MS,
-  MOBILE_WORLD_VIEW_EXIT_MS,
 } from "@/lib/mobile-world-timing";
 
 interface WorldColumnsProps {
@@ -740,10 +739,8 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
             key="world-view"
             initial={{ opacity: 1 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{
-              duration: isMobile ? MOBILE_WORLD_VIEW_EXIT_MS / 1000 : WORLD_VIEW_EXIT_S,
-            }}
+            exit={{ opacity: isMobile ? 1 : 0 }}
+            transition={{ duration: isMobile ? 0 : WORLD_VIEW_EXIT_S }}
             className="fixed inset-0 z-30 bg-transparent max-md:isolate"
           >
             <WorldView world={activeWorld} onBack={handleBackFromWorld} />

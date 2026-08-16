@@ -123,10 +123,10 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
           (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
         const ctx = new AudioContextClass();
         const analyser = ctx.createAnalyser();
-        analyser.fftSize = 512;
-        analyser.minDecibels = -85;
-        analyser.maxDecibels = -10;
-        analyser.smoothingTimeConstant = 0.62;
+        analyser.fftSize = 1024;
+        analyser.minDecibels = -92;
+        analyser.maxDecibels = -8;
+        analyser.smoothingTimeConstant = 0.5;
         const source = ctx.createMediaElementSource(audio);
         source.connect(analyser);
         analyser.connect(ctx.destination);

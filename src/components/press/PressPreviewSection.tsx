@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { WorldAtmosphere } from "@/types/content";
-import { EqVisualizer } from "@/components/press/EqVisualizer";
-import { StarRating } from "@/components/press/StarRating";
+import { WemPressPlayer } from "@/components/press/WemPressPlayer";
+import { WemPressPlayerMobile } from "@/components/press/WemPressPlayerMobile";
 import {
   PRESS_WORLD_ORDER,
   PRESS_WORLD_THEME,
@@ -41,6 +41,7 @@ export function PressPreviewSection() {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(0.85);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -84,6 +85,10 @@ export function PressPreviewSection() {
     void refreshSession();
   }, [refreshSession]);
 
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume;
+  }, [volume]);
+
   const ensureAudioGraph = useCallback(async () => {
     if (!audioRef.current || sourceRef.current) return;
     const AudioContextClass =
@@ -91,7 +96,7 @@ export function PressPreviewSection() {
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new AudioContextClass();
     const analyser = ctx.createAnalyser();
-    analyser.fftSize = 128;
+    analyser.fftSize = 256;
     const source = ctx.createMediaElementSource(audioRef.current);
     source.connect(analyser);
     analyser.connect(ctx.destination);
@@ -102,15 +107,26 @@ export function PressPreviewSection() {
     if (ctx.state === "suspended") await ctx.resume();
   }, []);
 
-  const stopPlayback = useCallback(() => {
+  const pausePlayback = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
     audio.pause();
     setPlaying(false);
   }, []);
 
-  const playTrack = useCallback(
-    async (track: PreviewTrack) => {
+  const stopPlayback = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
+    setProgress(0);
+    setPlaying(false);
+  }, []);
+
+  const playTrackById = useCallback(
+    async (trackId: string) => {
+      const track = tracks.find((row) => row.id === trackId);
+      if (!track) return;
       await ensureAudioGraph();
       const audio = audioRef.current;
       if (!audio) return;
@@ -124,7 +140,7 @@ export function PressPreviewSection() {
       await audio.play();
       setPlaying(true);
     },
-    [activeTrackId, ensureAudioGraph]
+    [activeTrackId, ensureAudioGraph, tracks]
   );
 
   useEffect(() => {
@@ -186,11 +202,11 @@ export function PressPreviewSection() {
     }
   };
 
-  const handleVote = async (trackId: string, stars: number) => {
+  const handleVote = async (trackId: string, stars: number, trackTitle: string) => {
     const res = await fetch("/api/press-preview/vote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ trackId, stars }),
+      body: JSON.stringify({ trackId, stars, trackTitle }),
     });
     if (!res.ok) return;
     const data = (await res.json()) as {
@@ -205,6 +221,22 @@ export function PressPreviewSection() {
   };
 
   const activeTrack = tracks.find((track) => track.id === activeTrackId) ?? null;
+  const activeIndex = tracks.findIndex((track) => track.id === activeTrackId);
+
+  const playerTracks = tracks.map((track) => ({
+    id: track.id,
+    title: track.title,
+    artist: track.artist,
+    coverImage: track.coverImage,
+    userStars: track.userStars,
+  }));
+
+  const seekToRatio = (ratio: number) => {
+    const audio = audioRef.current;
+    if (!audio || !duration) return;
+    audio.currentTime = ratio * duration;
+    setProgress(audio.currentTime);
+  };
 
   return (
     <section className="mb-14 border-b border-white/10 pb-12">
@@ -286,11 +318,8 @@ export function PressPreviewSection() {
       )}
 
       {view === "player" && selectedWorld && theme && (
-        <div
-          className={`mt-6 overflow-hidden rounded border border-white/15 bg-gradient-to-b from-black/70 to-black/40 p-5 backdrop-blur-md ${theme.glow}`}
-          style={{ borderColor: `${theme.accent}44` }}
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="mt-6">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-[10px] uppercase tracking-[0.35em] text-white/40 md:text-[7px]">
                 {t("playerLabel")}
@@ -330,115 +359,69 @@ export function PressPreviewSection() {
             </div>
           </div>
 
-          <div className="mt-5">
-            <EqVisualizer
-              analyser={analyserReady ? analyserRef.current : null}
-              active={playing}
-              colors={theme.eq}
-            />
-          </div>
-
           {tracksLoading ? (
-            <p className="mt-6 text-sm text-white/45">{t("loadingTracks")}</p>
+            <p className="text-sm text-white/45">{t("loadingTracks")}</p>
           ) : tracks.length === 0 ? (
-            <p className="mt-6 text-sm text-white/45">{t("noTracks")}</p>
+            <p className="text-sm text-white/45">{t("noTracks")}</p>
           ) : (
             <>
-              {activeTrack ? (
-                <div className="mt-5 flex flex-wrap items-center gap-4 rounded border border-white/10 bg-black/35 p-4">
-                  {activeTrack.coverImage ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={activeTrack.coverImage}
-                      alt=""
-                      className="h-16 w-16 rounded border border-white/10 object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-16 w-16 items-center justify-center rounded border border-white/10 bg-white/5 text-xs text-white/35">
-                      REAKTON
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-lg font-light md:text-sm">{activeTrack.title}</p>
-                    {activeTrack.artist ? (
-                      <p className="truncate text-sm text-white/45 md:text-xs">{activeTrack.artist}</p>
-                    ) : null}
-                    <div className="mt-3">
-                      <input
-                        type="range"
-                        min={0}
-                        max={duration || 0}
-                        step={0.1}
-                        value={progress}
-                        onChange={(e) => {
-                          const audio = audioRef.current;
-                          if (!audio) return;
-                          audio.currentTime = Number(e.target.value);
-                          setProgress(audio.currentTime);
-                        }}
-                        className="w-full accent-white/80"
-                      />
-                      <div className="mt-1 flex justify-between text-[10px] text-white/35 md:text-[7px]">
-                        <span>{formatTime(progress)}</span>
-                        <span>{formatTime(duration)}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (playing) {
-                        stopPlayback();
-                      } else {
-                        void playTrack(activeTrack);
-                      }
-                    }}
-                    className="flex h-12 w-12 items-center justify-center rounded-full border border-white/25 bg-white/10 text-lg text-white transition hover:bg-white/20"
-                    aria-label={playing ? t("pause") : t("play")}
-                  >
-                    {playing ? "❚❚" : "▶"}
-                  </button>
-                </div>
-              ) : null}
-
-              <ul className="mt-5 space-y-2">
-                {tracks.map((track) => {
-                  const isActive = track.id === activeTrackId;
-                  return (
-                    <li
-                      key={track.id}
-                      className={`rounded border px-4 py-3 transition ${
-                        isActive
-                          ? "border-white/25 bg-white/10"
-                          : "border-white/10 bg-black/25 hover:border-white/20"
-                      }`}
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            stopPlayback();
-                            void playTrack(track);
-                          }}
-                          className="min-w-0 flex-1 text-left"
-                        >
-                          <span className="block truncate text-sm font-light md:text-xs">
-                            {track.title}
-                          </span>
-                          {track.artist ? (
-                            <span className="block truncate text-xs text-white/40">{track.artist}</span>
-                          ) : null}
-                        </button>
-                        <StarRating
-                          value={track.votes}
-                          userStars={track.userStars}
-                          onVote={(stars) => void handleVote(track.id, stars)}
-                        />
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+              <div className="hidden md:block">
+                <WemPressPlayer
+                  world={selectedWorld}
+                  accent={theme.accent}
+                  tracks={playerTracks}
+                  activeTrack={activeTrack ? playerTracks.find((t) => t.id === activeTrack.id) ?? null : null}
+                  playing={playing}
+                  progress={progress}
+                  duration={duration}
+                  volume={volume}
+                  analyser={analyserReady ? analyserRef.current : null}
+                  onPlay={() => {
+                    if (activeTrack) void playTrackById(activeTrack.id);
+                  }}
+                  onPause={pausePlayback}
+                  onStop={stopPlayback}
+                  onPrev={() => {
+                    if (activeIndex > 0) void playTrackById(tracks[activeIndex - 1]!.id);
+                  }}
+                  onNext={() => {
+                    if (activeIndex < tracks.length - 1) void playTrackById(tracks[activeIndex + 1]!.id);
+                  }}
+                  onSeek={seekToRatio}
+                  onVolumeChange={setVolume}
+                  onVote={(stars) => {
+                    if (activeTrack) void handleVote(activeTrack.id, stars, activeTrack.title);
+                  }}
+                />
+              </div>
+              <div className="md:hidden">
+                <WemPressPlayerMobile
+                  tracks={playerTracks}
+                  activeTrack={activeTrack ? playerTracks.find((t) => t.id === activeTrack.id) ?? null : null}
+                  playing={playing}
+                  progress={progress}
+                  duration={duration}
+                  volume={volume}
+                  accent={theme.accent}
+                  onPlay={() => {
+                    if (activeTrack) void playTrackById(activeTrack.id);
+                  }}
+                  onPause={pausePlayback}
+                  onStop={stopPlayback}
+                  onPrev={() => {
+                    if (activeIndex > 0) void playTrackById(tracks[activeIndex - 1]!.id);
+                  }}
+                  onNext={() => {
+                    if (activeIndex < tracks.length - 1) void playTrackById(tracks[activeIndex + 1]!.id);
+                  }}
+                  onSeek={seekToRatio}
+                  onVolumeChange={setVolume}
+                  onSelectTrack={(id) => void playTrackById(id)}
+                  onVote={(stars) => {
+                    if (activeTrack) void handleVote(activeTrack.id, stars, activeTrack.title);
+                  }}
+                />
+              </div>
             </>
           )}
 
@@ -447,11 +430,4 @@ export function PressPreviewSection() {
       )}
     </section>
   );
-}
-
-function formatTime(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds <= 0) return "0:00";
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
 }

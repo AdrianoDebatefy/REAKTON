@@ -784,7 +784,15 @@ function PressPreviewEditor({
 
       {accessLog.length > 0 ? (
         <div className="rounded border border-white/15 p-4">
-          <h3 className="text-xs uppercase tracking-widest text-white/60">Letzte Logins</h3>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-xs uppercase tracking-widest text-white/60">Letzte Logins</h3>
+            <a
+              href="/api/admin/press-preview/vote-export"
+              className="rounded border border-white/25 px-3 py-1.5 text-[10px] uppercase tracking-widest text-white/80 hover:border-white/50"
+            >
+              Sterne als TXT exportieren
+            </a>
+          </div>
           <ul className="mt-3 space-y-1 text-xs text-white/45">
             {accessLog.slice(0, 10).map((entry, index) => (
               <li key={`${entry.at}-${index}`}>
@@ -793,7 +801,16 @@ function PressPreviewEditor({
             ))}
           </ul>
         </div>
-      ) : null}
+      ) : (
+        <div className="rounded border border-white/15 p-4">
+          <a
+            href="/api/admin/press-preview/vote-export"
+            className="inline-block rounded border border-white/25 px-3 py-1.5 text-[10px] uppercase tracking-widest text-white/80 hover:border-white/50"
+          >
+            Sterne als TXT exportieren
+          </a>
+        </div>
+      )}
     </div>
   );
 }

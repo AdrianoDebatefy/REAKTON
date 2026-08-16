@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
+import { upsertPressVoteLogEntry } from "@/lib/press-vote-log";
 
 export interface PressVoteSummary {
   totalStars: number;
@@ -43,7 +44,8 @@ export function readPressVotes(): PressVotesData {
 export function recordPressVote(
   sessionId: string,
   trackId: string,
-  stars: number
+  stars: number,
+  meta?: { email: string; trackTitle: string }
 ): PressVoteSummary {
   const safeStars = Math.min(5, Math.max(1, Math.round(stars)));
   const data = readPressVotes();
@@ -62,6 +64,17 @@ export function recordPressVote(
 
   if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
   writeFileSync(VOTES_PATH, JSON.stringify(data, null, 2), "utf-8");
+
+  if (meta?.email && meta.trackTitle) {
+    upsertPressVoteLogEntry({
+      email: meta.email,
+      trackId,
+      trackTitle: meta.trackTitle,
+      stars: safeStars,
+      sessionId,
+    });
+  }
+
   return data.byTrack[trackId]!;
 }
 

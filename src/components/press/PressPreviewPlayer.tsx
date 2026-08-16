@@ -175,18 +175,20 @@ export function PressPreviewPlayer({
               </div>
 
               <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 py-2 pr-2">
-                <div className="flex items-start justify-between gap-3">
-                  <p className="min-w-0 truncate text-2xl font-light leading-tight text-white/90 md:text-xl">
+                <div className="flex items-start gap-3">
+                  <p className="min-w-0 flex-1 truncate text-2xl font-light leading-tight text-white/90 md:text-xl">
                     {track.title}
                   </p>
-                  <StarRating
-                    value={track.votes}
-                    userStars={track.userStars}
-                    onVote={(stars) => onVote(track.id, stars)}
-                    size="lg"
-                    atmosphere={atmosphere}
-                    compact
-                  />
+                  <div className="mr-[25%] shrink-0 -translate-x-1/2">
+                    <StarRating
+                      value={track.votes}
+                      userStars={track.userStars}
+                      onVote={(stars) => onVote(track.id, stars)}
+                      size="lg"
+                      atmosphere={atmosphere}
+                      compact
+                    />
+                  </div>
                 </div>
 
                 <PressEqBars

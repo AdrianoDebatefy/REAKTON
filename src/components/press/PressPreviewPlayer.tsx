@@ -137,7 +137,7 @@ export function PressPreviewPlayer({
   const activeProgressRatio = duration > 0 ? progress / duration : 0;
 
   return (
-    <div className="w-full max-w-5xl space-y-1">
+    <div className="w-full max-w-7xl space-y-1">
       {playbackError ? (
         <p className="border border-red-400/25 bg-red-500/8 px-4 py-2 text-lg text-red-200 md:text-base">
           {playbackError}
@@ -159,7 +159,7 @@ export function PressPreviewPlayer({
               className="flex items-stretch overflow-hidden border bg-black/40 backdrop-blur-[2px] transition-colors"
               style={{ borderColor: `${accent}66` }}
             >
-              <div className="flex w-[4.25rem] shrink-0 flex-col items-center gap-1 px-2 py-2 md:w-[4.75rem]">
+              <div className="flex w-[7.5rem] shrink-0 flex-col items-center gap-2 px-3 py-3 md:w-32">
                 <div
                   className="aspect-square w-full overflow-hidden"
                   style={{ backgroundColor: track.coverImage ? undefined : accent }}
@@ -169,7 +169,9 @@ export function PressPreviewPlayer({
                     <img src={track.coverImage} alt="" className="h-full w-full object-cover" />
                   ) : null}
                 </div>
-                <span className="text-base tabular-nums text-white/55 md:text-sm">{slotLabel}</span>
+                <span className="text-[2.5rem] font-light leading-none tabular-nums text-white/60 md:text-4xl">
+                  {slotLabel}
+                </span>
               </div>
 
               <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 py-2 pr-2">

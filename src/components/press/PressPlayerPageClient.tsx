@@ -301,7 +301,7 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
   };
 
   return (
-    <div className="mx-auto max-w-3xl overflow-hidden px-4 pb-16 pt-24">
+    <div className="mx-auto max-w-7xl overflow-hidden px-4 pb-16 pt-24">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-base uppercase tracking-[0.35em] text-white/40 md:text-sm">

@@ -144,11 +144,6 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
     }
   }, []);
 
-  const pausePlayback = useCallback(() => {
-    audioRef.current?.pause();
-    setPlaying(false);
-  }, []);
-
   const stopPlayback = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -191,17 +186,6 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
       }
     },
     [ensureAudioGraph, t, tracks, waitUntilCanPlay]
-  );
-
-  const togglePlay = useCallback(
-    async (trackId: string) => {
-      if (playing && activeTrackId === trackId) {
-        pausePlayback();
-        return;
-      }
-      await playTrackById(trackId);
-    },
-    [activeTrackId, pausePlayback, playTrackById, playing]
   );
 
   useEffect(() => {

@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     .setExpirationTime("8h")
     .sign(secret);
 
-  cookies().set("reakton_admin", token, {
+  (await cookies()).set("reakton_admin", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

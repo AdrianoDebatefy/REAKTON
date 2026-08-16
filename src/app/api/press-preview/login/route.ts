@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     .setExpirationTime("30d")
     .sign(secret);
 
-  cookies().set(PRESS_PREVIEW_COOKIE, token, {
+  (await cookies()).set(PRESS_PREVIEW_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

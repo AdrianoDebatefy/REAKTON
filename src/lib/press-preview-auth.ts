@@ -15,7 +15,7 @@ export interface PressPreviewSession {
 }
 
 export async function getPressPreviewSession(): Promise<PressPreviewSession | null> {
-  const token = cookies().get(PRESS_PREVIEW_COOKIE)?.value;
+  const token = (await cookies()).get(PRESS_PREVIEW_COOKIE)?.value;
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secret);

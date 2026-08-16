@@ -6,7 +6,7 @@ const secret = new TextEncoder().encode(
 );
 
 export async function isAdmin(): Promise<boolean> {
-  const token = cookies().get("reakton_admin")?.value;
+  const token = (await cookies()).get("reakton_admin")?.value;
   if (!token) return false;
   try {
     await jwtVerify(token, secret);

@@ -16,6 +16,6 @@ export async function GET() {
 }
 
 export async function DELETE() {
-  cookies().delete(PRESS_PREVIEW_COOKIE);
+  (await cookies()).delete(PRESS_PREVIEW_COOKIE);
   return NextResponse.json({ ok: true });
 }

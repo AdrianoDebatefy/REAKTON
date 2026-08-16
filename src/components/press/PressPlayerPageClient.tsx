@@ -126,7 +126,7 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
         analyser.fftSize = 512;
         analyser.minDecibels = -85;
         analyser.maxDecibels = -10;
-        analyser.smoothingTimeConstant = 0.75;
+        analyser.smoothingTimeConstant = 0.62;
         const source = ctx.createMediaElementSource(audio);
         source.connect(analyser);
         analyser.connect(ctx.destination);

@@ -33,6 +33,16 @@ export const MOBILE_COVER_FADE_S = 3;
 export const MOBILE_COVER_FADE_DURATION_S = 0.45;
 export const MOBILE_COVER_EXIT_MS = MOBILE_COVER_FADE_S * 1000;
 
+/** Wait until the last staggered cover fade finishes before handing off to return. */
+export function mobileCoverExitMs(
+  exitDelays: number[],
+  fadeDurationS = MOBILE_COVER_FADE_DURATION_S,
+  bufferMs = 120
+): number {
+  const maxDelay = exitDelays.length ? Math.max(...exitDelays) : 0;
+  return (maxDelay + fadeDurationS) * 1000 + bufferMs;
+}
+
 /** Zufällige Delays innerhalb des 2s-Fensters, damit Covers gestaffelt einblenden. */
 export function buildRandomCoverFadeDelays(
   slotCount: number,

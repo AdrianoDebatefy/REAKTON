@@ -13,7 +13,6 @@ import { getLocalized } from "@/lib/locale";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import {
   MOBILE_BACK_TEXT_MS,
-  MOBILE_BACK_TOTAL_MS,
 } from "@/lib/mobile-world-timing";
 import cosmosLayout from "@/data/cosmos-layout.json";
 import nanoLayout from "@/data/nano-layout.json";
@@ -60,8 +59,9 @@ export function WorldView({ world, onBack }: WorldViewProps) {
     if (isMobile) {
       if (useSlotScene && world.songs.length > 0) {
         setExiting(true);
+      } else {
+        window.setTimeout(() => onBack(), MOBILE_BACK_TEXT_MS);
       }
-      window.setTimeout(() => onBack(), MOBILE_BACK_TOTAL_MS);
       return;
     }
 
@@ -77,7 +77,10 @@ export function WorldView({ world, onBack }: WorldViewProps) {
   }, [headerDecodeMode, isMobile, onBack, useSlotScene, world.songs.length]);
 
   const handleExitComplete = useCallback(() => {
-    if (isMobile) return;
+    if (isMobile) {
+      onBack();
+      return;
+    }
     setExiting(false);
     onBack();
   }, [isMobile, onBack]);

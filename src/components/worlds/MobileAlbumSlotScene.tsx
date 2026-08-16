@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
@@ -9,13 +9,13 @@ import { getLocalized } from "@/lib/locale";
 import {
   MOBILE_COVER_ACTIVE_CENTER,
   MOBILE_COVER_ACTIVE_SCALE,
-  MOBILE_COVER_EXIT_MS,
   MOBILE_COVER_FADE_DURATION_S,
   MOBILE_COVER_FADE_S,
   MOBILE_COVER_BLOCK_SHIFT_PX,
   MOBILE_COVER_INACTIVE_PX,
   buildMobilePadLayout,
   buildRandomCoverFadeDelays,
+  mobileCoverExitMs,
 } from "@/lib/mobile-cover-layout";
 
 function getYouTubeId(url: string): string | null {
@@ -36,6 +36,7 @@ const FADE_TRANSITION = { duration: MOBILE_COVER_FADE_S, ease: [0.4, 0, 0.2, 1] 
 const NO_TRANSITION = { duration: 0 } as const;
 
 type FrozenCoverSlot = { x: number; y: number; size: number };
+type FrozenSceneRect = { top: number; left: number; width: number; height: number };
 
 const INFO_TEXT_SIZE_KEY = "reakton-info-text-size";
 const INFO_TEXT_SIZE_MIN = 12;
@@ -109,6 +110,11 @@ export function MobileAlbumSlotScene({
   const slotVideoRef = useRef<HTMLVideoElement | null>(null);
   const exitStartedRef = useRef(false);
   const exitLayoutRef = useRef<FrozenCoverSlot[] | null>(null);
+  const exitSceneRectRef = useRef<FrozenSceneRect | null>(null);
+  const exitTotalMs = useMemo(
+    () => mobileCoverExitMs(coverExitDelays),
+    [coverExitDelays]
+  );
 
   const activeSong = items.find((s) => s.id === activeId) ?? null;
   const activeInfoText = activeSong ? getLocalized(activeSong.infoText, locale) : "";
@@ -183,22 +189,31 @@ export function MobileAlbumSlotScene({
     });
   }, []);
 
-  useLayoutEffect(() => {
-    if (!exiting) {
-      exitLayoutRef.current = null;
-      return;
-    }
-    if (exitLayoutRef.current) return;
-    exitLayoutRef.current = items.map((song, i) => {
-      const pad = padPositions[i] ?? MOBILE_COVER_ACTIVE_CENTER;
-      const isActive = activeId === song.id;
-      return {
-        x: isActive ? MOBILE_COVER_ACTIVE_CENTER.x : pad.x,
-        y: isActive ? MOBILE_COVER_ACTIVE_CENTER.y : pad.y,
-        size: isActive ? activeCoverSize : MOBILE_COVER_INACTIVE_PX,
+  if (exiting) {
+    if (sceneRef.current && !exitSceneRectRef.current) {
+      const rect = sceneRef.current.getBoundingClientRect();
+      exitSceneRectRef.current = {
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height,
       };
-    });
-  }, [activeCoverSize, activeId, exiting, items, padPositions]);
+    }
+    if (!exitLayoutRef.current) {
+      exitLayoutRef.current = items.map((song, i) => {
+        const pad = padPositions[i] ?? MOBILE_COVER_ACTIVE_CENTER;
+        const isActive = activeId === song.id;
+        return {
+          x: isActive ? MOBILE_COVER_ACTIVE_CENTER.x : pad.x,
+          y: isActive ? MOBILE_COVER_ACTIVE_CENTER.y : pad.y,
+          size: isActive ? activeCoverSize : MOBILE_COVER_INACTIVE_PX,
+        };
+      });
+    }
+  } else {
+    exitSceneRectRef.current = null;
+    exitLayoutRef.current = null;
+  }
 
   useEffect(() => {
     if (!exiting) {
@@ -209,20 +224,35 @@ export function MobileAlbumSlotScene({
     exitStartedRef.current = true;
     stopAudio();
     setInfoPanelOpen(false);
-    const timer = window.setTimeout(() => onExitComplete?.(), MOBILE_COVER_EXIT_MS);
+    const timer = window.setTimeout(() => onExitComplete?.(), exitTotalMs);
     return () => window.clearTimeout(timer);
-  }, [exiting, onExitComplete, stopAudio]);
+  }, [exiting, exitTotalMs, onExitComplete, stopAudio]);
 
   useEffect(() => () => stopAudio(), [stopAudio]);
+
+  const exitSceneRect = exiting ? exitSceneRectRef.current : null;
 
   return (
     <motion.div
       ref={sceneRef}
-      className="album-slot-scene relative z-20 mx-auto h-[calc(100dvh-11.5rem-env(safe-area-inset-top))] min-h-[320px] w-full max-w-lg overflow-hidden bg-transparent"
-      style={{
-        isolation: "isolate",
-        transform: `translateY(-${MOBILE_COVER_BLOCK_SHIFT_PX}px)`,
-      }}
+      className={`album-slot-scene z-20 mx-auto w-full max-w-lg overflow-hidden bg-transparent ${
+        exiting ? "fixed" : "relative h-[calc(100dvh-11.5rem-env(safe-area-inset-top))] min-h-[320px]"
+      }`}
+      style={
+        exiting && exitSceneRect
+          ? {
+              top: exitSceneRect.top,
+              left: exitSceneRect.left,
+              width: exitSceneRect.width,
+              height: exitSceneRect.height,
+              isolation: "isolate",
+              zIndex: 25,
+            }
+          : {
+              isolation: "isolate",
+              transform: `translateY(-${MOBILE_COVER_BLOCK_SHIFT_PX}px)`,
+            }
+      }
     >
       {items.map((song, i) => {
         const pad = padPositions[i] ?? MOBILE_COVER_ACTIVE_CENTER;
@@ -253,16 +283,20 @@ export function MobileAlbumSlotScene({
                   ? "#080c12"
                   : "#C1E5F9",
             }}
-            initial={{
-              left: `${targetX}%`,
-              top: `${targetY}%`,
-              width: targetSize,
-              height: targetSize,
-              x: "-50%",
-              y: "-50%",
-              opacity: 0,
-              scale: 0.94,
-            }}
+            initial={
+              exiting
+                ? false
+                : {
+                    left: `${targetX}%`,
+                    top: `${targetY}%`,
+                    width: targetSize,
+                    height: targetSize,
+                    x: "-50%",
+                    y: "-50%",
+                    opacity: 0,
+                    scale: 0.94,
+                  }
+            }
             animate={{
               left: `${targetX}%`,
               top: `${targetY}%`,
@@ -273,38 +307,49 @@ export function MobileAlbumSlotScene({
               opacity: exiting || hidden ? 0 : 1,
               scale: exiting ? restingScale : hidden ? 0.85 : 1,
             }}
-            transition={{
-              left: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
-              top: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
-              width: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
-              height: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
-              opacity: exiting
+            transition={
+              exiting
                 ? {
-                    duration: MOBILE_COVER_FADE_DURATION_S,
-                    delay: exitDelay,
-                    ease: [0.4, 0, 0.2, 1],
+                    left: NO_TRANSITION,
+                    top: NO_TRANSITION,
+                    width: NO_TRANSITION,
+                    height: NO_TRANSITION,
+                    x: NO_TRANSITION,
+                    y: NO_TRANSITION,
+                    scale: NO_TRANSITION,
+                    opacity: {
+                      duration: MOBILE_COVER_FADE_DURATION_S,
+                      delay: exitDelay,
+                      ease: [0.4, 0, 0.2, 1],
+                    },
                   }
-                : hidden
-                  ? FADE_TRANSITION
-                  : !introDone
-                    ? {
-                        duration: MOBILE_COVER_FADE_DURATION_S,
-                        delay: introDelay,
-                        ease: [0.4, 0, 0.2, 1],
-                      }
-                    : FADE_TRANSITION,
-              scale: exiting
-                ? NO_TRANSITION
-                : hidden
-                  ? FADE_TRANSITION
-                  : !introDone
-                    ? {
-                        duration: MOBILE_COVER_FADE_DURATION_S,
-                        delay: introDelay,
-                        ease: [0.25, 0.1, 0.25, 1],
-                      }
-                    : { duration: 0.35 },
-            }}
+                : {
+                    left: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
+                    top: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
+                    width: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
+                    height: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
+                    opacity: hidden
+                      ? FADE_TRANSITION
+                      : !introDone
+                        ? {
+                            duration: MOBILE_COVER_FADE_DURATION_S,
+                            delay: introDelay,
+                            ease: [0.4, 0, 0.2, 1],
+                          }
+                        : FADE_TRANSITION,
+                    scale: freezeLayout
+                      ? NO_TRANSITION
+                      : hidden
+                        ? FADE_TRANSITION
+                        : !introDone
+                          ? {
+                              duration: MOBILE_COVER_FADE_DURATION_S,
+                              delay: introDelay,
+                              ease: [0.25, 0.1, 0.25, 1],
+                            }
+                          : { duration: 0.35 },
+                  }
+            }
             aria-label={song.title}
             aria-pressed={isActive}
           >

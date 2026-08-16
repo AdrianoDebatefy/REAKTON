@@ -7,7 +7,7 @@ export function Footer() {
   const t = useTranslations("nav");
 
   return (
-    <footer className="border-t border-white/5 px-4 py-6 text-center text-[10px] uppercase tracking-widest text-white/35">
+    <footer className="border-t border-white/5 px-4 py-6 text-center text-[10px] uppercase tracking-widest text-white/35 md:text-[7px]">
       <nav className="flex justify-center gap-6" aria-label="Legal">
         <Link href="/impressum" className="hover:text-white/60">
           {t("impressum")}

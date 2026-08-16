@@ -14,7 +14,7 @@ interface HeaderProps {
   onHomeClick?: () => void;
 }
 
-const headerTextClass = "text-[30px] uppercase tracking-widest";
+const headerTextClass = "text-[30px] md:text-[21px] uppercase tracking-widest";
 
 const mobileHeaderBtnClass =
   "inline-flex min-h-[2.25rem] min-w-[2.75rem] items-center justify-center rounded border border-white/15 px-2.5 py-1 text-lg uppercase tracking-widest text-white/60 transition hover:border-white/30";

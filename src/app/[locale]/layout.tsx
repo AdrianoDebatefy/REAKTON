@@ -55,7 +55,7 @@ export default async function LocaleLayout({
   const content = getSiteContent();
 
   return (
-    <html lang={locale}>
+    <html lang={locale} className="site-public">
       <body
         className={`${rajdhani.variable} min-h-screen bg-[#050508] font-sans text-[#e8e8ec] antialiased`}
         style={{ fontFamily: "var(--font-rajdhani), system-ui, sans-serif" }}

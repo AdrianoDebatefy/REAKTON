@@ -83,7 +83,7 @@ export function SongCloud({ songs }: SongCloudProps) {
                 <PlaceholderCover title={song.title} />
               )}
               {isActive && (
-                <span className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1 text-[10px] uppercase tracking-wider">
+                <span className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1 text-[7px] uppercase tracking-wider">
                   {song.title}
                 </span>
               )}

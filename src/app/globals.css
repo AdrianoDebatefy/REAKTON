@@ -31,6 +31,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Public site: desktop typography 30% smaller (rem-based Tailwind scales via root). */
+@media (min-width: 768px) {
+  html.site-public {
+    font-size: 70%;
+  }
+}
+
 /* Direction D: Halbton Horizon */
 .halftone-overlay {
   pointer-events: none;

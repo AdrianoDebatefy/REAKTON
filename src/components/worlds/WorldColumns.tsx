@@ -169,7 +169,7 @@ function ColumnCaption({
           as="h2"
           text={title}
           mode={decodeMode}
-          className={`text-[30px] font-light leading-snug tracking-wide ${tone.title}`}
+          className={`text-[21px] font-light leading-snug tracking-wide ${tone.title}`}
           style={tone.titleStyle}
           duration={CAPTION_DECODE_MS}
           onComplete={() => {
@@ -177,7 +177,7 @@ function ColumnCaption({
           }}
         />
         {locked && (
-          <p className="mt-3 text-[30px] uppercase tracking-widest text-white/40">{lockedLabel}</p>
+          <p className="mt-3 text-[21px] uppercase tracking-widest text-white/40">{lockedLabel}</p>
         )}
       </div>
     </div>

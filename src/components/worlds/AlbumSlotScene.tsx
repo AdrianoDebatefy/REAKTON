@@ -849,7 +849,7 @@ export function AlbumSlotScene({
                 </div>
               </div>
               {!isActive && (
-                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 py-0.5 text-[14px] uppercase tracking-wider text-white/85">
+                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 py-0.5 text-[10px] uppercase tracking-wider text-white/85">
                   {song.title}
                 </span>
               )}
@@ -918,7 +918,7 @@ export function AlbumSlotScene({
                               e.stopPropagation();
                               setInfoPanelOpen(false);
                             }}
-                            className="cover-info-panel__close px-2 py-1 text-[11px] uppercase tracking-[0.25em] text-black/55 transition hover:text-black"
+                            className="cover-info-panel__close px-2 py-1 text-[8px] uppercase tracking-[0.25em] text-black/55 transition hover:text-black"
                           >
                             {t("closeInfo")}
                           </button>

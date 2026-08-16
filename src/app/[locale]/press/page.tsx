@@ -50,7 +50,7 @@ export default async function PressPage() {
               ) : null}
 
               {entry.outlet ? (
-                <p className="mt-4 text-[10px] uppercase tracking-widest text-white/40">
+                <p className="mt-4 text-[10px] uppercase tracking-widest text-white/40 md:text-[7px]">
                   {entry.outlet}
                 </p>
               ) : null}

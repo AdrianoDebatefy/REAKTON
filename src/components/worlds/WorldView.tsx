@@ -132,7 +132,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
           />
         </button>
 
-        <p className="text-sm lowercase tracking-[0.2em] text-white/50 md:text-[20px] md:tracking-[0.25em]">
+        <p className="text-sm lowercase tracking-[0.2em] text-white/50 md:text-[14px] md:tracking-[0.25em]">
           <DecodeText text={t("themeLabel")} mode={headerDecodeMode} duration={headerDecodeMs} />
         </p>
         <DecodeText
@@ -140,7 +140,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
           text={getLocalized(world.albumTitle, locale)}
           mode={headerDecodeMode}
           duration={headerDecodeMs}
-          className="mt-1 text-[28px] font-light tracking-wide md:mt-2 md:text-[40px] lg:text-[60px]"
+          className="mt-1 text-[28px] font-light tracking-wide md:mt-2 md:text-[28px] lg:text-[42px]"
         />
         {!useSlotScene && (
           <p className="mt-6 max-w-2xl text-2xl leading-relaxed text-white/45">

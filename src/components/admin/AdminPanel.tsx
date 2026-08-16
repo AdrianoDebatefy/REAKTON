@@ -967,11 +967,15 @@ export function AdminPanel({
   const [saving, setSaving] = useState(false);
   const [sectionTab, setSectionTab] = useState<SectionTab>("content");
 
+  useEffect(() => {
+    setData(content);
+  }, [content]);
+
   async function save() {
     setSaving(true);
     try {
       await onSave(data);
-      setMessage("Gespeichert in data/site-content.local.json — bleibt beim Repo-Update erhalten.");
+      setMessage("Gespeichert — die Startseite aktualisiert sich automatisch.");
     } catch {
       setMessage("Fehler beim Speichern");
     } finally {

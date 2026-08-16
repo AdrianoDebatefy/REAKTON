@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { SiteContent } from "@/types/content";
 import { AdminPanel } from "@/components/admin/AdminPanel";
+import { notifyContentUpdated } from "@/lib/content-events";
 import { SITE_BUILD_LABEL } from "@/lib/site-build";
 
 export default function AdminPage() {
@@ -46,7 +47,13 @@ export default function AdminPage() {
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error("save failed");
-    setContent(data);
+    const payload = (await res.json()) as { content?: SiteContent };
+    notifyContentUpdated();
+    if (payload.content) {
+      setContent(payload.content);
+    } else {
+      await loadContent();
+    }
   }
 
   if (!loggedIn || !content) {

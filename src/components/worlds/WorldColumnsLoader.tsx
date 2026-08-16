@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import type { SiteContent, World } from "@/types/content";
+import { onContentUpdated } from "@/lib/content-events";
 
 const WorldColumns = dynamic(
   () => import("./WorldColumns").then((m) => m.WorldColumns),
@@ -39,9 +40,11 @@ export function WorldColumnsLoader({ worlds: initialWorlds }: { worlds: World[] 
     void refresh();
     window.addEventListener("focus", refresh);
     document.addEventListener("visibilitychange", onVisible);
+    const stopContentListener = onContentUpdated(refresh);
     return () => {
       window.removeEventListener("focus", refresh);
       document.removeEventListener("visibilitychange", onVisible);
+      stopContentListener();
     };
   }, [refresh]);
 

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { SiteContent, World } from "@/types/content";
+import { onContentUpdated } from "@/lib/content-events";
 
 async function fetchWorldById(worldId: string): Promise<World | null> {
   try {
@@ -39,9 +40,11 @@ export function useLiveWorld(initial: World): World {
 
     window.addEventListener("focus", refresh);
     document.addEventListener("visibilitychange", onVisible);
+    const stopContentListener = onContentUpdated(refresh);
     return () => {
       window.removeEventListener("focus", refresh);
       document.removeEventListener("visibilitychange", onVisible);
+      stopContentListener();
     };
   }, [refresh]);
 

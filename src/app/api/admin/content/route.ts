@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin-auth";
 import { getSiteContent, saveSiteContent } from "@/lib/content";
+import { mergeSiteContent } from "@/lib/merge-content";
 import type { SiteContent } from "@/types/content";
 
 export async function GET() {
@@ -15,6 +16,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const body = (await request.json()) as SiteContent;
-  saveSiteContent(body);
-  return NextResponse.json({ ok: true });
+  const merged = mergeSiteContent(getSiteContent(), body);
+  saveSiteContent(merged);
+  return NextResponse.json({ ok: true, content: merged });
 }

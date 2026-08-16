@@ -42,11 +42,38 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.85);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const loadedAudioUrlRef = useRef<string | null>(null);
   const [analyserReady, setAnalyserReady] = useState(false);
+
+  const waitUntilCanPlay = useCallback((audio: HTMLAudioElement) => {
+    if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      const onReady = () => {
+        cleanup();
+        resolve();
+      };
+      const onError = () => {
+        cleanup();
+        reject(new Error("audio_load_failed"));
+      };
+      const cleanup = () => {
+        audio.removeEventListener("canplay", onReady);
+        audio.removeEventListener("error", onError);
+      };
+
+      audio.addEventListener("canplay", onReady);
+      audio.addEventListener("error", onError);
+    });
+  }, []);
 
   const refreshSession = useCallback(async () => {
     const res = await fetch("/api/press-preview/session");
@@ -86,20 +113,32 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
   }, [volume]);
 
   const ensureAudioGraph = useCallback(async () => {
-    if (!audioRef.current || sourceRef.current) return;
-    const AudioContextClass =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new AudioContextClass();
-    const analyser = ctx.createAnalyser();
-    analyser.fftSize = 256;
-    const source = ctx.createMediaElementSource(audioRef.current);
-    source.connect(analyser);
-    analyser.connect(ctx.destination);
-    analyserRef.current = analyser;
-    sourceRef.current = source;
-    setAnalyserReady(true);
-    if (ctx.state === "suspended") await ctx.resume();
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (!sourceRef.current) {
+      try {
+        const AudioContextClass =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        const ctx = new AudioContextClass();
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        const source = ctx.createMediaElementSource(audio);
+        source.connect(analyser);
+        analyser.connect(ctx.destination);
+        audioCtxRef.current = ctx;
+        analyserRef.current = analyser;
+        sourceRef.current = source;
+        setAnalyserReady(true);
+      } catch {
+        // Playback still works without the EQ visualizer.
+      }
+    }
+
+    if (audioCtxRef.current?.state === "suspended") {
+      await audioCtxRef.current.resume();
+    }
   }, []);
 
   const pausePlayback = useCallback(() => {
@@ -119,21 +158,47 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
   const playTrackById = useCallback(
     async (trackId: string) => {
       const track = tracks.find((row) => row.id === trackId);
-      if (!track) return;
-      await ensureAudioGraph();
+      if (!track?.audioUrl?.trim()) {
+        setPlaybackError(t("playbackNoAudio"));
+        return;
+      }
+
+      setPlaybackError(null);
+      setActiveTrackId(trackId);
+
       const audio = audioRef.current;
       if (!audio) return;
 
-      if (activeTrackId !== track.id) {
-        audio.src = track.audioUrl;
-        setActiveTrackId(track.id);
-        setProgress(0);
-      }
+      try {
+        if (loadedAudioUrlRef.current !== track.audioUrl) {
+          audio.pause();
+          audio.src = track.audioUrl;
+          loadedAudioUrlRef.current = track.audioUrl;
+          audio.load();
+          setProgress(0);
+          await waitUntilCanPlay(audio);
+        }
 
-      await audio.play();
-      setPlaying(true);
+        await ensureAudioGraph();
+        await audio.play();
+        setPlaying(true);
+      } catch {
+        setPlaybackError(t("playbackFailed"));
+        setPlaying(false);
+      }
     },
-    [activeTrackId, ensureAudioGraph, tracks]
+    [ensureAudioGraph, t, tracks, waitUntilCanPlay]
+  );
+
+  const togglePlay = useCallback(
+    async (trackId: string) => {
+      if (playing && activeTrackId === trackId) {
+        pausePlayback();
+        return;
+      }
+      await playTrackById(trackId);
+    },
+    [activeTrackId, pausePlayback, playTrackById, playing]
   );
 
   useEffect(() => {
@@ -145,16 +210,22 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
       setDuration(audio.duration || 0);
     };
     const onEnded = () => setPlaying(false);
+    const onError = () => {
+      setPlaybackError(t("playbackFailed"));
+      setPlaying(false);
+    };
 
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("loadedmetadata", onTime);
     audio.addEventListener("ended", onEnded);
+    audio.addEventListener("error", onError);
     return () => {
       audio.removeEventListener("timeupdate", onTime);
       audio.removeEventListener("loadedmetadata", onTime);
       audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("error", onError);
     };
-  }, []);
+  }, [t]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,17 +253,19 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
     }
   };
 
-  const handleVote = async (trackId: string, stars: number, trackTitle: string) => {
+  const handleVote = async (trackId: string, stars: number) => {
+    const track = tracks.find((row) => row.id === trackId);
+    if (!track) return;
     const res = await fetch("/api/press-preview/vote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ trackId, stars, trackTitle }),
+      body: JSON.stringify({ trackId, stars, trackTitle: track.title }),
     });
     if (!res.ok) return;
     const data = (await res.json()) as { votes: PreviewTrack["votes"]; userStars: number };
     setTracks((prev) =>
-      prev.map((track) =>
-        track.id === trackId ? { ...track, votes: data.votes, userStars: data.userStars } : track
+      prev.map((row) =>
+        row.id === trackId ? { ...row, votes: data.votes, userStars: data.userStars } : row
       )
     );
   };
@@ -200,16 +273,13 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
   if (!atmosphere || !theme || !isPlayerSlugReady(slug)) {
     return (
       <div className="mx-auto max-w-lg px-4 pb-16 pt-24 text-center">
-        <p className="text-sm text-white/50">{t("playerWorldSoon")}</p>
-        <Link href="/press" className="mt-6 inline-block text-xs uppercase tracking-widest text-white/70 underline">
+        <p className="text-lg text-white/50 md:text-base">{t("playerWorldSoon")}</p>
+        <Link href="/press" className="mt-6 inline-block text-base uppercase tracking-widest text-white/70 underline md:text-sm">
           {t("backToPress")}
         </Link>
       </div>
     );
   }
-
-  const activeTrack = tracks.find((track) => track.id === activeTrackId) ?? null;
-  const activeIndex = tracks.findIndex((track) => track.id === activeTrackId);
 
   const playerTracks = tracks.map((track) => ({
     id: track.id,
@@ -231,102 +301,87 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
     <div className="mx-auto max-w-3xl overflow-hidden px-4 pb-16 pt-24">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.35em] text-white/40 md:text-[7px]">
+          <p className="text-base uppercase tracking-[0.35em] text-white/40 md:text-sm">
             {t("playerLabel")}
           </p>
-          <h1 className="mt-1 text-2xl font-light tracking-wide md:text-xl">
+          <h1 className="mt-1 text-3xl font-light tracking-wide md:text-2xl">
             {pressWorldLabel(atmosphere, locale)}
           </h1>
         </div>
         <Link
           href="/press"
-          className="rounded border border-white/15 px-4 py-2 text-[10px] uppercase tracking-widest text-white/60 transition hover:border-white/35 md:text-[7px]"
+          className="rounded border border-white/15 px-4 py-2 text-base uppercase tracking-widest text-white/60 transition hover:border-white/35 md:text-sm"
         >
           {t("backToPress")}
         </Link>
       </div>
 
       {!sessionChecked ? (
-        <p className="mt-10 text-sm text-white/45">{t("loadingTracks")}</p>
+        <p className="mt-10 text-lg text-white/45 md:text-base">{t("loadingTracks")}</p>
       ) : !authenticated ? (
         <div
-          className={`mx-auto mt-10 max-w-md rounded border border-white/15 bg-black/40 p-6 ${theme.glow}`}
-          style={{ borderColor: `${theme.accent}55` }}
+          className={`mx-auto mt-10 max-w-md rounded-md border border-white/10 bg-white/[0.04] p-6 backdrop-blur-md ${theme.glow}`}
+          style={{ borderColor: `${theme.accent}44` }}
         >
-          <p className="text-sm text-white/50">{t("loginHint")}</p>
+          <p className="text-lg text-white/50 md:text-base">{t("loginHint")}</p>
           <form onSubmit={(e) => void handleLogin(e)} className="mt-6 space-y-4">
-            <label className="block text-xs uppercase tracking-widest text-white/50">
+            <label className="block text-base uppercase tracking-widest text-white/50 md:text-sm">
               {t("email")}
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 w-full border border-white/15 bg-black/50 px-3 py-2 text-sm text-white"
+                className="mt-1 w-full border border-white/15 bg-black/50 px-3 py-2 text-lg text-white md:text-base"
               />
             </label>
-            <label className="block text-xs uppercase tracking-widest text-white/50">
+            <label className="block text-base uppercase tracking-widest text-white/50 md:text-sm">
               {t("password")}
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full border border-white/15 bg-black/50 px-3 py-2 text-sm text-white"
+                className="mt-1 w-full border border-white/15 bg-black/50 px-3 py-2 text-lg text-white md:text-base"
               />
             </label>
-            {loginError ? <p className="text-sm text-red-300/90">{loginError}</p> : null}
+            {loginError ? <p className="text-lg text-red-300/90 md:text-base">{loginError}</p> : null}
             <button
               type="submit"
               disabled={loginBusy}
-              className="w-full rounded border border-white/25 bg-white/10 px-4 py-3 text-xs uppercase tracking-[0.3em] text-white disabled:opacity-50"
+              className="w-full rounded border border-white/25 bg-white/10 px-4 py-3 text-base uppercase tracking-[0.3em] text-white disabled:opacity-50 md:text-sm"
             >
               {loginBusy ? t("loginBusy") : t("loginSubmit")}
             </button>
           </form>
         </div>
       ) : tracksLoading ? (
-        <p className="mt-10 text-sm text-white/45">{t("loadingTracks")}</p>
+        <p className="mt-10 text-lg text-white/45 md:text-base">{t("loadingTracks")}</p>
       ) : tracks.length === 0 ? (
-        <p className="mt-10 text-sm text-white/45">{t("noTracks")}</p>
+        <p className="mt-10 text-lg text-white/45 md:text-base">{t("noTracks")}</p>
       ) : (
         <div className="mt-10">
           <PressPreviewPlayer
             accent={theme.accent}
-            glowClass={theme.glow}
             tracks={playerTracks}
-            activeTrack={activeTrack ? playerTracks.find((row) => row.id === activeTrack.id) ?? null : null}
+            activeTrackId={activeTrackId}
             playing={playing}
             progress={progress}
             duration={duration}
             volume={volume}
             analyser={analyserReady ? analyserRef.current : null}
-            onPlay={() => {
-              if (activeTrack) void playTrackById(activeTrack.id);
-            }}
-            onPause={pausePlayback}
+            playbackError={playbackError}
+            onTogglePlay={(id) => void togglePlay(id)}
             onStop={stopPlayback}
-            onPrev={() => {
-              if (activeIndex > 0) void playTrackById(tracks[activeIndex - 1]!.id);
-            }}
-            onNext={() => {
-              if (activeIndex < tracks.length - 1) void playTrackById(tracks[activeIndex + 1]!.id);
-            }}
             onSeek={seekToRatio}
             onVolumeChange={setVolume}
-            onSelectTrack={(id) => {
-              stopPlayback();
-              void playTrackById(id);
-            }}
-            onVote={(stars) => {
-              if (activeTrack) void handleVote(activeTrack.id, stars, activeTrack.title);
-            }}
-            labels={{ play: t("play"), pause: t("pause"), volume: "Vol" }}
+            onVote={handleVote}
+            labels={{ play: t("play"), pause: t("pause"), volume: t("volume") }}
           />
         </div>
       )}
 
-      <audio ref={audioRef} preload="metadata" className="hidden" />
+      <audio ref={audioRef} preload="auto" playsInline className="hidden" />
     </div>
   );
 }

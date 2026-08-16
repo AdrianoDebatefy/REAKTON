@@ -58,7 +58,10 @@
     "pause": "Pause",
     "logout": "Logout",
     "playerWorldSoon": "Player folgt in Kürze",
-    "backToPress": "Zurück zur Presse"
+    "backToPress": "Zurück zur Presse",
+    "volume": "Lautstärke",
+    "playbackFailed": "Wiedergabe fehlgeschlagen — bitte MP3-URL im Admin prüfen.",
+    "playbackNoAudio": "Keine Audio-Datei für diesen Track hinterlegt."
   },
   "live": {
     "title": "Live",

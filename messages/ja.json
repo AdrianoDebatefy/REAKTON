@@ -58,7 +58,10 @@
     "pause": "一時停止",
     "logout": "ログアウト",
     "playerWorldSoon": "プレイヤーは近日公開",
-    "backToPress": "プレスに戻る"
+    "backToPress": "プレスに戻る",
+    "volume": "音量",
+    "playbackFailed": "再生に失敗しました — 管理画面のMP3 URLを確認してください。",
+    "playbackNoAudio": "このトラックに音声ファイルが設定されていません。"
   },
   "live": {
     "title": "ライブ",

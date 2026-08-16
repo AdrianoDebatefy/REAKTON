@@ -58,7 +58,10 @@
     "pause": "Pause",
     "logout": "Logout",
     "playerWorldSoon": "Player coming soon",
-    "backToPress": "Back to press"
+    "backToPress": "Back to press",
+    "volume": "Volume",
+    "playbackFailed": "Playback failed — please check the MP3 URL in admin.",
+    "playbackNoAudio": "No audio file configured for this track."
   },
   "live": {
     "title": "Live",

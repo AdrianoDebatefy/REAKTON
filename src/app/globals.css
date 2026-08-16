@@ -152,6 +152,15 @@ body {
   padding: 0 1.5rem 2.75rem;
 }
 
+@keyframes mobile-cover-exit-fade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
 .landing-column-caption__scrim {
   pointer-events: none;
   position: absolute;

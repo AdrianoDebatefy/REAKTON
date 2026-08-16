@@ -68,25 +68,49 @@ function UploadField({
 }) {
   const [busy, setBusy] = useState(false);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const [serverReady, setServerReady] = useState(false);
   const [previewError, setPreviewError] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const isImage = accept.includes("image");
   const showServerPreview = isImage && Boolean(value) && !value.includes("placeholder");
+  const serverSrc = showServerPreview ? resolvePublicAssetUrl(value) : "";
 
   useEffect(() => {
-    setLocalPreview((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return null;
-    });
+    if (!showServerPreview) {
+      setServerReady(false);
+      setPreviewError(false);
+      return;
+    }
+
+    setServerReady(false);
     setPreviewError(false);
-    setUploadError("");
-  }, [value]);
+    const probe = new Image();
+    probe.onload = () => {
+      setServerReady(true);
+      setPreviewError(false);
+      setLocalPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+    };
+    probe.onerror = () => {
+      setPreviewError(true);
+    };
+    probe.src = serverSrc;
+
+    return () => {
+      probe.onload = null;
+      probe.onerror = null;
+    };
+  }, [serverSrc, showServerPreview]);
 
   useEffect(() => {
     return () => {
       if (localPreview) URL.revokeObjectURL(localPreview);
     };
   }, [localPreview]);
+
+  const displaySrc = localPreview && !serverReady ? localPreview : serverSrc;
 
   return (
     <div className="block text-xs text-white/75">
@@ -127,27 +151,23 @@ function UploadField({
       </div>
       {uploadError && <p className="mt-2 text-xs text-red-300">{uploadError}</p>}
       {busy && <p className="mt-2 text-xs text-white/45">Upload läuft…</p>}
-      {isImage && (localPreview || showServerPreview) && (
+      {isImage && (localPreview || showServerPreview) && displaySrc && (
         <div className="mt-3 rounded border border-white/20 bg-black/30 p-2">
           <p className="mb-2 text-[10px] uppercase tracking-widest text-white/50">Vorschau</p>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={localPreview ?? resolvePublicAssetUrl(value)}
+            src={displaySrc}
             alt=""
             className="max-h-40 w-auto max-w-full border border-white/15 object-contain"
-            onLoad={() => {
-              if (localPreview && showServerPreview) {
-                URL.revokeObjectURL(localPreview);
-                setLocalPreview(null);
-              }
-              setPreviewError(false);
-            }}
-            onError={() => setPreviewError(true)}
           />
           {previewError && !localPreview && (
             <p className="mt-2 text-xs text-amber-300">
-              Server-Vorschau nicht ladbar: <code className="text-white/70">{value}</code>
+              Server-Vorschau nicht ladbar (Datei evtl. trotzdem gespeichert):{" "}
+              <code className="text-white/70">{value}</code>
             </p>
+          )}
+          {showServerPreview && localPreview && !serverReady && !previewError && (
+            <p className="mt-2 text-xs text-white/45">Lokale Vorschau — Server-Check läuft…</p>
           )}
         </div>
       )}

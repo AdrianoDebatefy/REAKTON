@@ -98,7 +98,7 @@ export function CoverSlotMedia({
           autoPlay
           loop
           playsInline
-          muted={!!song.audioSnippet}
+          muted
           onPlaying={() => setVideoVisible(true)}
           onError={() => {
             setVideoFailed(true);

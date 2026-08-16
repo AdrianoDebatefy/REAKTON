@@ -224,10 +224,10 @@ export function PressPreviewPlayer({
                 </div>
 
                 <PressEqWaves
+                  atmosphere={atmosphere}
                   analyser={isActive ? analyser : null}
                   visible={isActive}
                   active={isPlaying}
-                  accent={accent}
                 />
 
                 <ProgressBar

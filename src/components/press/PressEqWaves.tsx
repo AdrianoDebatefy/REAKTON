@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { PRESS_EQ_LAYERS, type PressEqLayerTheme } from "@/lib/press-eq-theme";
+import type { WorldAtmosphere } from "@/types/content";
 
 const POINT_COUNT = 40;
 const IDLE_LEVEL = 0.05;
@@ -16,34 +18,6 @@ const DYNAMICS = {
   POINT_ATTACK: 0.5,
   POINT_RELEASE: 0.76,
 } as const;
-
-/** Additive frequency layers — fixed hues, amplitude follows band energy only */
-const LAYERS = [
-  {
-    minHz: 20,
-    maxHz: 200,
-    colorTop: [107, 63, 160] as const,
-    colorBottom: [26, 42, 110] as const,
-    opacity: 0.58,
-    glow: 8,
-  },
-  {
-    minHz: 200,
-    maxHz: 3000,
-    colorTop: [78, 205, 196] as const,
-    colorBottom: [30, 107, 138] as const,
-    opacity: 0.52,
-    glow: 10,
-  },
-  {
-    minHz: 3000,
-    maxHz: 20000,
-    colorTop: [232, 244, 255] as const,
-    colorBottom: [94, 179, 255] as const,
-    opacity: 0.5,
-    glow: 12,
-  },
-] as const;
 
 function rgbString([r, g, b]: readonly [number, number, number], alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
@@ -131,7 +105,7 @@ function updateDynamicsState(
 
 function sampleLayerTargets(
   buffer: Uint8Array,
-  layer: (typeof LAYERS)[number],
+  layer: PressEqLayerTheme,
   displayLevel: number,
   fftSize: number,
   sampleRate: number
@@ -153,7 +127,7 @@ function drawWaveLayer(
   width: number,
   height: number,
   baseline: number,
-  layer: (typeof LAYERS)[number],
+  layer: PressEqLayerTheme,
   displayLevel: number,
   active: boolean
 ) {
@@ -195,30 +169,37 @@ function drawWaveLayer(
 }
 
 export function PressEqWaves({
+  atmosphere,
   analyser,
   visible,
   active,
 }: {
+  atmosphere: WorldAtmosphere;
   analyser: AnalyserNode | null;
   visible: boolean;
   active: boolean;
-  accent: string;
 }) {
+  const layers = PRESS_EQ_LAYERS[atmosphere];
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef(0);
   const layersRef = useRef<number[][]>(
-    LAYERS.map(() => Array.from({ length: POINT_COUNT }, () => IDLE_LEVEL))
+    layers.map(() => Array.from({ length: POINT_COUNT }, () => IDLE_LEVEL))
   );
   const dynamicsRef = useRef(
-    LAYERS.map(() => ({ envelope: IDLE_LEVEL, sessionPeak: 0.08 }))
+    layers.map(() => ({ envelope: IDLE_LEVEL, sessionPeak: 0.08 }))
   );
 
   useEffect(() => {
+    layersRef.current = layers.map(() => Array.from({ length: POINT_COUNT }, () => IDLE_LEVEL));
+    dynamicsRef.current = layers.map(() => ({ envelope: IDLE_LEVEL, sessionPeak: 0.08 }));
+  }, [atmosphere, layers]);
+
+  useEffect(() => {
     if (!active) {
-      layersRef.current = LAYERS.map(() => Array.from({ length: POINT_COUNT }, () => IDLE_LEVEL));
-      dynamicsRef.current = LAYERS.map(() => ({ envelope: IDLE_LEVEL, sessionPeak: 0.08 }));
+      layersRef.current = layers.map(() => Array.from({ length: POINT_COUNT }, () => IDLE_LEVEL));
+      dynamicsRef.current = layers.map(() => ({ envelope: IDLE_LEVEL, sessionPeak: 0.08 }));
     }
-  }, [active]);
+  }, [active, layers]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -270,7 +251,7 @@ export function PressEqWaves({
         analyser.getByteFrequencyData(buffer);
       }
 
-      LAYERS.forEach((layer, layerIndex) => {
+      layers.forEach((layer, layerIndex) => {
         const layerDynamics = dynamics[layerIndex]!;
         const smoothed = smoothedLayers[layerIndex]!;
 
@@ -308,7 +289,7 @@ export function PressEqWaves({
 
     draw();
     return () => cancelAnimationFrame(frameRef.current);
-  }, [analyser, active, visible]);
+  }, [analyser, active, visible, layers]);
 
   return <canvas ref={canvasRef} className="h-11 w-full" height={44} aria-hidden />;
 }

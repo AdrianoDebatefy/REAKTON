@@ -3,9 +3,11 @@ import { PressPlayerPageClient } from "@/components/press/PressPlayerPageClient"
 import { isPlayerSlugReady } from "@/lib/press-player-layout";
 import { routing } from "@/i18n/routing";
 
+const PRESS_PLAYER_SLUGS = ["wem", "mmn", "ccc"] as const;
+
 export function generateStaticParams() {
   return routing.locales.flatMap((locale) =>
-    [{ locale, slug: "wem" }]
+    PRESS_PLAYER_SLUGS.map((slug) => ({ locale, slug }))
   );
 }
 

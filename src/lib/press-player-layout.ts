@@ -48,16 +48,18 @@ export function lerpCoord(
   };
 }
 
-/** Maps site world atmosphere → press-player asset folder on disk. */
-export const PRESS_PLAYER_FOLDER: Partial<Record<WorldAtmosphere, string>> = {
+/** Maps site world atmosphere → press-player URL slug / folder. */
+export const PRESS_PLAYER_FOLDER: Record<WorldAtmosphere, string> = {
   cosmos: "wem",
-  // nano: "mmn",  — add when assets are delivered
-  // club: "ccc",
+  nano: "mmn",
+  club: "ccc",
 };
 
 /** URL slug (folder name) → atmosphere for API / tracks */
 export const PLAYER_SLUG_TO_ATMOSPHERE: Record<string, WorldAtmosphere> = {
   wem: "cosmos",
+  mmn: "nano",
+  ccc: "club",
 };
 
 export function playerSlugFromAtmosphere(atmosphere: WorldAtmosphere): string | undefined {

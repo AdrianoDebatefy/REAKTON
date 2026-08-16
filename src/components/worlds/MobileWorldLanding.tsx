@@ -54,12 +54,6 @@ function panelGeometry(displayIndex: number, panelCount: number) {
   };
 }
 
-function panelTransformOrigin(displayIndex: number, panelCount: number): string {
-  if (displayIndex === 0) return "top center";
-  if (displayIndex === panelCount - 1) return "bottom center";
-  return "center center";
-}
-
 function bgOffscreenY(displayIndex: number, pivotDisplay: number) {
   if (displayIndex === pivotDisplay) return 0;
   return displayIndex < pivotDisplay ? "-100%" : "100%";
@@ -363,9 +357,9 @@ export function MobileWorldLanding({
             panelCount,
             returnAtmosphere
           );
-          const slideOffscreen = isEntering && !isPivot;
+          const slideOffscreen = isAnimating && !isPivot && !isColumnReturning;
           const returnSlideS = isColumnReturning ? MOBILE_RETURN_SLIDE_S : COLUMN_EXIT_S;
-          const motionTransition =
+          const geometryTransition =
             isEntering || isColumnReturning
               ? {
                   duration: isColumnReturning ? MOBILE_RETURN_SLIDE_S : COLUMN_EXIT_S,
@@ -378,13 +372,11 @@ export function MobileWorldLanding({
             : slideOffscreen
               ? slideY
               : 0;
-          const animateScaleY = fillsViewport ? panelCount : 1;
           const animateOpacity = parkedOffscreen ? 0 : 1;
           const keepPivotOnTop =
             isPivot && (fillsViewport || isEntering || isColumnReturning);
           const panelZIndex = keepPivotOnTop ? panelCount + 1 : displayIndex + 1;
           const panelOverflow = isAnimating ? "overflow-visible" : "overflow-hidden";
-          const transformOrigin = panelTransformOrigin(displayIndex, panelCount);
 
           return (
             <motion.div
@@ -396,23 +388,20 @@ export function MobileWorldLanding({
                 backgroundColor: atmosphereFallbackBg(world.atmosphere),
                 zIndex: panelZIndex,
                 pointerEvents: parkedOffscreen ? "none" : undefined,
-                transformOrigin,
                 backfaceVisibility: "hidden",
                 WebkitBackfaceVisibility: "hidden",
-                willChange: isAnimating ? "transform, opacity" : undefined,
+                willChange: isAnimating ? "transform, top, height" : undefined,
               }}
               initial={false}
               animate={{
-                top: resting.top,
-                height: resting.height,
+                top: fillsViewport ? "0%" : resting.top,
+                height: fillsViewport ? "100%" : resting.height,
                 y: animateY,
-                scaleY: animateScaleY,
                 opacity: animateOpacity,
               }}
               transition={{
-                top: { duration: 0 },
-                height: { duration: 0 },
-                scaleY: motionTransition,
+                top: geometryTransition,
+                height: geometryTransition,
                 y: isAnimating
                   ? { duration: returnSlideS, delay, ease: COLUMN_EASE }
                   : { duration: 0 },

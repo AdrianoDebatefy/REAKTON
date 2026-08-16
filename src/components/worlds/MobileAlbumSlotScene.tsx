@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
+import { CoverSlotMedia } from "./CoverSlotMedia";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
 import type { Locale, Song } from "@/types/content";
@@ -515,27 +516,13 @@ export function MobileAlbumSlotScene({
               )}
 
               <div className="relative h-full w-full bg-[#080c12]">
-                {isActive && activeSong?.videoSnippet ? (
-                  <video
-                    ref={slotVideoRef}
-                    src={activeSong.videoSnippet}
-                    className="h-full w-full object-cover"
-                    autoPlay
-                    loop
-                    playsInline
-                    muted={!!activeSong.audioSnippet}
-                  />
-                ) : (
-                  <Image
-                    src={song.coverImage || "/covers/placeholder.svg"}
-                    alt={song.title}
-                    fill
-                    className="object-cover"
-                    sizes={isActive ? "390px" : "60px"}
-                    priority={isActive}
-                    draggable={false}
-                  />
-                )}
+                <CoverSlotMedia
+                  song={song}
+                  isActive={isActive}
+                  sizes={isActive ? "390px" : "60px"}
+                  priority={isActive}
+                  videoRef={isActive ? slotVideoRef : undefined}
+                />
 
                 {!isActive && (
                   <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-0.5 py-0.5 text-[8px] uppercase tracking-wider text-white/85">
@@ -607,7 +594,7 @@ export function MobileAlbumSlotScene({
                             style={{ fontSize: `${infoTextSize}px` }}
                           >
                             {activeInfoText ? (
-                              <p className="whitespace-pre-wrap">{activeInfoText}</p>
+                              <p className="whitespace-pre-wrap text-black">{activeInfoText}</p>
                             ) : (
                               <p className="text-black/45">{t("noSongInfo")}</p>
                             )}

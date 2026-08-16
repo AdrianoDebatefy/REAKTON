@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
+import { CoverSlotMedia } from "./CoverSlotMedia";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
 import type { Locale, Song } from "@/types/content";
@@ -825,27 +825,13 @@ export function AlbumSlotScene({
             >
               <div className="absolute inset-0 overflow-hidden">
                 <div className={`cover-slot-media ${driftClass}`}>
-                  {isActive && activeSong?.videoSnippet ? (
-                    <video
-                      ref={slotVideoRef}
-                      src={activeSong.videoSnippet}
-                      className="h-full w-full object-cover"
-                      autoPlay
-                      loop
-                      playsInline
-                      muted={!!activeSong.audioSnippet}
-                    />
-                  ) : (
-                    <Image
-                      src={song.coverImage || "/covers/placeholder.svg"}
-                      alt={song.title}
-                      fill
-                      className="object-cover"
-                      sizes={isActive ? "520px" : "80px"}
-                      priority={isActive}
-                      draggable={false}
-                    />
-                  )}
+                  <CoverSlotMedia
+                    song={song}
+                    isActive={isActive}
+                    sizes={isActive ? "520px" : "80px"}
+                    priority={isActive}
+                    videoRef={isActive ? slotVideoRef : undefined}
+                  />
                 </div>
               </div>
               {!isActive && (

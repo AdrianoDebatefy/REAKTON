@@ -100,8 +100,6 @@ export function WorldView({ world, onBack }: WorldViewProps) {
         : "border-red-400/30";
 
   const backLabel = `← ${tNav("back")}`;
-  const cosmosPinSceneOnExit =
-    isMobile && exiting && world.atmosphere === "cosmos";
 
   return (
     <div
@@ -164,7 +162,6 @@ export function WorldView({ world, onBack }: WorldViewProps) {
             maxSlots={world.slotCount ?? (world.atmosphere === "cosmos" ? 12 : world.atmosphere === "nano" ? 13 : 14)}
             borderClass={borderClass}
             exiting={exiting}
-            pinSceneOnExit={cosmosPinSceneOnExit}
             onExitComplete={handleExitComplete}
             locale={locale}
           />

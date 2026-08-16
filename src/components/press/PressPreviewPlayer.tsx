@@ -1,7 +1,7 @@
 "use client";
 
 import type { WorldAtmosphere } from "@/types/content";
-import { PressEqBars } from "@/components/press/PressEqBars";
+import { PressEqWaves } from "@/components/press/PressEqWaves";
 import { StarRating } from "@/components/press/StarRating";
 
 export interface PressPlayerTrack {
@@ -191,7 +191,7 @@ export function PressPreviewPlayer({
                   </div>
                 </div>
 
-                <PressEqBars
+                <PressEqWaves
                   analyser={isActive ? analyser : null}
                   visible={isActive}
                   active={isPlaying}

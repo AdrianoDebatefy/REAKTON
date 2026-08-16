@@ -26,8 +26,8 @@ const COLUMN_EXIT_S = 2;
 const COLUMN_STAGGER_S = 0.01;
 /** Erde startet nach dem Abbau erst, wenn Spalten schon sichtbar zurückfahren */
 const EARTH_RETURN_DELAY_S = 0.9;
-const MOBILE_RETURN_SLIDE_S = 1;
-const MOBILE_RETURN_BG_DELAY_S = 0.5;
+const MOBILE_RETURN_SLIDE_S = 1.5;
+const MOBILE_RETURN_BG_DELAY_S = 0.75;
 const COLUMN_EASE = [0.4, 0, 0.2, 1] as const;
 const EARTH_TRANSITION = { duration: COLUMN_EXIT_S, ease: COLUMN_EASE };
 const WORLD_VIEW_EXIT_S = 0.15;
@@ -414,38 +414,15 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
     }, CAPTION_DECODE_MS);
   }, [worlds.length, landingCaptionMode]);
 
-  const handleMobileReturnPrepare = useCallback(() => {
-    const atmosphere = worlds.find((w) => w.id === activeId)?.atmosphere ?? null;
-    const fromIndex = selectedIndex;
-    const returnMs = columnEnterMs(worlds.length, MOBILE_RETURN_SLIDE_S);
-    const bgExpandDelayMs = MOBILE_RETURN_BG_DELAY_S * 1000;
-    setColumnReturning(true);
-    setReturnAtmosphere(atmosphere);
-    setReturnBgExpandHold(true);
-    setReturnFromIndex(fromIndex);
-    setSelectedIndex(null);
-    setLandingCaptionMode("hidden");
-    window.setTimeout(() => setReturnBgExpandHold(false), bgExpandDelayMs);
-    window.setTimeout(() => {
-      setColumnReturning(false);
-      setReturnAtmosphere(null);
-      setReturnFromIndex(null);
-      setLandingCaptionMode("in");
-    }, returnMs);
-  }, [activeId, selectedIndex, worlds.length]);
-
   const handleBackFromWorld = useCallback(() => {
     writeWorldSession(null);
-    if (isMobile) {
-      setShowWorld(false);
-      setActiveId(null);
-      return;
-    }
     const atmosphere = worlds.find((w) => w.id === activeId)?.atmosphere ?? null;
     const fromIndex = selectedIndex;
-    const returnSlideS = COLUMN_EXIT_S;
+    const returnSlideS = isMobile ? MOBILE_RETURN_SLIDE_S : COLUMN_EXIT_S;
     const returnMs = columnEnterMs(worlds.length, returnSlideS);
-    const bgExpandDelayMs = EARTH_RETURN_DELAY_S * 1000;
+    const bgExpandDelayMs = isMobile
+      ? MOBILE_RETURN_BG_DELAY_S * 1000
+      : EARTH_RETURN_DELAY_S * 1000;
     setShowWorld(false);
     setColumnReturning(true);
     setReturnAtmosphere(atmosphere);
@@ -461,7 +438,7 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
       setReturnFromIndex(null);
       setLandingCaptionMode("in");
     }, returnMs);
-  }, [activeId, isMobile, selectedIndex, worlds]);
+  }, [activeId, isMobile, selectedIndex, worlds.length]);
 
   const [earthDesktopSrc, setEarthDesktopSrc] = useState(
     () => cosmosWorld?.backgroundImage || "/worlds/earth-night.svg"
@@ -734,11 +711,7 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
             transition={{ duration: isMobile ? 0 : WORLD_VIEW_EXIT_S }}
             className="fixed inset-0 z-30 bg-transparent max-md:isolate"
           >
-            <WorldView
-              world={activeWorld}
-              onBack={handleBackFromWorld}
-              onBackPrepare={isMobile ? handleMobileReturnPrepare : undefined}
-            />
+            <WorldView world={activeWorld} onBack={handleBackFromWorld} />
           </motion.div>
         )}
       </AnimatePresence>

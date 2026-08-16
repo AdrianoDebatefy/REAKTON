@@ -7,8 +7,8 @@ import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import { getLocalized } from "@/lib/locale";
 
 const COLUMN_EXIT_S = 2;
-const MOBILE_RETURN_SLIDE_S = 1;
-const MOBILE_RETURN_BG_DELAY_S = 0.5;
+const MOBILE_RETURN_SLIDE_S = 1.5;
+const MOBILE_RETURN_BG_DELAY_S = 0.75;
 const COLUMN_STAGGER_S = 0.01;
 const COLUMN_EASE = [0.4, 0, 0.2, 1] as const;
 const CAPTION_DECODE_MS = 720;
@@ -338,11 +338,10 @@ export function MobileWorldLanding({
           const pivotDataIndex = isColumnReturning ? returnFromIndex : selectedIndex;
           const isPivot = pivotDataIndex !== null && index === pivotDataIndex;
           const pivotDisplay = pivotSlot ?? returnPivotSlot ?? displayIndex;
-          const parkedOffscreen = !isPivot && showWorld && !isColumnReturning;
+          const parkedOffscreen = !isPivot && showWorld;
           const offscreenY = bgOffscreenY(displayIndex, pivotDisplay);
           const fillsViewport =
-            isPivot &&
-            (isEntering || isImmersed || (showWorld && !isColumnReturning));
+            isPivot && (isEntering || isImmersed || showWorld);
           const resting = panelGeometry(displayIndex, panelCount);
           const slideY = mobileSlideY(
             displayIndex,

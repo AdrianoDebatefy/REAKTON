@@ -18,7 +18,6 @@ import clubLayout from "@/data/club-layout.json";
 interface WorldViewProps {
   world: World;
   onBack: () => void;
-  onBackPrepare?: () => void;
 }
 
 const atmosphereClass: Record<World["atmosphere"], string> = {
@@ -28,11 +27,10 @@ const atmosphereClass: Record<World["atmosphere"], string> = {
 };
 
 const HEADER_DECODE_MS = 720;
-const MOBILE_BACK_TEXT_MS = 1000;
-const MOBILE_BACK_TOTAL_MS = 2000;
-const MOBILE_RETURN_PREPARE_LEAD_MS = 300;
+const MOBILE_BACK_TEXT_MS = 1500;
+const MOBILE_BACK_TOTAL_MS = 3000;
 
-export function WorldView({ world, onBack, onBackPrepare }: WorldViewProps) {
+export function WorldView({ world, onBack }: WorldViewProps) {
   const locale = useLocale() as Locale;
   const isMobile = useIsMobile();
   const t = useTranslations("world");
@@ -61,10 +59,6 @@ export function WorldView({ world, onBack, onBackPrepare }: WorldViewProps) {
       if (useSlotScene && world.songs.length > 0) {
         setExiting(true);
       }
-      window.setTimeout(
-        () => onBackPrepare?.(),
-        MOBILE_BACK_TOTAL_MS - MOBILE_RETURN_PREPARE_LEAD_MS
-      );
       window.setTimeout(() => {
         setExiting(false);
         onBack();
@@ -81,7 +75,7 @@ export function WorldView({ world, onBack, onBackPrepare }: WorldViewProps) {
     };
 
     window.setTimeout(continueBack, HEADER_DECODE_MS);
-  }, [headerDecodeMode, isMobile, onBack, onBackPrepare, useSlotScene, world.songs.length]);
+  }, [headerDecodeMode, isMobile, onBack, useSlotScene, world.songs.length]);
 
   const handleExitComplete = useCallback(() => {
     if (isMobile) return;

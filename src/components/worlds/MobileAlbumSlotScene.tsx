@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
@@ -32,6 +32,9 @@ function getYouTubeId(url: string): string | null {
 
 const MOVE_TRANSITION = { duration: 0.85, ease: [0.4, 0, 0.2, 1] as const };
 const FADE_TRANSITION = { duration: MOBILE_COVER_FADE_S, ease: [0.4, 0, 0.2, 1] as const };
+const NO_TRANSITION = { duration: 0 } as const;
+
+type FrozenCoverSlot = { x: number; y: number; size: number };
 
 const INFO_TEXT_SIZE_KEY = "reakton-info-text-size";
 const INFO_TEXT_SIZE_MIN = 12;
@@ -104,6 +107,7 @@ export function MobileAlbumSlotScene({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const slotVideoRef = useRef<HTMLVideoElement | null>(null);
   const exitStartedRef = useRef(false);
+  const exitLayoutRef = useRef<FrozenCoverSlot[] | null>(null);
 
   const activeSong = items.find((s) => s.id === activeId) ?? null;
   const activeInfoText = activeSong ? getLocalized(activeSong.infoText, locale) : "";
@@ -178,6 +182,23 @@ export function MobileAlbumSlotScene({
     });
   }, []);
 
+  useLayoutEffect(() => {
+    if (!exiting) {
+      exitLayoutRef.current = null;
+      return;
+    }
+    if (exitLayoutRef.current) return;
+    exitLayoutRef.current = items.map((song, i) => {
+      const pad = padPositions[i] ?? MOBILE_COVER_ACTIVE_CENTER;
+      const isActive = activeId === song.id;
+      return {
+        x: isActive ? MOBILE_COVER_ACTIVE_CENTER.x : pad.x,
+        y: isActive ? MOBILE_COVER_ACTIVE_CENTER.y : pad.y,
+        size: isActive ? activeCoverSize : MOBILE_COVER_INACTIVE_PX,
+      };
+    });
+  }, [activeCoverSize, activeId, exiting, items, padPositions]);
+
   useEffect(() => {
     if (!exiting) {
       exitStartedRef.current = false;
@@ -186,7 +207,6 @@ export function MobileAlbumSlotScene({
     if (exitStartedRef.current) return;
     exitStartedRef.current = true;
     stopAudio();
-    setActiveId(null);
     setInfoPanelOpen(false);
     const timer = window.setTimeout(() => onExitComplete?.(), MOBILE_COVER_EXIT_MS);
     return () => window.clearTimeout(timer);
@@ -197,22 +217,20 @@ export function MobileAlbumSlotScene({
   return (
     <motion.div
       ref={sceneRef}
-      className={
-        exiting
-          ? "album-slot-scene fixed inset-x-0 bottom-0 top-[calc(5.5rem+env(safe-area-inset-top))] z-50 mx-auto w-full max-w-lg overflow-visible bg-transparent"
-          : "album-slot-scene relative z-20 mx-auto h-[calc(100dvh-11.5rem-env(safe-area-inset-top))] min-h-[320px] w-full max-w-lg overflow-hidden bg-transparent"
-      }
+      className="album-slot-scene relative z-20 mx-auto h-[calc(100dvh-11.5rem-env(safe-area-inset-top))] min-h-[320px] w-full max-w-lg overflow-hidden bg-transparent"
       style={{ isolation: "isolate" }}
     >
       {items.map((song, i) => {
         const pad = padPositions[i] ?? MOBILE_COVER_ACTIVE_CENTER;
         const isActive = activeId === song.id;
-        const targetSize = isActive ? activeCoverSize : MOBILE_COVER_INACTIVE_PX;
-        const targetX = isActive ? MOBILE_COVER_ACTIVE_CENTER.x : pad.x;
-        const targetY = isActive ? MOBILE_COVER_ACTIVE_CENTER.y : pad.y;
-        const hidden = isPoleMode && !isActive;
+        const frozen = exiting ? exitLayoutRef.current?.[i] : null;
+        const targetSize = frozen?.size ?? (isActive ? activeCoverSize : MOBILE_COVER_INACTIVE_PX);
+        const targetX = frozen?.x ?? (isActive ? MOBILE_COVER_ACTIVE_CENTER.x : pad.x);
+        const targetY = frozen?.y ?? (isActive ? MOBILE_COVER_ACTIVE_CENTER.y : pad.y);
+        const hidden = !exiting && isPoleMode && !isActive;
         const introDelay = coverFadeDelays[i] ?? 0;
         const exitDelay = coverExitDelays[i] ?? 0;
+        const freezeLayout = exiting;
 
         return (
           <motion.button
@@ -250,10 +268,10 @@ export function MobileAlbumSlotScene({
               scale: hidden ? 0.85 : 1,
             }}
             transition={{
-              left: MOVE_TRANSITION,
-              top: MOVE_TRANSITION,
-              width: MOVE_TRANSITION,
-              height: MOVE_TRANSITION,
+              left: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
+              top: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
+              width: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
+              height: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
               opacity: exiting
                 ? {
                     duration: MOBILE_COVER_FADE_DURATION_S,
@@ -269,15 +287,17 @@ export function MobileAlbumSlotScene({
                         ease: [0.4, 0, 0.2, 1],
                       }
                     : FADE_TRANSITION,
-              scale: hidden
-                ? FADE_TRANSITION
-                : !introDone
-                  ? {
-                      duration: MOBILE_COVER_FADE_DURATION_S,
-                      delay: introDelay,
-                      ease: [0.25, 0.1, 0.25, 1],
-                    }
-                  : { duration: 0.35 },
+              scale: freezeLayout
+                ? NO_TRANSITION
+                : hidden
+                  ? FADE_TRANSITION
+                  : !introDone
+                    ? {
+                        duration: MOBILE_COVER_FADE_DURATION_S,
+                        delay: introDelay,
+                        ease: [0.25, 0.1, 0.25, 1],
+                      }
+                    : { duration: 0.35 },
             }}
             aria-label={song.title}
             aria-pressed={isActive}

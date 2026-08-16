@@ -1,34 +1,39 @@
 # Press Player Assets
 
-Place your PNG files here. The player uses **1232 × 141 px** coordinates from the design.
+Design canvas: **1232 × 141 px**
 
-## Display regions (all worlds, same coordinates)
+## Weltall:Erde:Mensch (WEM) — aktiv
 
-| Slot | Position | Size |
+Alle Dateien in **einem Ordner**:
+
+`C:\Users\adria\REAKTON\public\press-player\wem\`
+
+| Datei |
+|-------|
+| `wem_PlayerClean.png` |
+| `wem_Player_Icon_play.png` |
+| `wem_Player_Icon_pause.png` |
+| `wem_Player_Icon_skip_rew.png` |
+| `wem_Player_Icon_skip_ffd.png` |
+| `wem_Player_Icon_Stop.png` |
+| `wem_Player_Icon_star.png` |
+| `wem_Player_on_left.png` |
+| `wem_Player_on_right.png` |
+| `wem_knob.png` |
+| `wem_Player_sliderlight.png` |
+
+Im Code: Welt `cosmos` → Ordner `wem`.
+
+## Display-Bereiche (alle Welten gleich)
+
+| Slot | Position | Größe |
 |------|----------|------|
-| Track text | x=356, y=44 | 370×40 px |
-| EQ analyser | x=356, y=99 | 370×40 px |
+| Track-Text | x=356, y=44 | 370×40 px |
+| EQ | x=356, y=99 | 370×40 px |
 
+## Weitere Welten (später)
 
-`public/press-player/cosmos/wem_PlayerClean.png`  
-`public/press-player/nano/wem_PlayerClean.png` (when ready)  
-`public/press-player/club/wem_PlayerClean.png` (when ready)
+- Micro:Macro:Nano → eigener Ordner, z. B. `public/press-player/mmn/`
+- Clip:Clap:Club → eigener Ordner, z. B. `public/press-player/ccc/`
 
-Screws are **part of** `wem_PlayerClean.png` — no separate screw files needed.
-
-## Shared icons (all worlds)
-
-`public/press-player/shared/`
-
-- `wem_Player_Icon_play.png`
-- `wem_Player_Icon_pause.png`
-- `wem_Player_Icon_skip_rew.png`
-- `wem_Player_Icon_skip_ffd.png`
-- `wem_Player_Icon_Stop.png`
-- `wem_Player_Icon_star.png`
-- `wem_Player_on_left.png`
-- `wem_Player_on_right.png`
-- `wem_knob.png`
-- `wem_Player_sliderlight.png`
-
-Until nano/club chassis files exist, cosmos chassis is used as fallback for other worlds.
+Eintrag in `src/lib/press-player-layout.ts` → `PRESS_PLAYER_FOLDER`.

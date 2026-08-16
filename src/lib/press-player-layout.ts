@@ -48,28 +48,21 @@ export function lerpCoord(
   };
 }
 
-const SHARED_FILES = new Set([
-  "wem_Player_Icon_play.png",
-  "wem_Player_Icon_pause.png",
-  "wem_Player_Icon_skip_rew.png",
-  "wem_Player_Icon_skip_ffd.png",
-  "wem_Player_Icon_Stop.png",
-  "wem_Player_Icon_star.png",
-  "wem_Player_on_left.png",
-  "wem_Player_on_right.png",
-  "wem_knob.png",
-  "wem_Player_sliderlight.png",
-]);
+/** Maps site world atmosphere → press-player asset folder on disk. */
+export const PRESS_PLAYER_FOLDER: Partial<Record<WorldAtmosphere, string>> = {
+  cosmos: "wem",
+  // nano: "mmn",  — add when assets are delivered
+  // club: "ccc",
+};
 
-/** Chassis per world; icons shared until world-specific sets are added. */
+export function isPressPlayerAssetsReady(world: WorldAtmosphere): boolean {
+  return Boolean(PRESS_PLAYER_FOLDER[world]);
+}
+
+/** All assets for a world live in one folder, e.g. public/press-player/wem/ */
 export function pressPlayerAsset(world: WorldAtmosphere, filename: string): string {
-  if (filename === "wem_PlayerClean.png") {
-    return `/press-player/${world}/wem_PlayerClean.png`;
-  }
-  if (SHARED_FILES.has(filename)) {
-    return `/press-player/shared/${filename}`;
-  }
-  return `/press-player/shared/${filename}`;
+  const folder = PRESS_PLAYER_FOLDER[world] ?? "wem";
+  return `/press-player/${folder}/${filename}`;
 }
 
 export const PRESS_PLAYER_FALLBACK_COVER = "#2a5590";

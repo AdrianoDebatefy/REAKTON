@@ -56,7 +56,8 @@
     "noTracks": "このワールドのプレビュー・トラックはまだありません。",
     "play": "再生",
     "pause": "一時停止",
-    "logout": "ログアウト"
+    "logout": "ログアウト",
+    "playerWorldSoon": "プレイヤーは近日公開"
   },
   "live": {
     "title": "ライブ",

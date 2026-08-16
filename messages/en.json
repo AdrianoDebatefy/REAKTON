@@ -56,7 +56,8 @@
     "noTracks": "No preview tracks for this world yet.",
     "play": "Play",
     "pause": "Pause",
-    "logout": "Logout"
+    "logout": "Logout",
+    "playerWorldSoon": "Player coming soon"
   },
   "live": {
     "title": "Live",

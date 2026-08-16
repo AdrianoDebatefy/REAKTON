@@ -10,6 +10,7 @@ import {
   PRESS_WORLD_THEME,
   pressWorldLabel,
 } from "@/lib/press-preview-theme";
+import { isPressPlayerAssetsReady } from "@/lib/press-player-layout";
 
 interface PreviewTrack {
   id: string;
@@ -247,14 +248,23 @@ export function PressPreviewSection() {
         <div className="mt-6 grid gap-3 md:grid-cols-3">
           {PRESS_WORLD_ORDER.map((world) => {
             const worldTheme = PRESS_WORLD_THEME[world];
+            const playerReady = isPressPlayerAssetsReady(world);
             return (
               <button
                 key={world}
                 type="button"
+                disabled={!playerReady}
                 onClick={() => void handleWorldClick(world)}
-                className={`w-full border px-4 py-5 text-center text-xs uppercase tracking-[0.25em] text-white transition md:text-[8px] ${worldTheme.button} ${worldTheme.glow}`}
+                className={`w-full border px-4 py-5 text-center text-xs uppercase tracking-[0.25em] text-white transition md:text-[8px] ${worldTheme.button} ${worldTheme.glow} ${
+                  playerReady ? "" : "cursor-not-allowed opacity-40"
+                }`}
               >
                 {pressWorldLabel(world, locale)}
+                {!playerReady ? (
+                  <span className="mt-1 block text-[9px] normal-case tracking-normal text-white/50 md:text-[7px]">
+                    {t("playerWorldSoon")}
+                  </span>
+                ) : null}
               </button>
             );
           })}
@@ -363,6 +373,8 @@ export function PressPreviewSection() {
             <p className="text-sm text-white/45">{t("loadingTracks")}</p>
           ) : tracks.length === 0 ? (
             <p className="text-sm text-white/45">{t("noTracks")}</p>
+          ) : !isPressPlayerAssetsReady(selectedWorld) ? (
+            <p className="text-sm text-white/45">{t("playerWorldSoon")}</p>
           ) : (
             <>
               <div className="hidden md:block">

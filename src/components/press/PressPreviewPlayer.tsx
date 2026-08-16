@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import type { WorldAtmosphere } from "@/types/content";
 import { StarRating } from "@/components/press/StarRating";
 
 export interface PressPlayerTrack {
@@ -91,8 +92,52 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
+function VerticalVolume({
+  volume,
+  accent,
+  label,
+  onChange,
+}: {
+  volume: number;
+  accent: string;
+  label: string;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div
+      className="flex w-11 shrink-0 flex-col items-center gap-3 border border-white/[0.07] bg-white/[0.025] px-2 py-3 backdrop-blur-[3px] self-stretch"
+      style={{ boxShadow: `inset 0 1px 0 ${accent}18` }}
+    >
+      <span
+        className="text-sm uppercase tracking-[0.28em] text-white/45 md:text-xs"
+        style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
+      >
+        {label}
+      </span>
+      <div className="relative flex min-h-[7rem] flex-1 items-center justify-center">
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.01}
+          value={volume}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="absolute w-28 cursor-pointer appearance-none bg-transparent [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-current [&::-moz-range-track]:h-1 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/15 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/15"
+          style={{
+            accentColor: accent,
+            color: accent,
+            transform: "rotate(-90deg)",
+          }}
+          aria-label={label}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function PressPreviewPlayer({
   accent,
+  atmosphere,
   tracks,
   activeTrackId,
   playing,
@@ -109,6 +154,7 @@ export function PressPreviewPlayer({
   labels,
 }: {
   accent: string;
+  atmosphere: WorldAtmosphere;
   tracks: PressPlayerTrack[];
   activeTrackId: string | null;
   playing: boolean;
@@ -127,145 +173,137 @@ export function PressPreviewPlayer({
   const progressRatio = duration > 0 ? progress / duration : 0;
 
   return (
-    <div className="w-full max-w-3xl space-y-1.5">
-      <div
-        className="flex items-center gap-4 border border-white/[0.07] bg-white/[0.025] px-4 py-2.5 backdrop-blur-[3px]"
-        style={{ boxShadow: `inset 0 1px 0 ${accent}18` }}
-      >
-        <span className="shrink-0 text-lg uppercase tracking-[0.28em] text-white/45 md:text-base">
-          {labels.volume}
-        </span>
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.01}
-          value={volume}
-          onChange={(e) => onVolumeChange(Number(e.target.value))}
-          className="flex-1"
-          style={{ accentColor: accent }}
-        />
-      </div>
+    <div className="flex w-full max-w-3xl items-stretch gap-1.5">
+      <div className="min-w-0 flex-1 space-y-1.5">
+        {playbackError ? (
+          <p className="border border-red-400/25 bg-red-500/8 px-4 py-2 text-lg text-red-200 md:text-base">
+            {playbackError}
+          </p>
+        ) : null}
 
-      {playbackError ? (
-        <p className="border border-red-400/25 bg-red-500/8 px-4 py-2 text-lg text-red-200 md:text-base">
-          {playbackError}
-        </p>
-      ) : null}
+        <ul className="space-y-1.5">
+          {tracks.map((track, index) => {
+            const isActive = track.id === activeTrackId;
+            const isPlaying = isActive && playing;
+            const slotLabel = String(index + 1).padStart(2, "0");
 
-      <ul className="space-y-1.5">
-        {tracks.map((track, index) => {
-          const isActive = track.id === activeTrackId;
-          const isPlaying = isActive && playing;
-          const slotLabel = String(index + 1).padStart(2, "0");
+            return (
+              <li
+                key={track.id}
+                className={`border transition-colors backdrop-blur-[3px] ${
+                  isActive
+                    ? "border-white/[0.14] bg-white/[0.055]"
+                    : "border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.035]"
+                }`}
+                style={
+                  isActive
+                    ? {
+                        boxShadow: `inset 0 1px 0 ${accent}22, 0 0 0 1px ${accent}18`,
+                      }
+                    : undefined
+                }
+              >
+                <div className="flex items-center gap-3 px-3 py-2.5 md:gap-3.5 md:px-3.5">
+                  <span
+                    className="w-7 shrink-0 text-center text-lg tabular-nums text-white/25 md:text-base"
+                    aria-hidden
+                  >
+                    {slotLabel}
+                  </span>
 
-          return (
-            <li
-              key={track.id}
-              className={`border transition-colors backdrop-blur-[3px] ${
-                isActive
-                  ? "border-white/[0.14] bg-white/[0.055]"
-                  : "border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.035]"
-              }`}
-              style={
-                isActive
-                  ? {
-                      boxShadow: `inset 0 1px 0 ${accent}22, 0 0 0 1px ${accent}18`,
-                    }
-                  : undefined
-              }
-            >
-              <div className="flex items-center gap-3 px-3 py-2.5 md:gap-3.5 md:px-3.5">
-                <span
-                  className="w-7 shrink-0 text-center text-lg tabular-nums text-white/25 md:text-base"
-                  aria-hidden
-                >
-                  {slotLabel}
-                </span>
-
-                <div
-                  className="h-11 w-11 shrink-0 overflow-hidden border border-white/[0.08] md:h-10 md:w-10"
-                  style={{ backgroundColor: track.coverImage ? undefined : `${accent}55` }}
-                >
-                  {track.coverImage ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={track.coverImage} alt="" className="h-full w-full object-cover" />
-                  ) : null}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-2xl font-light leading-tight text-white md:text-xl">
-                    {track.title}
-                  </p>
-                  {track.artist ? (
-                    <p className="truncate text-xl text-white/40 md:text-lg">{track.artist}</p>
-                  ) : null}
-                  {isActive ? (
-                    <div className="mt-1.5 hidden sm:block">
-                      <MiniEq analyser={analyser} active={isPlaying} accent={accent} />
-                    </div>
-                  ) : null}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => onTogglePlay(track.id)}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center border border-white/[0.14] bg-white/[0.03] text-2xl text-white transition hover:bg-white/[0.07] md:h-10 md:w-10 md:text-xl"
-                  aria-label={isPlaying ? labels.pause : labels.play}
-                >
-                  {isPlaying ? "❚❚" : "▶"}
-                </button>
-
-                <div className="hidden shrink-0 lg:block">
-                  <StarRating
-                    value={track.votes}
-                    userStars={track.userStars}
-                    onVote={(stars) => onVote(track.id, stars)}
-                    size="lg"
-                  />
-                </div>
-              </div>
-
-              {isActive ? (
-                <div className="border-t border-white/[0.06] px-3 pb-2.5 pt-2 md:px-3.5">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="range"
-                      min={0}
-                      max={1}
-                      step={0.001}
-                      value={progressRatio}
-                      onChange={(e) => onSeek(Number(e.target.value))}
-                      className="flex-1"
-                      style={{ accentColor: accent }}
-                      aria-label="Position"
-                    />
-                    <button
-                      type="button"
-                      onClick={onStop}
-                      className="shrink-0 text-lg text-white/45 hover:text-white md:text-base"
-                      aria-label="Stop"
-                    >
-                      ⏹
-                    </button>
-                    <span className="shrink-0 text-lg tabular-nums text-white/35 md:text-base">
-                      {formatTime(progress)} / {formatTime(duration)}
-                    </span>
+                  <div
+                    className="h-11 w-11 shrink-0 overflow-hidden border border-white/[0.08] md:h-10 md:w-10"
+                    style={{ backgroundColor: track.coverImage ? undefined : `${accent}55` }}
+                  >
+                    {track.coverImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={track.coverImage} alt="" className="h-full w-full object-cover" />
+                    ) : null}
                   </div>
-                  <div className="mt-2 lg:hidden">
+
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-2xl font-light leading-tight text-white md:text-xl">
+                      {track.title}
+                    </p>
+                    {track.artist ? (
+                      <p className="truncate text-xl text-white/40 md:text-lg">{track.artist}</p>
+                    ) : null}
+                    {isActive ? (
+                      <div className="mt-1.5 hidden sm:block">
+                        <MiniEq analyser={analyser} active={isPlaying} accent={accent} />
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => onTogglePlay(track.id)}
+                    className="flex h-11 w-11 shrink-0 items-center justify-center border border-white/[0.14] bg-white/[0.03] text-2xl text-white transition hover:bg-white/[0.07] md:h-10 md:w-10 md:text-xl"
+                    aria-label={isPlaying ? labels.pause : labels.play}
+                  >
+                    {isPlaying ? "❚❚" : "▶"}
+                  </button>
+
+                  <div className="hidden shrink-0 lg:block">
                     <StarRating
                       value={track.votes}
                       userStars={track.userStars}
                       onVote={(stars) => onVote(track.id, stars)}
                       size="lg"
+                      atmosphere={atmosphere}
                     />
                   </div>
                 </div>
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
+
+                {isActive ? (
+                  <div className="border-t border-white/[0.06] px-3 pb-2.5 pt-2 md:px-3.5">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.001}
+                        value={progressRatio}
+                        onChange={(e) => onSeek(Number(e.target.value))}
+                        className="flex-1"
+                        style={{ accentColor: accent }}
+                        aria-label="Position"
+                      />
+                      <button
+                        type="button"
+                        onClick={onStop}
+                        className="shrink-0 text-lg text-white/45 hover:text-white md:text-base"
+                        aria-label="Stop"
+                      >
+                        ⏹
+                      </button>
+                      <span className="shrink-0 text-lg tabular-nums text-white/35 md:text-base">
+                        {formatTime(progress)} / {formatTime(duration)}
+                      </span>
+                    </div>
+                    <div className="mt-2 lg:hidden">
+                      <StarRating
+                        value={track.votes}
+                        userStars={track.userStars}
+                        onVote={(stars) => onVote(track.id, stars)}
+                        size="lg"
+                        atmosphere={atmosphere}
+                      />
+                    </div>
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      <VerticalVolume
+        volume={volume}
+        accent={accent}
+        label={labels.volume}
+        onChange={onVolumeChange}
+      />
     </div>
   );
 }

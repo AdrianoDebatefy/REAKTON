@@ -363,6 +363,7 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
         <div className="mt-10">
           <PressPreviewPlayer
             accent={theme.accent}
+            atmosphere={atmosphere}
             tracks={playerTracks}
             activeTrackId={activeTrackId}
             playing={playing}

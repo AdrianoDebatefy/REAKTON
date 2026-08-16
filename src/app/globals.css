@@ -37,13 +37,15 @@ body {
     font-size: 70%;
   }
 
+  /* Press: 25% larger than the default public desktop scale (70% × 1.25). */
   html.site-public.site-press {
-    font-size: 200%;
+    font-size: 87.5%;
   }
 }
 
+/* Press: 25% larger than the default mobile scale. */
 html.site-public.site-press {
-  font-size: 200%;
+  font-size: 125%;
 }
 
 /* Direction D: Halbton Horizon */

@@ -15,10 +15,12 @@ export interface PressPlayerTrack {
 
 function MiniEq({
   analyser,
+  visible,
   active,
   accent,
 }: {
   analyser: AnalyserNode | null;
+  visible: boolean;
   active: boolean;
   accent: string;
 }) {
@@ -30,7 +32,7 @@ function MiniEq({
     if (!canvas) return undefined;
     const resize = () => {
       canvas.width = canvas.clientWidth;
-      canvas.height = 28;
+      canvas.height = 40;
     };
     resize();
     const ro = new ResizeObserver(resize);
@@ -52,23 +54,30 @@ function MiniEq({
       const { width, height } = canvas;
       ctx.clearRect(0, 0, width, height);
 
-      const bars = 56;
-      const gap = 1;
-      const barWidth = (width - gap * (bars - 1)) / bars;
+      ctx.strokeStyle = "rgba(255,255,255,0.15)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, height - 1);
+      ctx.lineTo(width, height - 1);
+      ctx.stroke();
+
+      const bars = 48;
+      const gap = 2;
+      const barWidth = Math.max(2, (width - gap * (bars - 1)) / bars);
 
       for (let i = 0; i < bars; i += 1) {
-        let normalized = 0.06;
+        let normalized = visible ? 0.14 : 0.08;
         if (active && analyser && buffer) {
-          const step = Math.floor(buffer.length / bars);
+          const step = Math.max(1, Math.floor(buffer.length / bars));
           const value = buffer[i * step] ?? 0;
-          normalized = value / 255;
+          normalized = Math.max(0.14, value / 255);
         }
 
-        const barHeight = Math.max(1, normalized * height);
+        const barHeight = Math.max(4, normalized * (height - 4));
         const x = i * (barWidth + gap);
-        const y = height - barHeight;
-        ctx.fillStyle = "rgba(255,255,255,0.35)";
-        ctx.globalAlpha = active ? 0.7 : 0.25;
+        const y = height - 2 - barHeight;
+        ctx.fillStyle = accent;
+        ctx.globalAlpha = active ? 1 : visible ? 0.55 : 0.3;
         ctx.fillRect(x, y, barWidth, barHeight);
       }
       ctx.globalAlpha = 1;
@@ -76,9 +85,9 @@ function MiniEq({
 
     draw();
     return () => cancelAnimationFrame(frameRef.current);
-  }, [analyser, active, accent]);
+  }, [analyser, active, visible, accent]);
 
-  return <canvas ref={canvasRef} className="h-7 w-full" height={28} aria-hidden />;
+  return <canvas ref={canvasRef} className="h-10 w-full" height={40} aria-hidden />;
 }
 
 function formatTimeExtended(seconds: number): string {
@@ -109,10 +118,11 @@ function SlotVolume({
       <div className="relative h-full w-full">
         <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-white/20" />
         <div
-          className="pointer-events-none absolute left-1/2 h-px w-4 -translate-x-1/2"
+          className="pointer-events-none absolute left-1/2 h-0.5 w-6 -translate-x-1/2"
           style={{
             bottom: `calc(${volume * 100}% - 1px)`,
             backgroundColor: accent,
+            boxShadow: `0 0 6px ${accent}88`,
           }}
         />
         <input
@@ -133,25 +143,36 @@ function SlotVolume({
 
 function ProgressBar({
   value,
+  accent,
   disabled,
   onChange,
 }: {
   value: number;
+  accent: string;
   disabled?: boolean;
   onChange: (ratio: number) => void;
 }) {
+  const thumbLeft = `calc(${value * 100}% - 6px)`;
+
   return (
-    <input
-      type="range"
-      min={0}
-      max={1}
-      step={0.001}
-      value={value}
-      disabled={disabled}
-      onChange={(e) => onChange(Number(e.target.value))}
-      className="h-px w-full cursor-pointer appearance-none bg-white/25 disabled:cursor-default disabled:opacity-40 [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-transparent [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-transparent"
-      aria-label="Position"
-    />
+    <div className="relative h-5 w-full">
+      <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white/35" />
+      <div
+        className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border-2 border-white bg-black/20"
+        style={{ left: thumbLeft, boxShadow: `0 0 0 1px ${accent}55` }}
+      />
+      <input
+        type="range"
+        min={0}
+        max={1}
+        step={0.001}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-default"
+        aria-label="Position"
+      />
+    </div>
   );
 }
 
@@ -245,29 +266,31 @@ export function PressPreviewPlayer({
 
                 <MiniEq
                   analyser={isActive ? analyser : null}
+                  visible={isActive}
                   active={isPlaying}
                   accent={accent}
                 />
 
                 <ProgressBar
                   value={progressRatio}
+                  accent={accent}
                   disabled={!isActive}
                   onChange={onSeek}
                 />
 
-                <div className="flex items-center justify-end gap-2">
+                <div className="flex items-center justify-end gap-3 pr-6">
                   <button
                     type="button"
                     onClick={() => onTogglePlay(track.id)}
                     onDoubleClick={() => {
                       if (isActive) onStop();
                     }}
-                    className="h-3.5 w-3.5 shrink-0 transition hover:brightness-110"
+                    className="h-[17px] w-[17px] shrink-0 transition hover:brightness-110"
                     style={{ backgroundColor: accent }}
                     aria-label={isPlaying ? labels.pause : labels.play}
                     title={isActive ? "Doppelklick: Stop" : undefined}
                   />
-                  <span className="shrink-0 text-sm tabular-nums text-white/75 md:text-xs">
+                  <span className="shrink-0 text-2xl tabular-nums text-white/80 md:text-xl">
                     {timeCurrent} / {timeTotal}
                   </span>
                 </div>

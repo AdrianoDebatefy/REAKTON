@@ -56,6 +56,7 @@
     "noTracks": "このワールドのプレビュー・トラックはまだありません。",
     "play": "再生",
     "pause": "一時停止",
+    "stop": "停止",
     "logout": "ログアウト",
     "playerWorldSoon": "プレイヤーは近日公開",
     "backToPress": "プレスに戻る",

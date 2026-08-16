@@ -23,7 +23,7 @@ export function buildMobilePadLayout(slotCount: number): PadPosition[] {
 }
 
 export const MOBILE_COVER_INACTIVE_PX = 60;
-export const MOBILE_COVER_ACTIVE_SCALE = 0.8;
+export const MOBILE_COVER_ACTIVE_SCALE = 0.88;
 export const MOBILE_COVER_ACTIVE_CENTER = { x: 50, y: mobileCoverY(54) };
 export const MOBILE_COVER_FADE_S = 2;
 export const MOBILE_COVER_FADE_DURATION_S = 0.45;

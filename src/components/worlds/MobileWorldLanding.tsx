@@ -54,6 +54,12 @@ function panelGeometry(displayIndex: number, panelCount: number) {
   };
 }
 
+function panelTransformOrigin(displayIndex: number, panelCount: number): string {
+  if (displayIndex === 0) return "top center";
+  if (displayIndex === panelCount - 1) return "bottom center";
+  return "center center";
+}
+
 function bgOffscreenY(displayIndex: number, pivotDisplay: number) {
   if (displayIndex === pivotDisplay) return 0;
   return displayIndex < pivotDisplay ? "-100%" : "100%";
@@ -191,6 +197,7 @@ function PanelBgLayers({
   bg,
   showWorld,
   isColumnReturning,
+  isEntering,
   isPivot,
   returnBgExpandHold,
   scrimOpacity,
@@ -200,11 +207,12 @@ function PanelBgLayers({
   bg: { desktop: string; mobile: string; onError?: () => void };
   showWorld: boolean;
   isColumnReturning: boolean;
+  isEntering: boolean;
   isPivot: boolean;
   returnBgExpandHold: boolean;
   scrimOpacity: number;
 }) {
-  const hideOverlays = showWorld || isColumnReturning;
+  const hideOverlays = showWorld || isColumnReturning || isEntering;
   const bgRepositionActive =
     isPivot &&
     isColumnReturning &&
@@ -312,12 +320,17 @@ export function MobileWorldLanding({
     : "calc(5.5rem + env(safe-area-inset-top))";
   const stackOverflow = isAnimating ? "overflow-visible" : "overflow-hidden";
 
+  const stackTransition =
+    isEntering || isColumnReturning
+      ? { duration: MOBILE_RETURN_SLIDE_S, ease: COLUMN_EASE }
+      : { duration: 0.35, ease: COLUMN_EASE };
+
   return (
     <motion.div
       className="pointer-events-none fixed inset-x-0 bottom-0 z-[15] md:hidden"
       initial={false}
       animate={{ top: stackTop }}
-      transition={EARTH_TRANSITION}
+      transition={stackTransition}
       aria-hidden={showWorld}
       style={{ isolation: "isolate" }}
     >
@@ -332,10 +345,7 @@ export function MobileWorldLanding({
           const isPivot = pivotDataIndex !== null && index === pivotDataIndex;
           const pivotDisplay = pivotSlot ?? returnPivotSlot ?? displayIndex;
           const parkedOffscreen = !isPivot && showWorld;
-          const offscreenTop =
-            displayIndex < pivotDisplay
-              ? `-${100 / panelCount}%`
-              : "100%";
+          const offscreenY = bgOffscreenY(displayIndex, pivotDisplay);
           const fillsViewport =
             isPivot && (isEntering || isImmersed || showWorld);
           const resting = panelGeometry(displayIndex, panelCount);
@@ -353,9 +363,9 @@ export function MobileWorldLanding({
             panelCount,
             returnAtmosphere
           );
-          const slideOffscreen = isAnimating && !isPivot && !isColumnReturning;
+          const slideOffscreen = isEntering && !isPivot;
           const returnSlideS = isColumnReturning ? MOBILE_RETURN_SLIDE_S : COLUMN_EXIT_S;
-          const geometryTransition =
+          const motionTransition =
             isEntering || isColumnReturning
               ? {
                   duration: isColumnReturning ? MOBILE_RETURN_SLIDE_S : COLUMN_EXIT_S,
@@ -363,17 +373,18 @@ export function MobileWorldLanding({
                   type: "tween" as const,
                 }
               : { duration: 0 };
-          const animateTop = fillsViewport
-            ? "0%"
-            : parkedOffscreen
-              ? offscreenTop
-              : resting.top;
-          const animateY = slideOffscreen ? slideY : 0;
+          const animateY = parkedOffscreen
+            ? offscreenY
+            : slideOffscreen
+              ? slideY
+              : 0;
+          const animateScaleY = fillsViewport ? panelCount : 1;
           const animateOpacity = parkedOffscreen ? 0 : 1;
           const keepPivotOnTop =
             isPivot && (fillsViewport || isEntering || isColumnReturning);
           const panelZIndex = keepPivotOnTop ? panelCount + 1 : displayIndex + 1;
           const panelOverflow = isAnimating ? "overflow-visible" : "overflow-hidden";
+          const transformOrigin = panelTransformOrigin(displayIndex, panelCount);
 
           return (
             <motion.div
@@ -385,18 +396,23 @@ export function MobileWorldLanding({
                 backgroundColor: atmosphereFallbackBg(world.atmosphere),
                 zIndex: panelZIndex,
                 pointerEvents: parkedOffscreen ? "none" : undefined,
-                willChange: isAnimating ? "transform, top, height" : undefined,
+                transformOrigin,
+                backfaceVisibility: "hidden",
+                WebkitBackfaceVisibility: "hidden",
+                willChange: isAnimating ? "transform, opacity" : undefined,
               }}
               initial={false}
               animate={{
-                top: animateTop,
-                height: fillsViewport ? "100%" : resting.height,
+                top: resting.top,
+                height: resting.height,
                 y: animateY,
+                scaleY: animateScaleY,
                 opacity: animateOpacity,
               }}
               transition={{
-                top: geometryTransition,
-                height: geometryTransition,
+                top: { duration: 0 },
+                height: { duration: 0 },
+                scaleY: motionTransition,
                 y: isAnimating
                   ? { duration: returnSlideS, delay, ease: COLUMN_EASE }
                   : { duration: 0 },
@@ -411,6 +427,7 @@ export function MobileWorldLanding({
                 bg={bg}
                 showWorld={showWorld}
                 isColumnReturning={isColumnReturning}
+                isEntering={isEntering}
                 isPivot={isPivot}
                 returnBgExpandHold={returnBgExpandHold}
                 scrimOpacity={scrimOpacity}
@@ -420,7 +437,7 @@ export function MobileWorldLanding({
         })}
       </div>
 
-      {!showWorld && landingCaptionMode !== "hidden" && (
+      {!showWorld && !isAnimating && landingCaptionMode !== "hidden" && (
         <div className="pointer-events-none absolute inset-0 z-[25] grid grid-rows-3">
           {mobileWorlds.map((world) => {
             const tone = columnCopyTone(world.atmosphere);
@@ -452,7 +469,7 @@ export function MobileWorldLanding({
         </div>
       )}
 
-      {!showWorld && landingCaptionMode !== "out" && (
+      {!showWorld && !isAnimating && landingCaptionMode !== "out" && (
         <div className="pointer-events-auto absolute inset-0 z-[30] grid grid-rows-3">
           {mobileWorlds.map((world) => {
             const index = worlds.findIndex((w) => w.id === world.id);

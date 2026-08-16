@@ -442,6 +442,7 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
         setReturnRevealLanding(false);
         setReturnAtmosphere(null);
         setReturnFromIndex(null);
+        setLandingCaptionMode((mode) => (mode === "in" ? "static" : mode));
       }, totalMs);
       return;
     }

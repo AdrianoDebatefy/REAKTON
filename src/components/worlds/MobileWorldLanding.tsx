@@ -9,6 +9,7 @@ import {
   MOBILE_OVERLAY_FADE_S,
   MOBILE_RETURN_LABEL_IN_MS,
   MOBILE_RETURN_OVERLAY_FADE_S,
+  MOBILE_RETURN_REVEAL_MS,
   MOBILE_RETURN_SLIDE_S,
 } from "@/lib/mobile-world-timing";
 
@@ -278,12 +279,12 @@ export function MobileWorldLanding({
   onWorldClick: (world: World, index: number) => void;
   onCaptionDecodeComplete: () => void;
 }) {
+  const returnSlidePhase = isColumnReturning && !returnRevealLanding;
+  const returnSettlePhase = isColumnReturning && returnRevealLanding;
   const isAnimating = isEntering || isColumnReturning;
   const landingVisible = !showWorld;
   const captionDuration =
-    isColumnReturning && returnRevealLanding
-      ? MOBILE_RETURN_LABEL_IN_MS
-      : CAPTION_DECODE_MS;
+    returnSettlePhase ? MOBILE_RETURN_LABEL_IN_MS : CAPTION_DECODE_MS;
   const panelCount = worlds.length;
   const mobileWorlds = sortWorldsForMobile(worlds);
   const pivotSlot = pivotDisplayIndex(
@@ -293,7 +294,8 @@ export function MobileWorldLanding({
     isColumnReturning
   );
   const returnPivotSlot = pivotDisplayIndex(worlds, null, returnFromIndex, true);
-  const fullBleedBg = isImmersed || isColumnReturning;
+  /** Full-bleed only during return slide — settle back under header in reveal phase. */
+  const fullBleedBg = isImmersed || returnSlidePhase;
 
   if (!landingVisible && !isColumnReturning && selectedIndex === null) return null;
 
@@ -302,11 +304,13 @@ export function MobileWorldLanding({
     : "calc(5.5rem + env(safe-area-inset-top))";
   const stackOverflow = isAnimating ? "overflow-visible" : "overflow-hidden";
 
-  const stackTransition = isColumnReturning
+  const stackTransition = returnSlidePhase
     ? { duration: MOBILE_RETURN_SLIDE_S, ease: COLUMN_EASE }
-    : isEntering
-      ? { duration: COLUMN_EXIT_S, ease: COLUMN_EASE }
-      : { duration: 0.35, ease: COLUMN_EASE };
+    : returnSettlePhase
+      ? { duration: MOBILE_RETURN_REVEAL_MS / 1000, ease: COLUMN_EASE }
+      : isEntering
+        ? { duration: COLUMN_EXIT_S, ease: COLUMN_EASE }
+        : { duration: 0.35, ease: COLUMN_EASE };
 
   return (
     <motion.div
@@ -347,10 +351,12 @@ export function MobileWorldLanding({
             returnAtmosphere
           );
           const slideOffscreen = isEntering && !isPivot;
-          const slideReturning = isColumnReturning && !isPivot;
-          const slideDuration = isColumnReturning ? MOBILE_RETURN_SLIDE_S : COLUMN_EXIT_S;
+          const slideReturning = returnSlidePhase && !isPivot;
+          const slideDuration = returnSlidePhase
+            ? MOBILE_RETURN_SLIDE_S
+            : COLUMN_EXIT_S;
           const geometryTransition =
-            isEntering || isColumnReturning
+            isEntering || returnSlidePhase
               ? {
                   duration: slideDuration,
                   ease: COLUMN_EASE,
@@ -366,7 +372,8 @@ export function MobileWorldLanding({
                 : 0;
           const animateOpacity = parkedOffscreen ? 0 : 1;
           const keepPivotOnTop =
-            isPivot && (fillsViewport || isEntering || isColumnReturning);
+            isPivot &&
+            (fillsViewport || isEntering || returnSlidePhase);
           const panelZIndex = keepPivotOnTop ? panelCount + 1 : displayIndex + 1;
           const panelOverflow = isAnimating ? "overflow-visible" : "overflow-hidden";
 
@@ -394,9 +401,10 @@ export function MobileWorldLanding({
               transition={{
                 top: geometryTransition,
                 height: geometryTransition,
-                y: isAnimating
-                  ? { duration: slideDuration, delay, ease: COLUMN_EASE }
-                  : { duration: 0 },
+                y:
+                  isEntering || returnSlidePhase
+                    ? { duration: slideDuration, delay, ease: COLUMN_EASE }
+                    : { duration: 0 },
                 opacity: { duration: 0 },
               }}
             >

@@ -223,6 +223,8 @@ certbot --nginx -d reakton.de -d www.reakton.de
 
 Admin-Passwort nach erstem Login unter **Zugang** ändern.
 
+**Nach Admin-Änderungen (Slots, Texte, Uploads):** kein `npm run build` nötig — Seite liest `data/site-content.local.json` live. Nur nach Code-Updates neu bauen.
+
 ---
 
 ## Updates deployen

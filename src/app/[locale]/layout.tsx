@@ -15,6 +15,9 @@ import { getSiteContent } from "@/lib/content";
 import { buildPageMetadata } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-url";
 
+/** Admin edits data/site-content.local.json at runtime — do not bake at build time. */
+export const dynamic = "force-dynamic";
+
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }

@@ -35,7 +35,18 @@ const MOVE_TRANSITION = { duration: 0.85, ease: [0.4, 0, 0.2, 1] as const };
 const FADE_TRANSITION = { duration: MOBILE_COVER_FADE_S, ease: [0.4, 0, 0.2, 1] as const };
 const NO_TRANSITION = { duration: 0 } as const;
 
-type FrozenCoverSlot = { x: number; y: number; size: number };
+type FrozenCoverSlot = {
+  leftPx: number;
+  topPx: number;
+  size: number;
+};
+
+type FrozenSceneRect = {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+};
 
 const INFO_TEXT_SIZE_KEY = "reakton-info-text-size";
 const INFO_TEXT_SIZE_MIN = 12;
@@ -70,12 +81,33 @@ function useActiveCoverSize() {
   return size;
 }
 
+function buildFrozenExitLayout(
+  items: Song[],
+  padPositions: { x: number; y: number }[],
+  activeId: string | null,
+  activeCoverSize: number,
+  sceneWidth: number,
+  sceneHeight: number
+): FrozenCoverSlot[] {
+  return items.map((song, i) => {
+    const pad = padPositions[i] ?? MOBILE_COVER_ACTIVE_CENTER;
+    const isActive = activeId === song.id;
+    const xPct = isActive ? MOBILE_COVER_ACTIVE_CENTER.x : pad.x;
+    const yPct = isActive ? MOBILE_COVER_ACTIVE_CENTER.y : pad.y;
+    return {
+      leftPx: (xPct / 100) * sceneWidth,
+      topPx: (yPct / 100) * sceneHeight,
+      size: isActive ? activeCoverSize : MOBILE_COVER_INACTIVE_PX,
+    };
+  });
+}
+
 export function MobileAlbumSlotScene({
   songs,
   maxSlots = 12,
   borderClass = "border-white/30",
   exiting = false,
-  exitFadeContentOnly = false,
+  pinSceneOnExit = false,
   onExitComplete,
   locale = "de",
 }: {
@@ -83,8 +115,8 @@ export function MobileAlbumSlotScene({
   maxSlots?: number;
   borderClass?: string;
   exiting?: boolean;
-  /** Cosmos: fade cover content over an opaque shell so the earth BG stays visible. */
-  exitFadeContentOnly?: boolean;
+  /** Cosmos: lock scene viewport box so covers don't jitter against the earth BG. */
+  pinSceneOnExit?: boolean;
   onExitComplete?: () => void;
   locale?: Locale;
 }) {
@@ -111,12 +143,14 @@ export function MobileAlbumSlotScene({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const slotVideoRef = useRef<HTMLVideoElement | null>(null);
   const exitStartedRef = useRef(false);
-  const exitLayoutRef = useRef<FrozenCoverSlot[] | null>(null);
+  const [exitSnapshot, setExitSnapshot] = useState<{
+    layout: FrozenCoverSlot[];
+    sceneRect: FrozenSceneRect | null;
+  } | null>(null);
   const exitTotalMs = useMemo(
     () => mobileCoverExitMs(coverExitDelays),
     [coverExitDelays]
   );
-  const shellHideDelayS = MOBILE_COVER_FADE_DURATION_S + 0.04;
 
   const activeSong = items.find((s) => s.id === activeId) ?? null;
   const activeInfoText = activeSong ? getLocalized(activeSong.infoText, locale) : "";
@@ -191,23 +225,47 @@ export function MobileAlbumSlotScene({
     });
   }, []);
 
-  if (!exiting) {
-    exitLayoutRef.current = null;
-  } else if (!exitLayoutRef.current) {
-    exitLayoutRef.current = items.map((song, i) => {
-      const pad = padPositions[i] ?? MOBILE_COVER_ACTIVE_CENTER;
-      const isActive = activeId === song.id;
-      return {
-        x: isActive ? MOBILE_COVER_ACTIVE_CENTER.x : pad.x,
-        y: isActive ? MOBILE_COVER_ACTIVE_CENTER.y : pad.y,
-        size: isActive ? activeCoverSize : MOBILE_COVER_INACTIVE_PX,
-      };
-    });
-  }
-
   useLayoutEffect(() => {
-    if (!exiting) exitLayoutRef.current = null;
-  }, [exiting]);
+    if (!exiting) {
+      setExitSnapshot(null);
+      return;
+    }
+    if (exitSnapshot) return;
+    const scene = sceneRef.current;
+    if (!scene) return;
+
+    const sceneWidth = scene.clientWidth;
+    const sceneHeight = scene.clientHeight;
+    const layout = buildFrozenExitLayout(
+      items,
+      padPositions,
+      activeId,
+      activeCoverSize,
+      sceneWidth,
+      sceneHeight
+    );
+
+    let sceneRect: FrozenSceneRect | null = null;
+    if (pinSceneOnExit) {
+      const rect = scene.getBoundingClientRect();
+      sceneRect = {
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height,
+      };
+    }
+
+    setExitSnapshot({ layout, sceneRect });
+  }, [
+    activeCoverSize,
+    activeId,
+    exitSnapshot,
+    exiting,
+    items,
+    padPositions,
+    pinSceneOnExit,
+  ]);
 
   useEffect(() => {
     if (!exiting) {
@@ -224,31 +282,48 @@ export function MobileAlbumSlotScene({
 
   useEffect(() => () => stopAudio(), [stopAudio]);
 
+  const exitSceneRect =
+    exiting && pinSceneOnExit ? exitSnapshot?.sceneRect ?? null : null;
+  const scenePinned = Boolean(exitSceneRect);
+
   return (
     <motion.div
       ref={sceneRef}
-      className="album-slot-scene relative z-20 mx-auto h-[calc(100dvh-11.5rem-env(safe-area-inset-top))] min-h-[320px] w-full max-w-lg overflow-hidden bg-transparent"
-      style={{
-        isolation: "isolate",
-        transform: `translateY(-${MOBILE_COVER_BLOCK_SHIFT_PX}px)`,
-        ...(exiting ? { contain: "paint" as const } : {}),
-      }}
+      className={`album-slot-scene z-20 mx-auto w-full max-w-lg overflow-hidden bg-transparent ${
+        scenePinned
+          ? "fixed"
+          : "relative h-[calc(100dvh-11.5rem-env(safe-area-inset-top))] min-h-[320px]"
+      }`}
+      style={
+        scenePinned && exitSceneRect
+          ? {
+              top: exitSceneRect.top,
+              left: exitSceneRect.left,
+              width: exitSceneRect.width,
+              height: exitSceneRect.height,
+              isolation: "isolate",
+              zIndex: 25,
+            }
+          : {
+              isolation: "isolate",
+              transform: `translateY(-${MOBILE_COVER_BLOCK_SHIFT_PX}px)`,
+            }
+      }
     >
       {items.map((song, i) => {
         const pad = padPositions[i] ?? MOBILE_COVER_ACTIVE_CENTER;
         const isActive = activeId === song.id;
-        const frozen = exiting ? exitLayoutRef.current?.[i] : null;
+        const frozen = exiting ? exitSnapshot?.layout[i] : null;
+        const useFrozenPx = Boolean(frozen);
         const targetSize = frozen?.size ?? (isActive ? activeCoverSize : MOBILE_COVER_INACTIVE_PX);
-        const targetX = frozen?.x ?? (isActive ? MOBILE_COVER_ACTIVE_CENTER.x : pad.x);
-        const targetY = frozen?.y ?? (isActive ? MOBILE_COVER_ACTIVE_CENTER.y : pad.y);
+        const targetX = isActive ? MOBILE_COVER_ACTIVE_CENTER.x : pad.x;
+        const targetY = isActive ? MOBILE_COVER_ACTIVE_CENTER.y : pad.y;
         /** In pole mode keep inactive covers hidden during exit — avoids scale/opacity snap. */
         const hidden = isPoleMode && !isActive;
         const introDelay = coverFadeDelays[i] ?? 0;
         const exitDelay = coverExitDelays[i] ?? 0;
         const freezeLayout = exiting;
         const restingScale = hidden ? 0.85 : 1;
-        const contentOnlyExit = exitFadeContentOnly && exiting && !hidden;
-        const buttonOpacity = hidden ? 0 : contentOnlyExit || exiting ? 0 : 1;
 
         return (
           <motion.button
@@ -265,80 +340,74 @@ export function MobileAlbumSlotScene({
                   ? "#080c12"
                   : "#C1E5F9",
             }}
-            initial={{
-              left: `${targetX}%`,
-              top: `${targetY}%`,
-              width: targetSize,
-              height: targetSize,
-              x: "-50%",
-              y: "-50%",
-              opacity: 0,
-              scale: 0.94,
-            }}
+            initial={
+              exiting
+                ? false
+                : {
+                    left: `${targetX}%`,
+                    top: `${targetY}%`,
+                    width: targetSize,
+                    height: targetSize,
+                    x: "-50%",
+                    y: "-50%",
+                    opacity: 0,
+                    scale: 0.94,
+                  }
+            }
             animate={{
-              left: `${targetX}%`,
-              top: `${targetY}%`,
+              left: useFrozenPx ? frozen!.leftPx : `${targetX}%`,
+              top: useFrozenPx ? frozen!.topPx : `${targetY}%`,
               width: targetSize,
               height: targetSize,
               x: "-50%",
               y: "-50%",
-              opacity: buttonOpacity,
+              opacity: exiting || hidden ? 0 : 1,
               scale: exiting ? restingScale : hidden ? 0.85 : 1,
             }}
-            transition={{
-              left: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
-              top: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
-              width: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
-              height: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
-              opacity: contentOnlyExit
+            transition={
+              exiting
                 ? {
-                    duration: 0.04,
-                    delay: exitDelay + shellHideDelayS,
-                    ease: [0.4, 0, 0.2, 1],
-                  }
-                : exiting
-                ? {
-                    duration: MOBILE_COVER_FADE_DURATION_S,
-                    delay: exitDelay,
-                    ease: [0.4, 0, 0.2, 1],
-                  }
-                : hidden
-                  ? FADE_TRANSITION
-                  : !introDone
-                    ? {
-                        duration: MOBILE_COVER_FADE_DURATION_S,
-                        delay: introDelay,
-                        ease: [0.4, 0, 0.2, 1],
-                      }
-                    : FADE_TRANSITION,
-              scale: exiting
-                ? NO_TRANSITION
-                : hidden
-                  ? FADE_TRANSITION
-                  : !introDone
-                    ? {
-                        duration: MOBILE_COVER_FADE_DURATION_S,
-                        delay: introDelay,
-                        ease: [0.25, 0.1, 0.25, 1],
-                      }
-                    : { duration: 0.35 },
-            }}
-            aria-label={song.title}
-            aria-pressed={isActive}
-          >
-            <motion.div
-              className="relative h-full w-full"
-              animate={{ opacity: contentOnlyExit ? 0 : 1 }}
-              transition={
-                contentOnlyExit
-                  ? {
+                    left: NO_TRANSITION,
+                    top: NO_TRANSITION,
+                    width: NO_TRANSITION,
+                    height: NO_TRANSITION,
+                    x: NO_TRANSITION,
+                    y: NO_TRANSITION,
+                    scale: NO_TRANSITION,
+                    opacity: {
                       duration: MOBILE_COVER_FADE_DURATION_S,
                       delay: exitDelay,
                       ease: [0.4, 0, 0.2, 1],
-                    }
-                  : { duration: 0 }
-              }
-            >
+                    },
+                  }
+                : {
+                    left: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
+                    top: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
+                    width: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
+                    height: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
+                    opacity: hidden
+                      ? FADE_TRANSITION
+                      : !introDone
+                        ? {
+                            duration: MOBILE_COVER_FADE_DURATION_S,
+                            delay: introDelay,
+                            ease: [0.4, 0, 0.2, 1],
+                          }
+                        : FADE_TRANSITION,
+                    scale: hidden
+                      ? FADE_TRANSITION
+                      : !introDone
+                        ? {
+                            duration: MOBILE_COVER_FADE_DURATION_S,
+                            delay: introDelay,
+                            ease: [0.25, 0.1, 0.25, 1],
+                          }
+                        : { duration: 0.35 },
+                  }
+            }
+            aria-label={song.title}
+            aria-pressed={isActive}
+          >
             {isActive && !infoPanelOpen && (
               <button
                 type="button"
@@ -500,7 +569,6 @@ export function MobileAlbumSlotScene({
                 </>
               )}
             </div>
-            </motion.div>
           </motion.button>
         );
       })}

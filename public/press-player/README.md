@@ -2,7 +2,13 @@
 
 Place your PNG files here. The player uses **1232 × 141 px** coordinates from the design.
 
-## Per world (chassis)
+## Display regions (all worlds, same coordinates)
+
+| Slot | Position | Size |
+|------|----------|------|
+| Track text | x=356, y=44 | 370×40 px |
+| EQ analyser | x=356, y=99 | 370×40 px |
+
 
 `public/press-player/cosmos/wem_PlayerClean.png`  
 `public/press-player/nano/wem_PlayerClean.png` (when ready)  

@@ -4,7 +4,8 @@ import type { WorldAtmosphere } from "@/types/content";
 export const WEM_PLAYER_WIDTH = 1232;
 export const WEM_PLAYER_HEIGHT = 141;
 
-export const WEM_DISPLAY = { x: 128, y: 22, width: 458, height: 72 };
+export const WEM_TRACK_TEXT = { x: 356, y: 44, width: 370, height: 40 };
+export const WEM_EQ = { x: 356, y: 99, width: 370, height: 40 };
 export const WEM_COVER = { x: 28, y: 18, width: 88, height: 88 };
 
 export const WEM_ICONS = {

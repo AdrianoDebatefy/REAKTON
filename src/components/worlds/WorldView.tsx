@@ -27,6 +27,8 @@ const atmosphereClass: Record<World["atmosphere"], string> = {
 };
 
 const HEADER_DECODE_MS = 720;
+const MOBILE_BACK_TEXT_MS = 1000;
+const MOBILE_BACK_TOTAL_MS = 2000;
 
 export function WorldView({ world, onBack }: WorldViewProps) {
   const locale = useLocale() as Locale;
@@ -49,9 +51,22 @@ export function WorldView({ world, onBack }: WorldViewProps) {
     return () => window.clearTimeout(timer);
   }, []);
 
+  const headerDecodeMs = isMobile ? MOBILE_BACK_TEXT_MS : HEADER_DECODE_MS;
+
   const handleBackClick = useCallback(() => {
     if (headerDecodeMode === "out") return;
     setHeaderDecodeMode("out");
+
+    if (isMobile) {
+      if (useSlotScene && world.songs.length > 0) {
+        setExiting(true);
+      }
+      window.setTimeout(() => {
+        setExiting(false);
+        onBack();
+      }, MOBILE_BACK_TOTAL_MS);
+      return;
+    }
 
     const continueBack = () => {
       if (useSlotScene && world.songs.length > 0) {
@@ -62,12 +77,13 @@ export function WorldView({ world, onBack }: WorldViewProps) {
     };
 
     window.setTimeout(continueBack, HEADER_DECODE_MS);
-  }, [headerDecodeMode, onBack, useSlotScene, world.songs.length]);
+  }, [headerDecodeMode, isMobile, onBack, useSlotScene, world.songs.length]);
 
   const handleExitComplete = useCallback(() => {
+    if (isMobile) return;
     setExiting(false);
     onBack();
-  }, [onBack]);
+  }, [isMobile, onBack]);
 
   const layout =
     world.atmosphere === "cosmos"
@@ -99,7 +115,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
 
       <motion.div
         className="relative z-10 mx-auto max-w-6xl px-4 pb-2 pt-2 md:pt-6"
-        animate={{ opacity: exiting ? 0 : 1 }}
+        animate={{ opacity: exiting && !isMobile ? 0 : 1 }}
         transition={{ duration: 0.35 }}
       >
         <button
@@ -112,18 +128,18 @@ export function WorldView({ world, onBack }: WorldViewProps) {
             as="span"
             text={backLabel}
             mode={headerDecodeMode}
-            duration={HEADER_DECODE_MS}
+            duration={headerDecodeMs}
           />
         </button>
 
         <p className="text-sm lowercase tracking-[0.2em] text-white/50 md:text-[20px] md:tracking-[0.25em]">
-          <DecodeText text={t("themeLabel")} mode={headerDecodeMode} duration={HEADER_DECODE_MS} />
+          <DecodeText text={t("themeLabel")} mode={headerDecodeMode} duration={headerDecodeMs} />
         </p>
         <DecodeText
           as="h1"
           text={getLocalized(world.albumTitle, locale)}
           mode={headerDecodeMode}
-          duration={HEADER_DECODE_MS}
+          duration={headerDecodeMs}
           className="mt-1 text-[28px] font-light tracking-wide md:mt-2 md:text-[40px] lg:text-[60px]"
         />
         {!useSlotScene && (
@@ -132,7 +148,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
               as="span"
               text={getLocalized(world.themeDescription, locale)}
               mode={headerDecodeMode}
-              duration={HEADER_DECODE_MS}
+              duration={headerDecodeMs}
             />
           </p>
         )}

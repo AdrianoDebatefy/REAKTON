@@ -22,6 +22,7 @@ export const MOBILE_COVER_ACTIVE_SCALE = 1.5;
 export const MOBILE_COVER_ACTIVE_CENTER = { x: 50, y: 54 };
 export const MOBILE_COVER_FADE_S = 2;
 export const MOBILE_COVER_FADE_DURATION_S = 0.45;
+export const MOBILE_COVER_EXIT_MS = MOBILE_COVER_FADE_S * 1000;
 
 /** Zufällige Delays innerhalb des 2s-Fensters, damit Covers gestaffelt einblenden. */
 export function buildRandomCoverFadeDelays(

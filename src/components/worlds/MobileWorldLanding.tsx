@@ -7,6 +7,8 @@ import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import { getLocalized } from "@/lib/locale";
 
 const COLUMN_EXIT_S = 2;
+const MOBILE_RETURN_SLIDE_S = 1;
+const MOBILE_RETURN_BG_DELAY_S = 0.5;
 const COLUMN_STAGGER_S = 0.01;
 const COLUMN_EASE = [0.4, 0, 0.2, 1] as const;
 const CAPTION_DECODE_MS = 720;
@@ -63,11 +65,13 @@ function mobileSlideY(
   isEntering: boolean,
   isColumnReturning: boolean,
   returnBgExpandHold: boolean,
-  returnPivotDisplay: number | null
+  returnPivotDisplay: number | null,
+  returnAtmosphere: WorldAtmosphere | null
 ): string | number {
   if (isColumnReturning) {
     if (
       returnBgExpandHold &&
+      returnAtmosphere !== "nano" &&
       returnPivotDisplay !== null &&
       displayIndex !== returnPivotDisplay
     ) {
@@ -177,14 +181,18 @@ function PanelBgLayers({
   tone,
   bg,
   showWorld,
+  isColumnReturning,
   scrimOpacity,
 }: {
   world: World;
   tone: ReturnType<typeof columnCopyTone>;
   bg: { desktop: string; mobile: string; onError?: () => void };
   showWorld: boolean;
+  isColumnReturning: boolean;
   scrimOpacity: number;
 }) {
+  const hideOverlays = showWorld || isColumnReturning;
+
   return (
     <>
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -196,16 +204,16 @@ function PanelBgLayers({
         <motion.div
           className={`landing-column-overlay landing-column-overlay--${world.atmosphere} absolute inset-0`}
           initial={false}
-          animate={{ opacity: showWorld ? 0 : 1 }}
+          animate={{ opacity: hideOverlays ? 0 : 1 }}
           transition={{
-            opacity: showWorld
+            opacity: hideOverlays
               ? { duration: OVERLAY_EXIT_S, ease: COLUMN_EASE }
               : EARTH_TRANSITION,
           }}
           aria-hidden
         />
       </div>
-      {!showWorld && (
+      {!hideOverlays && (
         <motion.div
           className={`pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b ${tone.scrim}`}
           initial={false}
@@ -290,26 +298,35 @@ export function MobileWorldLanding({
         {mobileWorlds.map((world, displayIndex) => {
           const index = worlds.findIndex((w) => w.id === world.id);
           if (index < 0) return null;
-          if (showWorld && index !== selectedIndex) return null;
 
           const tone = columnCopyTone(world.atmosphere);
           const bg = bgSourcesForWorld(world);
           const pivotDataIndex = isColumnReturning ? returnFromIndex : selectedIndex;
           const isPivot = pivotDataIndex !== null && index === pivotDataIndex;
+          const hiddenInWorldView = showWorld && !isPivot;
+          const pivotReturnHold =
+            isColumnReturning &&
+            returnBgExpandHold &&
+            world.atmosphere !== "nano";
           const fillsViewport =
             isPivot &&
             (isEntering ||
               isImmersed ||
               showWorld ||
-              (isColumnReturning && returnBgExpandHold));
+              pivotReturnHold);
           const resting = panelGeometry(displayIndex, panelCount);
+          const offscreenY = bgOffscreenY(
+            displayIndex,
+            pivotSlot ?? returnPivotSlot ?? displayIndex
+          );
           const slideY = mobileSlideY(
             displayIndex,
             pivotSlot,
             isEntering,
             isColumnReturning,
             returnBgExpandHold,
-            returnPivotSlot
+            returnPivotSlot,
+            returnAtmosphere
           );
           const delay = mobileSlideDelay(
             displayIndex,
@@ -321,9 +338,20 @@ export function MobileWorldLanding({
           );
           const slideOffscreen = isAnimating && !isPivot && !isColumnReturning;
           const slideBack = isColumnReturning && !isPivot;
+          const returnSlideS = isColumnReturning ? MOBILE_RETURN_SLIDE_S : COLUMN_EXIT_S;
+          const geometryDuration =
+            isColumnReturning && isPivot && returnAtmosphere !== "nano" && !returnBgExpandHold
+              ? MOBILE_RETURN_BG_DELAY_S
+              : isColumnReturning
+                ? MOBILE_RETURN_SLIDE_S
+                : COLUMN_EXIT_S;
           const geometryTransition =
             isEntering || isColumnReturning
-              ? { ...EARTH_TRANSITION, type: "tween" as const }
+              ? {
+                  duration: geometryDuration,
+                  ease: COLUMN_EASE,
+                  type: "tween" as const,
+                }
               : { duration: 0 };
 
           return (
@@ -335,18 +363,19 @@ export function MobileWorldLanding({
                 position: "absolute",
                 backgroundColor: atmosphereFallbackBg(world.atmosphere),
                 zIndex: fillsViewport ? 30 : displayIndex + 1,
+                visibility: hiddenInWorldView ? "hidden" : "visible",
               }}
               initial={slideBack ? { y: slideY } : false}
               animate={{
                 top: fillsViewport ? "0%" : resting.top,
                 height: fillsViewport ? "100%" : resting.height,
-                y: slideOffscreen ? slideY : 0,
+                y: hiddenInWorldView ? offscreenY : slideOffscreen ? slideY : 0,
               }}
               transition={{
                 top: geometryTransition,
                 height: geometryTransition,
                 y: isAnimating
-                  ? { duration: COLUMN_EXIT_S, delay, ease: COLUMN_EASE }
+                  ? { duration: returnSlideS, delay, ease: COLUMN_EASE }
                   : { duration: 0 },
               }}
             >
@@ -355,6 +384,7 @@ export function MobileWorldLanding({
                 tone={tone}
                 bg={bg}
                 showWorld={showWorld}
+                isColumnReturning={isColumnReturning}
                 scrimOpacity={scrimOpacity}
               />
             </motion.div>

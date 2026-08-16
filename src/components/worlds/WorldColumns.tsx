@@ -9,6 +9,7 @@ import { MobileWorldLanding } from "./MobileWorldLanding";
 import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import { getInitialWorldUiState, writeWorldSession } from "@/lib/world-session";
 import { getLocalized } from "@/lib/locale";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface WorldColumnsProps {
   worlds: World[];
@@ -25,6 +26,8 @@ const COLUMN_EXIT_S = 2;
 const COLUMN_STAGGER_S = 0.01;
 /** Erde startet nach dem Abbau erst, wenn Spalten schon sichtbar zurückfahren */
 const EARTH_RETURN_DELAY_S = 0.9;
+const MOBILE_RETURN_SLIDE_S = 1;
+const MOBILE_RETURN_BG_DELAY_S = 0.5;
 const COLUMN_EASE = [0.4, 0, 0.2, 1] as const;
 const EARTH_TRANSITION = { duration: COLUMN_EXIT_S, ease: COLUMN_EASE };
 const WORLD_VIEW_EXIT_S = 0.15;
@@ -34,8 +37,8 @@ function maxColumnStaggerS(columnCount: number) {
   return Math.max(0, columnCount - 2) * COLUMN_STAGGER_S;
 }
 
-function columnEnterMs(columnCount: number) {
-  return (COLUMN_EXIT_S + maxColumnStaggerS(columnCount)) * 1000;
+function columnEnterMs(columnCount: number, slideS = COLUMN_EXIT_S) {
+  return (slideS + maxColumnStaggerS(columnCount)) * 1000;
 }
 
 function bgOffscreenX(columnIndex: number, selectedIndex: number) {
@@ -356,6 +359,7 @@ function columnCopyTone(atmosphere: WorldAtmosphere) {
 export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
   const locale = useLocale() as Locale;
   const t = useTranslations("home");
+  const isMobile = useIsMobile();
   const initialUi = getInitialWorldUiState();
   const [activeId, setActiveId] = useState<string | null>(initialUi.activeId);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(initialUi.selectedIndex);
@@ -414,7 +418,11 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
     writeWorldSession(null);
     const atmosphere = worlds.find((w) => w.id === activeId)?.atmosphere ?? null;
     const fromIndex = selectedIndex;
-    const returnMs = columnEnterMs(worlds.length);
+    const returnSlideS = isMobile ? MOBILE_RETURN_SLIDE_S : COLUMN_EXIT_S;
+    const returnMs = columnEnterMs(worlds.length, returnSlideS);
+    const bgExpandDelayMs = isMobile
+      ? MOBILE_RETURN_BG_DELAY_S * 1000
+      : EARTH_RETURN_DELAY_S * 1000;
     setShowWorld(false);
     setColumnReturning(true);
     setReturnAtmosphere(atmosphere);
@@ -423,14 +431,14 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
     setActiveId(null);
     setSelectedIndex(null);
     setLandingCaptionMode("hidden");
-    window.setTimeout(() => setReturnBgExpandHold(false), EARTH_RETURN_DELAY_S * 1000);
+    window.setTimeout(() => setReturnBgExpandHold(false), bgExpandDelayMs);
     window.setTimeout(() => {
       setColumnReturning(false);
       setReturnAtmosphere(null);
       setReturnFromIndex(null);
       setLandingCaptionMode("in");
     }, returnMs);
-  }, [activeId, selectedIndex, worlds]);
+  }, [activeId, isMobile, selectedIndex, worlds]);
 
   const [earthDesktopSrc, setEarthDesktopSrc] = useState(
     () => cosmosWorld?.backgroundImage || "/worlds/earth-night.svg"
@@ -515,8 +523,7 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
   const earthAtPageCenter =
     (isImmersed && isCosmosActive) ||
     (returnBgExpandHold && returnAtmosphere === "cosmos");
-  const nanoBgFull =
-    (isImmersed && isNanoActive) || (returnBgExpandHold && returnAtmosphere === "nano");
+  const nanoBgFull = isImmersed && isNanoActive;
   const clubBgFull =
     (isImmersed && activeWorld?.atmosphere === "club") ||
     (returnBgExpandHold && returnAtmosphere === "club");
@@ -537,7 +544,7 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
     selectedIndex,
     nanoColumnIndex,
     Boolean(isImmersed && isNanoActive),
-    returnBgExpandHold && returnAtmosphere === "nano",
+    false,
     isImmersed
   );
   const showClubBg = bgVisible(
@@ -584,7 +591,8 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
   const captionDecodeMode: DecodeMode =
     landingCaptionMode === "hidden" ? "static" : landingCaptionMode;
 
-  const scrimFadingOut = landingCaptionMode === "out" || isEntering || showWorld;
+  const scrimFadingOut =
+    landingCaptionMode === "out" || isEntering || showWorld || isColumnReturning;
   const scrimOpacity = scrimFadingOut ? 0 : 1;
 
   return (

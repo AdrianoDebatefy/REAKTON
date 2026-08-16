@@ -9,6 +9,7 @@ import { getLocalized } from "@/lib/locale";
 import {
   MOBILE_COVER_ACTIVE_CENTER,
   MOBILE_COVER_ACTIVE_SCALE,
+  MOBILE_COVER_EXIT_MS,
   MOBILE_COVER_FADE_DURATION_S,
   MOBILE_COVER_FADE_S,
   MOBILE_COVER_INACTIVE_PX,
@@ -84,6 +85,10 @@ export function MobileAlbumSlotScene({
   const items = songs.slice(0, maxSlots);
   const padPositions = useMemo(() => buildMobilePadLayout(items.length), [items.length]);
   const coverFadeDelays = useMemo(
+    () => buildRandomCoverFadeDelays(items.length),
+    [items.length]
+  );
+  const coverExitDelays = useMemo(
     () => buildRandomCoverFadeDelays(items.length),
     [items.length]
   );
@@ -181,7 +186,7 @@ export function MobileAlbumSlotScene({
     if (exitStartedRef.current) return;
     exitStartedRef.current = true;
     stopAudio();
-    const timer = window.setTimeout(() => onExitComplete?.(), 420);
+    const timer = window.setTimeout(() => onExitComplete?.(), MOBILE_COVER_EXIT_MS);
     return () => window.clearTimeout(timer);
   }, [exiting, onExitComplete, stopAudio]);
 
@@ -191,8 +196,6 @@ export function MobileAlbumSlotScene({
     <motion.div
       ref={sceneRef}
       className="album-slot-scene relative mx-auto h-[calc(100dvh-11.5rem-env(safe-area-inset-top))] min-h-[320px] w-full max-w-lg overflow-hidden bg-transparent"
-      animate={{ opacity: exiting ? 0 : 1 }}
-      transition={{ duration: 0.4 }}
     >
       {items.map((song, i) => {
         const pad = padPositions[i] ?? MOBILE_COVER_ACTIVE_CENTER;
@@ -202,6 +205,7 @@ export function MobileAlbumSlotScene({
         const targetY = isActive ? MOBILE_COVER_ACTIVE_CENTER.y : pad.y;
         const hidden = isPoleMode && !isActive;
         const introDelay = coverFadeDelays[i] ?? 0;
+        const exitDelay = coverExitDelays[i] ?? 0;
 
         return (
           <motion.button
@@ -235,7 +239,7 @@ export function MobileAlbumSlotScene({
               height: targetSize,
               x: "-50%",
               y: "-50%",
-              opacity: hidden ? 0 : 1,
+              opacity: exiting || hidden ? 0 : 1,
               scale: hidden ? 0.85 : 1,
             }}
             transition={{
@@ -243,15 +247,21 @@ export function MobileAlbumSlotScene({
               top: MOVE_TRANSITION,
               width: MOVE_TRANSITION,
               height: MOVE_TRANSITION,
-              opacity: hidden
-                ? FADE_TRANSITION
-                : !introDone
-                  ? {
-                      duration: MOBILE_COVER_FADE_DURATION_S,
-                      delay: introDelay,
-                      ease: [0.4, 0, 0.2, 1],
-                    }
-                  : FADE_TRANSITION,
+              opacity: exiting
+                ? {
+                    duration: MOBILE_COVER_FADE_DURATION_S,
+                    delay: exitDelay,
+                    ease: [0.4, 0, 0.2, 1],
+                  }
+                : hidden
+                  ? FADE_TRANSITION
+                  : !introDone
+                    ? {
+                        duration: MOBILE_COVER_FADE_DURATION_S,
+                        delay: introDelay,
+                        ease: [0.4, 0, 0.2, 1],
+                      }
+                    : FADE_TRANSITION,
               scale: hidden
                 ? FADE_TRANSITION
                 : !introDone

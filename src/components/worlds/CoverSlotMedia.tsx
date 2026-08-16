@@ -3,6 +3,7 @@
 import { useEffect, useState, type RefObject } from "react";
 import Image from "next/image";
 import type { Song } from "@/types/content";
+import { resolvePublicAssetUrl } from "@/lib/asset-url";
 
 interface CoverSlotMediaProps {
   song: Song;
@@ -18,12 +19,14 @@ function isUploadPath(url: string): boolean {
 
 function CoverImage({
   src,
+  resolvedSrc,
   alt,
   sizes,
   priority,
   onError,
 }: {
   src: string;
+  resolvedSrc: string;
   alt: string;
   sizes: string;
   priority?: boolean;
@@ -31,10 +34,9 @@ function CoverImage({
 }) {
   if (isUploadPath(src)) {
     return (
-      // Admin uploads: plain img avoids Next image pipeline quirks on the VPS.
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={src}
+        src={resolvedSrc}
         alt={alt}
         className="absolute inset-0 h-full w-full object-cover"
         draggable={false}
@@ -82,6 +84,7 @@ export function CoverSlotMedia({
     <div className="relative h-full w-full bg-[#C1E5F9]">
       <CoverImage
         src={resolvedCover}
+        resolvedSrc={resolvePublicAssetUrl(resolvedCover)}
         alt={song.title}
         sizes={sizes}
         priority={priority}
@@ -90,8 +93,8 @@ export function CoverSlotMedia({
       {showVideo && (
         <video
           ref={videoRef}
-          src={song.videoSnippet}
-          poster={resolvedCover}
+          src={resolvePublicAssetUrl(song.videoSnippet!)}
+          poster={resolvePublicAssetUrl(resolvedCover)}
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
             videoVisible ? "opacity-100" : "opacity-0"
           }`}

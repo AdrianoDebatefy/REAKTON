@@ -7,6 +7,7 @@ import { CONTENT_LOCALES, LOCALE_LABELS, emptyLocalized } from "@/lib/locale";
 import { PasswordChangeForm } from "@/components/admin/PasswordChangeForm";
 import { ContactMessagesSection } from "@/components/admin/ContactMessagesSection";
 import { SITE_BUILD_LABEL } from "@/lib/site-build";
+import { resolvePublicAssetUrl } from "@/lib/asset-url";
 
 async function uploadFile(file: File): Promise<string> {
   const form = new FormData();
@@ -73,16 +74,19 @@ function UploadField({
   const showServerPreview = isImage && Boolean(value) && !value.includes("placeholder");
 
   useEffect(() => {
+    setLocalPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setPreviewError(false);
+    setUploadError("");
+  }, [value]);
+
+  useEffect(() => {
     return () => {
       if (localPreview) URL.revokeObjectURL(localPreview);
     };
   }, [localPreview]);
-
-  useEffect(() => {
-    if (showServerPreview) {
-      setPreviewError(false);
-    }
-  }, [value, showServerPreview]);
 
   return (
     <div className="block text-xs text-white/75">
@@ -128,7 +132,7 @@ function UploadField({
           <p className="mb-2 text-[10px] uppercase tracking-widest text-white/50">Vorschau</p>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={localPreview ?? value}
+            src={localPreview ?? resolvePublicAssetUrl(value)}
             alt=""
             className="max-h-40 w-auto max-w-full border border-white/15 object-contain"
             onLoad={() => {
@@ -231,6 +235,7 @@ function SongSlotEditor({
       />
 
       <UploadField
+        key={`${song.id}-cover`}
         label="Bild (Cover)"
         accept="image/*"
         value={song.coverImage}
@@ -238,6 +243,7 @@ function SongSlotEditor({
         inputClassName={`min-w-0 flex-1 border px-2 py-1.5 text-xs ${theme.inputBg}`}
       />
       <UploadField
+        key={`${song.id}-video`}
         label="Animation (MP4, optional)"
         accept="video/mp4,video/webm"
         value={song.videoSnippet ?? ""}
@@ -245,6 +251,7 @@ function SongSlotEditor({
         inputClassName={`min-w-0 flex-1 border px-2 py-1.5 text-xs ${theme.inputBg}`}
       />
       <UploadField
+        key={`${song.id}-audio`}
         label="Audio-Loop (MP3, optional)"
         accept="audio/mpeg,audio/mp3,audio/wav"
         value={song.audioSnippet ?? ""}
@@ -427,10 +434,16 @@ function ContentSection({
           <WorldMetaEditor world={world} onChange={updateWorld} theme={theme} />
         ) : (
           <SongSlotEditor
+            key={`${world.id}-slot-${slotTab}`}
             song={world.songs[slotTab - 1] ?? { id: `${world.id}-slot-${slotTab}`, title: "", coverImage: "/covers/placeholder.svg" }}
             onChange={(s) => {
               const songs = [...world.songs];
-              songs[slotTab - 1] = s;
+              const index = songs.findIndex((item) => item.id === s.id);
+              if (index >= 0) {
+                songs[index] = s;
+              } else {
+                songs[slotTab - 1] = s;
+              }
               updateWorld({ ...world, songs });
             }}
             theme={theme}
@@ -1190,14 +1203,14 @@ export function AdminPanel({
       {sectionTab === "content" && (
         <ContentSection
           worlds={data.worlds}
-          onWorldsChange={(worlds) => setData({ ...data, worlds })}
+          onWorldsChange={(worlds) => setData((prev) => ({ ...prev, worlds }))}
         />
       )}
 
       {sectionTab === "live" && (
         <LiveEditor
           videos={data.liveVideos}
-          onChange={(liveVideos) => setData({ ...data, liveVideos })}
+          onChange={(liveVideos) => setData((prev) => ({ ...prev, liveVideos }))}
         />
       )}
 
@@ -1205,11 +1218,11 @@ export function AdminPanel({
         <>
           <PressEditor
             entries={data.press}
-            onChange={(press) => setData({ ...data, press })}
+            onChange={(press) => setData((prev) => ({ ...prev, press }))}
           />
           <PressPreviewEditor
             config={data.pressPreview ?? { expiryDays: 14, tracks: [] }}
-            onChange={(pressPreview) => setData({ ...data, pressPreview })}
+            onChange={(pressPreview) => setData((prev) => ({ ...prev, pressPreview }))}
           />
         </>
       )}
@@ -1236,7 +1249,7 @@ export function AdminPanel({
                 label="REAKTON-Logo"
                 accept="image/*"
                 value={data.brandLogo ?? "/brand/reakton-logo.webp"}
-                onChange={(url) => setData({ ...data, brandLogo: url })}
+                onChange={(url) => setData((prev) => ({ ...prev, brandLogo: url }))}
               />
             </div>
             <img
@@ -1251,7 +1264,7 @@ export function AdminPanel({
             <div className="mt-4 max-w-md">
               <SiteLinksEditor
                 links={data.siteLinks}
-                onChange={(siteLinks) => setData({ ...data, siteLinks })}
+                onChange={(siteLinks) => setData((prev) => ({ ...prev, siteLinks }))}
               />
             </div>
           </div>
@@ -1261,13 +1274,13 @@ export function AdminPanel({
             <LocalizedFields
               label="Impressum"
               value={data.impressum}
-              onChange={(impressum) => setData({ ...data, impressum })}
+              onChange={(impressum) => setData((prev) => ({ ...prev, impressum }))}
               multiline
             />
             <LocalizedFields
               label="Datenschutz"
               value={data.datenschutz}
-              onChange={(datenschutz) => setData({ ...data, datenschutz })}
+              onChange={(datenschutz) => setData((prev) => ({ ...prev, datenschutz }))}
               multiline
             />
           </div>

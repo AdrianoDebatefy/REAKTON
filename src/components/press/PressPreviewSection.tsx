@@ -33,7 +33,7 @@ export function PressPreviewSection() {
               <Link
                 key={world}
                 href={`/press/player/${slug}`}
-                className={`block w-full border px-4 py-5 text-center text-xs uppercase tracking-[0.25em] text-white transition md:text-[8px] ${worldTheme.button} ${worldTheme.glow}`}
+                className={`block w-full border px-4 py-5 text-center text-xs uppercase tracking-[0.25em] text-white transition ${worldTheme.button} ${worldTheme.glow}`}
               >
                 {pressWorldLabel(world, locale)}
               </Link>
@@ -43,10 +43,10 @@ export function PressPreviewSection() {
           return (
             <div
               key={world}
-              className={`w-full cursor-not-allowed border px-4 py-5 text-center text-xs uppercase tracking-[0.25em] text-white opacity-40 md:text-[8px] ${worldTheme.button}`}
+              className={`w-full cursor-not-allowed border px-4 py-5 text-center text-xs uppercase tracking-[0.25em] text-white opacity-40 ${worldTheme.button}`}
             >
               {pressWorldLabel(world, locale)}
-              <span className="mt-1 block text-[9px] normal-case tracking-normal text-white/50 md:text-[7px]">
+              <span className="mt-1 block text-xs normal-case tracking-normal text-white/50">
                 {t("playerWorldSoon")}
               </span>
             </div>

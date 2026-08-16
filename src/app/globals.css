@@ -36,6 +36,14 @@ body {
   html.site-public {
     font-size: 70%;
   }
+
+  html.site-public.site-press {
+    font-size: 200%;
+  }
+}
+
+html.site-public.site-press {
+  font-size: 200%;
 }
 
 /* Direction D: Halbton Horizon */

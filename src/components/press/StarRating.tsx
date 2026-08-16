@@ -35,11 +35,11 @@ export function StarRating({
   compact?: boolean;
 }) {
   const accent = PRESS_WORLD_THEME[atmosphere].accent;
-  const starClass = size === "lg" ? "text-2xl md:text-xl" : "text-lg";
+  const starClass = size === "lg" ? "text-2xl" : "text-lg";
   const labelClass =
     size === "lg"
-      ? "text-base uppercase tracking-widest text-white/40 md:text-sm"
-      : "text-[10px] uppercase tracking-widest text-white/40 md:text-[7px]";
+      ? "text-base uppercase tracking-widest text-white/40"
+      : "text-xs uppercase tracking-widest text-white/40";
 
   return (
     <div className="flex flex-wrap items-center gap-2">

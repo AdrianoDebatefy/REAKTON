@@ -260,8 +260,8 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
   if (!atmosphere || !theme || !isPlayerSlugReady(slug)) {
     return (
       <div className="mx-auto max-w-lg px-4 pb-16 pt-24 text-center">
-        <p className="text-lg text-white/50 md:text-base">{t("playerWorldSoon")}</p>
-        <Link href="/press" className="mt-6 inline-block text-base uppercase tracking-widest text-white/70 underline md:text-sm">
+        <p className="text-lg text-white/50">{t("playerWorldSoon")}</p>
+        <Link href="/press" className="mt-6 inline-block text-base uppercase tracking-widest text-white/70 underline">
           {t("backToPress")}
         </Link>
       </div>
@@ -288,64 +288,64 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
     <div className="mx-auto max-w-7xl overflow-hidden px-4 pb-16 pt-24">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-base uppercase tracking-[0.35em] text-white/40 md:text-sm">
+          <p className="text-base uppercase tracking-[0.35em] text-white/40">
             {t("playerLabel")}
           </p>
-          <h1 className="mt-1 text-3xl font-light tracking-wide md:text-2xl">
+          <h1 className="mt-1 text-3xl font-light tracking-wide">
             {pressWorldLabel(atmosphere, locale)}
           </h1>
         </div>
         <Link
           href="/press"
-          className="rounded border border-white/15 px-4 py-2 text-base uppercase tracking-widest text-white/60 transition hover:border-white/35 md:text-sm"
+          className="rounded border border-white/15 px-4 py-2 text-base uppercase tracking-widest text-white/60 transition hover:border-white/35"
         >
           {t("backToPress")}
         </Link>
       </div>
 
       {!sessionChecked ? (
-        <p className="mt-10 text-lg text-white/45 md:text-base">{t("loadingTracks")}</p>
+        <p className="mt-10 text-lg text-white/45">{t("loadingTracks")}</p>
       ) : !authenticated ? (
         <div
           className={`mx-auto mt-10 max-w-md rounded-md border border-white/10 bg-white/[0.04] p-6 backdrop-blur-md ${theme.glow}`}
           style={{ borderColor: `${theme.accent}44` }}
         >
-          <p className="text-lg text-white/50 md:text-base">{t("loginHint")}</p>
+          <p className="text-lg text-white/50">{t("loginHint")}</p>
           <form onSubmit={(e) => void handleLogin(e)} className="mt-6 space-y-4">
-            <label className="block text-base uppercase tracking-widest text-white/50 md:text-sm">
+            <label className="block text-base uppercase tracking-widest text-white/50">
               {t("email")}
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 w-full border border-white/15 bg-black/50 px-3 py-2 text-lg text-white md:text-base"
+                className="mt-1 w-full border border-white/15 bg-black/50 px-3 py-2 text-lg text-white"
               />
             </label>
-            <label className="block text-base uppercase tracking-widest text-white/50 md:text-sm">
+            <label className="block text-base uppercase tracking-widest text-white/50">
               {t("password")}
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full border border-white/15 bg-black/50 px-3 py-2 text-lg text-white md:text-base"
+                className="mt-1 w-full border border-white/15 bg-black/50 px-3 py-2 text-lg text-white"
               />
             </label>
-            {loginError ? <p className="text-lg text-red-300/90 md:text-base">{loginError}</p> : null}
+            {loginError ? <p className="text-lg text-red-300/90">{loginError}</p> : null}
             <button
               type="submit"
               disabled={loginBusy}
-              className="w-full rounded border border-white/25 bg-white/10 px-4 py-3 text-base uppercase tracking-[0.3em] text-white disabled:opacity-50 md:text-sm"
+              className="w-full rounded border border-white/25 bg-white/10 px-4 py-3 text-base uppercase tracking-[0.3em] text-white disabled:opacity-50"
             >
               {loginBusy ? t("loginBusy") : t("loginSubmit")}
             </button>
           </form>
         </div>
       ) : tracksLoading ? (
-        <p className="mt-10 text-lg text-white/45 md:text-base">{t("loadingTracks")}</p>
+        <p className="mt-10 text-lg text-white/45">{t("loadingTracks")}</p>
       ) : tracks.length === 0 ? (
-        <p className="mt-10 text-lg text-white/45 md:text-base">{t("noTracks")}</p>
+        <p className="mt-10 text-lg text-white/45">{t("noTracks")}</p>
       ) : (
         <div className="mt-10">
           <PressPreviewPlayer

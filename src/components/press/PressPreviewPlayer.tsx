@@ -123,7 +123,7 @@ function GlassTransportButton({
         className="pointer-events-none absolute inset-[1px] rounded-[7px] border border-white/10"
         aria-hidden
       />
-      <span className="relative z-10 flex h-full items-center justify-center gap-2 px-4 text-sm uppercase tracking-[0.24em] text-white/90 md:text-xs">
+      <span className="relative z-10 flex h-full items-center justify-center gap-2 px-4 text-sm uppercase tracking-[0.24em] text-white/90">
         <span className="text-xs leading-none">{isPlaying ? "⏹" : "▶"}</span>
         <span>{label}</span>
       </span>
@@ -171,7 +171,7 @@ export function PressPreviewPlayer({
   return (
     <div className="w-full max-w-7xl space-y-1">
       {playbackError ? (
-        <p className="border border-red-400/25 bg-red-500/8 px-4 py-2 text-lg text-red-200 md:text-base">
+        <p className="border border-red-400/25 bg-red-500/8 px-4 py-2 text-lg text-red-200">
           {playbackError}
         </p>
       ) : null}
@@ -201,14 +201,14 @@ export function PressPreviewPlayer({
                     <img src={track.coverImage} alt="" className="h-full w-full object-cover" />
                   ) : null}
                 </div>
-                <span className="text-[2.5rem] font-light leading-none tabular-nums text-white/60 md:text-4xl">
+                <span className="text-[2.5rem] font-light leading-none tabular-nums text-white/60">
                   {slotLabel}
                 </span>
               </div>
 
               <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 py-2 pr-2">
                 <div className="relative flex min-h-8 items-start">
-                  <p className="min-w-0 flex-1 truncate pr-32 text-2xl font-light leading-tight text-white/90 md:pr-36 md:text-xl">
+                  <p className="min-w-0 flex-1 truncate pr-32 text-2xl font-light leading-tight text-white/90 md:pr-36">
                     {track.title}
                   </p>
                   <div className="absolute right-0 top-0 shrink-0">
@@ -238,7 +238,7 @@ export function PressPreviewPlayer({
                 />
 
                 <div className="flex items-center justify-end gap-3 pr-2">
-                  <span className="shrink-0 text-xl tabular-nums text-white/75 md:text-lg">
+                  <span className="shrink-0 text-xl tabular-nums text-white/75">
                     {timeCurrent} / {timeTotal}
                   </span>
                   <GlassTransportButton

@@ -12,6 +12,11 @@ import {
   MOBILE_RETURN_REVEAL_MS,
   MOBILE_RETURN_SLIDE_S,
 } from "@/lib/mobile-world-timing";
+import {
+  GPU_COMPOSIT_LAYER,
+  MOBILE_BG_OVERSCAN_SCALE,
+  mobileWorldBgObjectPosition,
+} from "@/lib/mobile-compositor";
 
 const COLUMN_EXIT_S = 2;
 const COLUMN_STAGGER_S = 0.01;
@@ -118,10 +123,6 @@ function pivotDisplayIndex(
   return slot >= 0 ? slot : null;
 }
 
-function mobileBgObjectPosition(): string {
-  return "center center";
-}
-
 function sortWorldsForMobile(worlds: World[]): World[] {
   return [...worlds].sort(
     (a, b) =>
@@ -132,17 +133,16 @@ function sortWorldsForMobile(worlds: World[]): World[] {
 function ColumnBgImage({
   desktopSrc,
   mobileSrc,
+  atmosphere,
   onError,
-  objectPosition = "center center",
-  objectPositionTransition,
 }: {
   desktopSrc: string;
   mobileSrc: string;
+  atmosphere: WorldAtmosphere;
   onError?: () => void;
-  objectPosition?: string;
-  objectPositionTransition?: { duration: number; ease: [number, number, number, number] };
 }) {
   const [src, setSrc] = useState(desktopSrc);
+  const objectPosition = mobileWorldBgObjectPosition(atmosphere);
 
   useEffect(() => {
     const media = window.matchMedia(MOBILE_MEDIA);
@@ -167,18 +167,19 @@ function ColumnBgImage({
   };
 
   return (
-    <motion.img
+    <img
       src={src}
       alt=""
-      className="absolute inset-0 block h-full w-full object-cover"
-      initial={false}
-      animate={{ objectPosition }}
-      transition={
-        objectPositionTransition
-          ? { objectPosition: objectPositionTransition }
-          : { duration: 0 }
-      }
+      className="pointer-events-none absolute left-1/2 top-1/2 block h-full w-full max-w-none object-cover"
+      style={{
+        ...GPU_COMPOSIT_LAYER,
+        objectPosition,
+        minWidth: `${MOBILE_BG_OVERSCAN_SCALE * 100}%`,
+        minHeight: `${MOBILE_BG_OVERSCAN_SCALE * 100}%`,
+        transform: `translate(-50%, -50%) scale(${MOBILE_BG_OVERSCAN_SCALE}) translateZ(0)`,
+      }}
       onError={handleError}
+      decoding="async"
     />
   );
 }
@@ -204,7 +205,6 @@ function PanelBgLayers({
 }) {
   const hideOverlays =
     showWorld || isEntering || (isColumnReturning && !returnRevealLanding);
-  const objectPosition = mobileBgObjectPosition();
   const overlayFade =
     isColumnReturning && returnRevealLanding
       ? { duration: MOBILE_RETURN_OVERLAY_FADE_S, ease: COLUMN_EASE }
@@ -216,12 +216,15 @@ function PanelBgLayers({
 
   return (
     <>
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div
+        className="pointer-events-none absolute inset-0 overflow-hidden"
+        style={{ ...GPU_COMPOSIT_LAYER, contain: "paint" }}
+      >
         <ColumnBgImage
           desktopSrc={bg.desktop}
           mobileSrc={bg.mobile}
+          atmosphere={world.atmosphere}
           onError={bg.onError}
-          objectPosition={objectPosition}
         />
         <motion.div
           className={`landing-column-overlay landing-column-overlay--${world.atmosphere} absolute inset-0`}
@@ -285,7 +288,6 @@ export function MobileWorldLanding({
 }) {
   const returnSlidePhase = isColumnReturning && !returnRevealLanding;
   const returnSettlePhase = isColumnReturning && returnRevealLanding;
-  const isAnimating = isEntering || isColumnReturning;
   const landingVisible = !showWorld;
   const captionDuration =
     returnSettlePhase ? MOBILE_RETURN_LABEL_IN_MS : CAPTION_DECODE_MS;
@@ -395,7 +397,10 @@ export function MobileWorldLanding({
                 pointerEvents: parkedOffscreen ? "none" : undefined,
                 backfaceVisibility: "hidden",
                 WebkitBackfaceVisibility: "hidden",
-                willChange: isAnimating ? "transform, top, height" : undefined,
+                willChange:
+                  isEntering || returnSlidePhase
+                    ? "transform"
+                    : undefined,
               }}
               initial={false}
               animate={{

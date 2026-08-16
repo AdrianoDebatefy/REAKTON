@@ -15,6 +15,12 @@ import {
   MOBILE_BACK_TEXT_MS,
   MOBILE_BACK_TOTAL_MS,
 } from "@/lib/mobile-world-timing";
+import {
+  GPU_COMPOSIT_LAYER,
+  MOBILE_BG_OVERSCAN_SCALE,
+  mobileWorldBgObjectPosition,
+} from "@/lib/mobile-compositor";
+import type { WorldAtmosphere } from "@/types/content";
 import cosmosLayout from "@/data/cosmos-layout.json";
 import nanoLayout from "@/data/nano-layout.json";
 import clubLayout from "@/data/club-layout.json";
@@ -24,11 +30,14 @@ const MOBILE_MEDIA = "(max-width: 767px)";
 function MobileWorldBackground({
   desktopSrc,
   mobileSrc,
+  atmosphere,
 }: {
   desktopSrc: string;
   mobileSrc: string;
+  atmosphere: WorldAtmosphere;
 }) {
   const [src, setSrc] = useState(desktopSrc);
+  const objectPosition = mobileWorldBgObjectPosition(atmosphere);
 
   useEffect(() => {
     const media = window.matchMedia(MOBILE_MEDIA);
@@ -46,15 +55,22 @@ function MobileWorldBackground({
 
   return (
     <div
-      className="pointer-events-none fixed inset-0 z-0 md:hidden"
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden md:hidden"
       aria-hidden
+      style={{ ...GPU_COMPOSIT_LAYER, contain: "paint" }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
         alt=""
-        className="block h-full w-full object-cover object-center"
-        style={{ transform: "translateZ(0)" }}
+        className="pointer-events-none absolute left-1/2 top-1/2 block h-full w-full max-w-none object-cover"
+        style={{
+          objectPosition,
+          minWidth: `${MOBILE_BG_OVERSCAN_SCALE * 100}%`,
+          minHeight: `${MOBILE_BG_OVERSCAN_SCALE * 100}%`,
+          transform: `translate(-50%, -50%) scale(${MOBILE_BG_OVERSCAN_SCALE}) translateZ(0)`,
+        }}
+        decoding="async"
       />
     </div>
   );
@@ -148,6 +164,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
         <MobileWorldBackground
           desktopSrc={world.backgroundImage}
           mobileSrc={world.backgroundImageMobile || world.backgroundImage}
+          atmosphere={world.atmosphere}
         />
       )}
       {!useGlobalBackground && (

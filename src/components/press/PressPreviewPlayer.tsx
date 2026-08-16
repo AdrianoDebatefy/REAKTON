@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import type { WorldAtmosphere } from "@/types/content";
+import { PressEqBars } from "@/components/press/PressEqBars";
 import { StarRating } from "@/components/press/StarRating";
 
 export interface PressPlayerTrack {
@@ -11,83 +11,6 @@ export interface PressPlayerTrack {
   coverImage?: string;
   userStars: number | null;
   votes: { totalStars: number; voteCount: number; average: number };
-}
-
-function MiniEq({
-  analyser,
-  visible,
-  active,
-  accent,
-}: {
-  analyser: AnalyserNode | null;
-  visible: boolean;
-  active: boolean;
-  accent: string;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const frameRef = useRef(0);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return undefined;
-    const resize = () => {
-      canvas.width = canvas.clientWidth;
-      canvas.height = 40;
-    };
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(canvas);
-    return () => ro.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return undefined;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return undefined;
-
-    const buffer = analyser ? new Uint8Array(analyser.frequencyBinCount) : null;
-
-    const draw = () => {
-      frameRef.current = requestAnimationFrame(draw);
-      const { width, height } = canvas;
-      ctx.clearRect(0, 0, width, height);
-
-      ctx.strokeStyle = "rgba(255,255,255,0.15)";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, height - 1);
-      ctx.lineTo(width, height - 1);
-      ctx.stroke();
-
-      const bars = 48;
-      const gap = 2;
-      const barWidth = Math.max(2, (width - gap * (bars - 1)) / bars);
-
-      for (let i = 0; i < bars; i += 1) {
-        let normalized = visible ? 0.14 : 0.08;
-        if (active && analyser && buffer) {
-          const step = Math.max(1, Math.floor(buffer.length / bars));
-          const value = buffer[i * step] ?? 0;
-          normalized = Math.max(0.14, value / 255);
-        }
-
-        const barHeight = Math.max(4, normalized * (height - 4));
-        const x = i * (barWidth + gap);
-        const y = height - 2 - barHeight;
-        ctx.fillStyle = accent;
-        ctx.globalAlpha = active ? 1 : visible ? 0.55 : 0.3;
-        ctx.fillRect(x, y, barWidth, barHeight);
-      }
-      ctx.globalAlpha = 1;
-    };
-
-    draw();
-    return () => cancelAnimationFrame(frameRef.current);
-  }, [analyser, active, visible, accent]);
-
-  return <canvas ref={canvasRef} className="h-10 w-full" height={40} aria-hidden />;
 }
 
 function formatTimeExtended(seconds: number): string {
@@ -264,7 +187,7 @@ export function PressPreviewPlayer({
                   />
                 </div>
 
-                <MiniEq
+                <PressEqBars
                   analyser={isActive ? analyser : null}
                   visible={isActive}
                   active={isPlaying}

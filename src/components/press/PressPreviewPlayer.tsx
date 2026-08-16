@@ -175,10 +175,10 @@ export function PressPreviewPlayer({
 
               <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 py-2 pr-2">
                 <div className="relative flex min-h-8 items-start">
-                  <p className="min-w-0 flex-1 truncate pr-36 text-2xl font-light leading-tight text-white/90 md:pr-40 md:text-xl">
+                  <p className="min-w-0 flex-1 truncate pr-32 text-2xl font-light leading-tight text-white/90 md:pr-36 md:text-xl">
                     {track.title}
                   </p>
-                  <div className="absolute right-[20%] top-0 shrink-0">
+                  <div className="absolute right-0 top-0 shrink-0">
                     <StarRating
                       value={track.votes}
                       userStars={track.userStars}

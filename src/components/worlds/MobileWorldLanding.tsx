@@ -5,15 +5,16 @@ import { motion } from "framer-motion";
 import type { Locale, World, WorldAtmosphere } from "@/types/content";
 import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import { getLocalized } from "@/lib/locale";
+import {
+  MOBILE_OVERLAY_FADE_S,
+  MOBILE_RETURN_SLIDE_S,
+} from "@/lib/mobile-world-timing";
 
 const COLUMN_EXIT_S = 2;
-const MOBILE_RETURN_SLIDE_S = 1.5;
-const MOBILE_RETURN_BG_DELAY_S = 0.75;
 const COLUMN_STAGGER_S = 0.01;
 const COLUMN_EASE = [0.4, 0, 0.2, 1] as const;
 const CAPTION_DECODE_MS = 720;
-const EARTH_TRANSITION = { duration: COLUMN_EXIT_S, ease: COLUMN_EASE };
-const OVERLAY_EXIT_S = 0.45;
+const OVERLAY_EXIT_S = MOBILE_OVERLAY_FADE_S;
 const MOBILE_MEDIA = "(max-width: 767px)";
 const MOBILE_WORLD_ORDER: WorldAtmosphere[] = ["cosmos", "nano", "club"];
 
@@ -114,13 +115,7 @@ function pivotDisplayIndex(
   return slot >= 0 ? slot : null;
 }
 
-function mobileBgObjectPosition(
-  atmosphere: WorldAtmosphere,
-  worldViewHold: boolean
-): string {
-  if (!worldViewHold) return "center center";
-  if (atmosphere === "cosmos") return "center 42%";
-  if (atmosphere === "club") return "center 58%";
+function mobileBgObjectPosition(): string {
   return "center center";
 }
 
@@ -190,29 +185,19 @@ function PanelBgLayers({
   tone,
   bg,
   showWorld,
-  isColumnReturning,
   isEntering,
-  isPivot,
-  returnBgExpandHold,
   scrimOpacity,
 }: {
   world: World;
   tone: ReturnType<typeof columnCopyTone>;
   bg: { desktop: string; mobile: string; onError?: () => void };
   showWorld: boolean;
-  isColumnReturning: boolean;
   isEntering: boolean;
-  isPivot: boolean;
-  returnBgExpandHold: boolean;
   scrimOpacity: number;
 }) {
-  const hideOverlays = showWorld || isColumnReturning || isEntering;
-  const bgRepositionActive =
-    isPivot &&
-    isColumnReturning &&
-    returnBgExpandHold &&
-    (world.atmosphere === "cosmos" || world.atmosphere === "club");
-  const objectPosition = mobileBgObjectPosition(world.atmosphere, bgRepositionActive);
+  const hideOverlays = showWorld || isEntering;
+  const objectPosition = mobileBgObjectPosition();
+  const overlayFade = { duration: OVERLAY_EXIT_S, ease: COLUMN_EASE };
 
   return (
     <>
@@ -222,33 +207,22 @@ function PanelBgLayers({
           mobileSrc={bg.mobile}
           onError={bg.onError}
           objectPosition={objectPosition}
-          objectPositionTransition={
-            isColumnReturning && isPivot && world.atmosphere !== "nano"
-              ? { duration: MOBILE_RETURN_BG_DELAY_S, ease: [...COLUMN_EASE] as [number, number, number, number] }
-              : undefined
-          }
         />
         <motion.div
           className={`landing-column-overlay landing-column-overlay--${world.atmosphere} absolute inset-0`}
           initial={false}
           animate={{ opacity: hideOverlays ? 0 : 1 }}
-          transition={{
-            opacity: hideOverlays
-              ? { duration: OVERLAY_EXIT_S, ease: COLUMN_EASE }
-              : EARTH_TRANSITION,
-          }}
+          transition={{ opacity: overlayFade }}
           aria-hidden
         />
       </div>
-      {!hideOverlays && (
-        <motion.div
-          className={`pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b ${tone.scrim}`}
-          initial={false}
-          animate={{ opacity: scrimOpacity }}
-          transition={{ opacity: EARTH_TRANSITION }}
-          aria-hidden
-        />
-      )}
+      <motion.div
+        className={`pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b ${tone.scrim}`}
+        initial={false}
+        animate={{ opacity: hideOverlays ? 0 : scrimOpacity }}
+        transition={{ opacity: overlayFade }}
+        aria-hidden
+      />
     </>
   );
 }
@@ -262,8 +236,8 @@ export function MobileWorldLanding({
   isImmersed,
   isColumnReturning,
   returnFromIndex,
-  returnBgExpandHold,
   returnAtmosphere,
+  returnRevealLanding,
   showWorld,
   landingCaptionMode,
   captionDecodeMode,
@@ -282,8 +256,8 @@ export function MobileWorldLanding({
   isImmersed: boolean;
   isColumnReturning: boolean;
   returnFromIndex: number | null;
-  returnBgExpandHold: boolean;
   returnAtmosphere: WorldAtmosphere | null;
+  returnRevealLanding: boolean;
   showWorld: boolean;
   landingCaptionMode: DecodeMode | "hidden";
   captionDecodeMode: DecodeMode;
@@ -314,9 +288,10 @@ export function MobileWorldLanding({
     : "calc(5.5rem + env(safe-area-inset-top))";
   const stackOverflow = isAnimating ? "overflow-visible" : "overflow-hidden";
 
-  const stackTransition =
-    isEntering || isColumnReturning
-      ? { duration: MOBILE_RETURN_SLIDE_S, ease: COLUMN_EASE }
+  const stackTransition = isColumnReturning
+    ? { duration: MOBILE_RETURN_SLIDE_S, ease: COLUMN_EASE }
+    : isEntering
+      ? { duration: COLUMN_EXIT_S, ease: COLUMN_EASE }
       : { duration: 0.35, ease: COLUMN_EASE };
 
   return (
@@ -357,12 +332,13 @@ export function MobileWorldLanding({
             panelCount,
             returnAtmosphere
           );
-          const slideOffscreen = isAnimating && !isPivot && !isColumnReturning;
-          const returnSlideS = isColumnReturning ? MOBILE_RETURN_SLIDE_S : COLUMN_EXIT_S;
+          const slideOffscreen = isEntering && !isPivot;
+          const slideReturning = isColumnReturning && !isPivot;
+          const slideDuration = isColumnReturning ? MOBILE_RETURN_SLIDE_S : COLUMN_EXIT_S;
           const geometryTransition =
             isEntering || isColumnReturning
               ? {
-                  duration: isColumnReturning ? MOBILE_RETURN_SLIDE_S : COLUMN_EXIT_S,
+                  duration: slideDuration,
                   ease: COLUMN_EASE,
                   type: "tween" as const,
                 }
@@ -371,7 +347,9 @@ export function MobileWorldLanding({
             ? offscreenY
             : slideOffscreen
               ? slideY
-              : 0;
+              : slideReturning
+                ? 0
+                : 0;
           const animateOpacity = parkedOffscreen ? 0 : 1;
           const keepPivotOnTop =
             isPivot && (fillsViewport || isEntering || isColumnReturning);
@@ -403,7 +381,7 @@ export function MobileWorldLanding({
                 top: geometryTransition,
                 height: geometryTransition,
                 y: isAnimating
-                  ? { duration: returnSlideS, delay, ease: COLUMN_EASE }
+                  ? { duration: slideDuration, delay, ease: COLUMN_EASE }
                   : { duration: 0 },
                 opacity: { duration: 0 },
               }}
@@ -413,10 +391,7 @@ export function MobileWorldLanding({
                 tone={tone}
                 bg={bg}
                 showWorld={showWorld}
-                isColumnReturning={isColumnReturning}
                 isEntering={isEntering}
-                isPivot={isPivot}
-                returnBgExpandHold={returnBgExpandHold}
                 scrimOpacity={scrimOpacity}
               />
             </motion.div>
@@ -424,7 +399,9 @@ export function MobileWorldLanding({
         })}
       </div>
 
-      {!showWorld && !isAnimating && landingCaptionMode !== "hidden" && (
+      {!showWorld &&
+        landingCaptionMode !== "hidden" &&
+        (!isColumnReturning || returnRevealLanding) && (
         <div className="pointer-events-none absolute inset-0 z-[25] grid grid-rows-3">
           {mobileWorlds.map((world) => {
             const tone = columnCopyTone(world.atmosphere);
@@ -456,7 +433,9 @@ export function MobileWorldLanding({
         </div>
       )}
 
-      {!showWorld && !isAnimating && landingCaptionMode !== "out" && (
+      {!showWorld &&
+        landingCaptionMode !== "out" &&
+        (!isEntering && (!isColumnReturning || returnRevealLanding)) && (
         <div className="pointer-events-auto absolute inset-0 z-[30] grid grid-rows-3">
           {mobileWorlds.map((world) => {
             const index = worlds.findIndex((w) => w.id === world.id);

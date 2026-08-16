@@ -11,6 +11,10 @@ import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import type { Locale } from "@/types/content";
 import { getLocalized } from "@/lib/locale";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import {
+  MOBILE_BACK_TEXT_MS,
+  MOBILE_BACK_TOTAL_MS,
+} from "@/lib/mobile-world-timing";
 import cosmosLayout from "@/data/cosmos-layout.json";
 import nanoLayout from "@/data/nano-layout.json";
 import clubLayout from "@/data/club-layout.json";
@@ -27,8 +31,6 @@ const atmosphereClass: Record<World["atmosphere"], string> = {
 };
 
 const HEADER_DECODE_MS = 720;
-const MOBILE_BACK_TEXT_MS = 1500;
-const MOBILE_BACK_TOTAL_MS = 3000;
 
 export function WorldView({ world, onBack }: WorldViewProps) {
   const locale = useLocale() as Locale;
@@ -59,10 +61,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
       if (useSlotScene && world.songs.length > 0) {
         setExiting(true);
       }
-      window.setTimeout(() => {
-        setExiting(false);
-        onBack();
-      }, MOBILE_BACK_TOTAL_MS);
+      window.setTimeout(() => onBack(), MOBILE_BACK_TOTAL_MS);
       return;
     }
 
@@ -113,7 +112,7 @@ export function WorldView({ world, onBack }: WorldViewProps) {
 
       <motion.div
         className="relative z-10 mx-auto max-w-6xl px-4 pb-2 pt-2 md:pt-6"
-        animate={{ opacity: exiting ? 0 : 1 }}
+        animate={{ opacity: exiting && !isMobile ? 0 : 1 }}
         transition={{ duration: isMobile ? 0.25 : 0.35 }}
       >
         <button

@@ -10,6 +10,9 @@ import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import { getInitialWorldUiState, writeWorldSession } from "@/lib/world-session";
 import { getLocalized } from "@/lib/locale";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import {
+  MOBILE_RETURN_SLIDE_S,
+} from "@/lib/mobile-world-timing";
 
 interface WorldColumnsProps {
   worlds: World[];
@@ -26,8 +29,6 @@ const COLUMN_EXIT_S = 2;
 const COLUMN_STAGGER_S = 0.01;
 /** Erde startet nach dem Abbau erst, wenn Spalten schon sichtbar zurückfahren */
 const EARTH_RETURN_DELAY_S = 0.9;
-const MOBILE_RETURN_SLIDE_S = 1.5;
-const MOBILE_RETURN_BG_DELAY_S = 0.75;
 const COLUMN_EASE = [0.4, 0, 0.2, 1] as const;
 const EARTH_TRANSITION = { duration: COLUMN_EXIT_S, ease: COLUMN_EASE };
 const WORLD_VIEW_EXIT_S = 0.15;
@@ -368,6 +369,7 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
   const [returnAtmosphere, setReturnAtmosphere] = useState<WorldAtmosphere | null>(null);
   const [returnBgExpandHold, setReturnBgExpandHold] = useState(false);
   const [returnFromIndex, setReturnFromIndex] = useState<number | null>(null);
+  const [returnRevealLanding, setReturnRevealLanding] = useState(false);
   const [landingCaptionMode, setLandingCaptionMode] = useState<DecodeMode | "hidden">(
     initialUi.landingCaptionMode
   );
@@ -418,11 +420,34 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
     writeWorldSession(null);
     const atmosphere = worlds.find((w) => w.id === activeId)?.atmosphere ?? null;
     const fromIndex = selectedIndex;
-    const returnSlideS = isMobile ? MOBILE_RETURN_SLIDE_S : COLUMN_EXIT_S;
+
+    if (isMobile) {
+      const returnMs = columnEnterMs(worlds.length, MOBILE_RETURN_SLIDE_S);
+      const revealMs = Math.max(0, returnMs - CAPTION_DECODE_MS);
+      setReturnRevealLanding(false);
+      setShowWorld(false);
+      setColumnReturning(true);
+      setReturnAtmosphere(atmosphere);
+      setReturnFromIndex(fromIndex);
+      setActiveId(null);
+      setSelectedIndex(null);
+      setLandingCaptionMode("hidden");
+      window.setTimeout(() => {
+        setReturnRevealLanding(true);
+        setLandingCaptionMode("in");
+      }, revealMs);
+      window.setTimeout(() => {
+        setColumnReturning(false);
+        setReturnRevealLanding(false);
+        setReturnAtmosphere(null);
+        setReturnFromIndex(null);
+      }, returnMs);
+      return;
+    }
+
+    const returnSlideS = COLUMN_EXIT_S;
     const returnMs = columnEnterMs(worlds.length, returnSlideS);
-    const bgExpandDelayMs = isMobile
-      ? MOBILE_RETURN_BG_DELAY_S * 1000
-      : EARTH_RETURN_DELAY_S * 1000;
+    const bgExpandDelayMs = EARTH_RETURN_DELAY_S * 1000;
     setShowWorld(false);
     setColumnReturning(true);
     setReturnAtmosphere(atmosphere);
@@ -438,7 +463,7 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
       setReturnFromIndex(null);
       setLandingCaptionMode("in");
     }, returnMs);
-  }, [activeId, isMobile, selectedIndex, worlds.length]);
+  }, [activeId, isMobile, selectedIndex, worlds]);
 
   const [earthDesktopSrc, setEarthDesktopSrc] = useState(
     () => cosmosWorld?.backgroundImage || "/worlds/earth-night.svg"
@@ -586,13 +611,15 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
     returnBgExpandHold,
     returnFromIndex
   );
-  const hidePageGrain = Boolean(cosmosWorld) && (earthAtPageCenter || showWorld || isLanding);
+  const hidePageGrain =
+    Boolean(cosmosWorld) &&
+    (earthAtPageCenter || showWorld || isLanding || isColumnReturning);
   const lockedHintLabel = `${t("locked")} — ${t("lockedHint")}`;
   const captionDecodeMode: DecodeMode =
     landingCaptionMode === "hidden" ? "static" : landingCaptionMode;
 
   const scrimFadingOut =
-    landingCaptionMode === "out" || isEntering || showWorld || isColumnReturning;
+    landingCaptionMode === "out" || isEntering || showWorld;
   const scrimOpacity = scrimFadingOut ? 0 : 1;
 
   return (
@@ -761,8 +788,8 @@ export function WorldColumns({ worlds, clapToyUrl }: WorldColumnsProps) {
         isImmersed={isImmersed}
         isColumnReturning={isColumnReturning}
         returnFromIndex={returnFromIndex}
-        returnBgExpandHold={returnBgExpandHold}
         returnAtmosphere={returnAtmosphere}
+        returnRevealLanding={returnRevealLanding}
         showWorld={showWorld}
         landingCaptionMode={landingCaptionMode}
         captionDecodeMode={captionDecodeMode}

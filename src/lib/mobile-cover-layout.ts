@@ -8,6 +8,11 @@ export function mobileCoverY(y: number): number {
   return y * 0.7;
 }
 
+export const MOBILE_COVER_INACTIVE_PX = 60;
+
+/** Gesamten Cover-Block um eine Cover-Höhe (60px) nach oben. */
+export const MOBILE_COVER_BLOCK_SHIFT_PX = MOBILE_COVER_INACTIVE_PX;
+
 /** Symmetrisches 3-Spalten-Pad-Grid für Mobile (unteres ~65 % der Szene). */
 export function buildMobilePadLayout(slotCount: number): PadPosition[] {
   const cols = 3;
@@ -22,7 +27,6 @@ export function buildMobilePadLayout(slotCount: number): PadPosition[] {
   });
 }
 
-export const MOBILE_COVER_INACTIVE_PX = 60;
 export const MOBILE_COVER_ACTIVE_SCALE = 0.88;
 export const MOBILE_COVER_ACTIVE_CENTER = { x: 50, y: mobileCoverY(54) };
 export const MOBILE_COVER_FADE_S = 3;

@@ -12,6 +12,7 @@ import {
   MOBILE_COVER_EXIT_MS,
   MOBILE_COVER_FADE_DURATION_S,
   MOBILE_COVER_FADE_S,
+  MOBILE_COVER_BLOCK_SHIFT_PX,
   MOBILE_COVER_INACTIVE_PX,
   buildMobilePadLayout,
   buildRandomCoverFadeDelays,
@@ -182,12 +183,7 @@ export function MobileAlbumSlotScene({
     });
   }, []);
 
-  useLayoutEffect(() => {
-    if (!exiting) {
-      exitLayoutRef.current = null;
-      return;
-    }
-    if (exitLayoutRef.current) return;
+  if (exiting && !exitLayoutRef.current) {
     exitLayoutRef.current = items.map((song, i) => {
       const pad = padPositions[i] ?? MOBILE_COVER_ACTIVE_CENTER;
       const isActive = activeId === song.id;
@@ -197,7 +193,16 @@ export function MobileAlbumSlotScene({
         size: isActive ? activeCoverSize : MOBILE_COVER_INACTIVE_PX,
       };
     });
-  }, [activeCoverSize, activeId, exiting, items, padPositions]);
+  }
+  if (!exiting) {
+    exitLayoutRef.current = null;
+  }
+
+  useLayoutEffect(() => {
+    if (!exiting) {
+      exitLayoutRef.current = null;
+    }
+  }, [exiting]);
 
   useEffect(() => {
     if (!exiting) {
@@ -218,7 +223,10 @@ export function MobileAlbumSlotScene({
     <motion.div
       ref={sceneRef}
       className="album-slot-scene relative z-20 mx-auto h-[calc(100dvh-11.5rem-env(safe-area-inset-top))] min-h-[320px] w-full max-w-lg overflow-hidden bg-transparent"
-      style={{ isolation: "isolate" }}
+      style={{
+        isolation: "isolate",
+        transform: `translateY(-${MOBILE_COVER_BLOCK_SHIFT_PX}px)`,
+      }}
     >
       {items.map((song, i) => {
         const pad = padPositions[i] ?? MOBILE_COVER_ACTIVE_CENTER;

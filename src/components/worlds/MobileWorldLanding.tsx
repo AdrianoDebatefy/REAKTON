@@ -121,13 +121,13 @@ function pivotDisplayIndex(
 /** Cosmos landing row: shift visible motif 30 % upward within the panel strip. */
 const MOBILE_COSMOS_LANDING_SHIFT = "30%";
 
-/** Same BG crop whenever the cosmos panel sits in the 3-row landing strip (all animation endpoints). */
+/** Same BG crop for cosmos whenever the landing stack is visible (start + end of enter/return). */
 function cosmosUsesLandingRowBgShift(
   atmosphere: WorldAtmosphere,
-  fillsViewport: boolean,
+  showWorld: boolean,
   parkedOffscreen: boolean
 ): boolean {
-  return atmosphere === "cosmos" && !fillsViewport && !parkedOffscreen;
+  return atmosphere === "cosmos" && !showWorld && !parkedOffscreen;
 }
 
 function cosmosLandingBgStyle(
@@ -401,7 +401,7 @@ export function MobileWorldLanding({
           const panelOverflow = isAnimating ? "overflow-visible" : "overflow-hidden";
           const usesLandingRowBgShift = cosmosUsesLandingRowBgShift(
             world.atmosphere,
-            fillsViewport,
+            showWorld,
             parkedOffscreen
           );
 

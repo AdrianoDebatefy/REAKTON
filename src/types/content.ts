@@ -56,6 +56,22 @@ export interface PressEntry {
   date?: string;
 }
 
+export interface PressPreviewTrack {
+  id: string;
+  world: WorldAtmosphere;
+  title: string;
+  artist?: string;
+  audioUrl: string;
+  coverImage?: string;
+  order: number;
+}
+
+export interface PressPreviewConfig {
+  /** Days until generated press password expires */
+  expiryDays: number;
+  tracks: PressPreviewTrack[];
+}
+
 export interface LiveVideo {
   id: string;
   youtubeUrl: string;
@@ -81,4 +97,5 @@ export interface SiteContent {
   clapToyUrl: string;
   impressum: LocalizedString;
   datenschutz: LocalizedString;
+  pressPreview?: PressPreviewConfig;
 }

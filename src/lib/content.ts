@@ -28,8 +28,16 @@ function normalizeSiteContent(raw: Record<string, unknown>): SiteContent {
 
   const base = { ...content, worlds };
 
-  if (base.siteLinks) {
-    return { ...base, siteLinks: { ...DEFAULT_SITE_LINKS, ...base.siteLinks } };
+  const withPressPreview = {
+    ...base,
+    pressPreview: {
+      expiryDays: base.pressPreview?.expiryDays ?? 14,
+      tracks: base.pressPreview?.tracks ?? [],
+    },
+  };
+
+  if (withPressPreview.siteLinks) {
+    return { ...withPressPreview, siteLinks: { ...DEFAULT_SITE_LINKS, ...withPressPreview.siteLinks } };
   }
 
   const store = content.storeLinks ?? [];
@@ -38,7 +46,7 @@ function normalizeSiteContent(raw: Record<string, unknown>): SiteContent {
     social.find((s) => s.platform.toLowerCase().includes(name))?.url ?? "";
 
   return {
-    ...base,
+    ...withPressPreview,
     siteLinks: {
       merchandise:
         store.find((s) => s.id === "outofline")?.url ??

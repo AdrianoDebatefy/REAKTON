@@ -39,6 +39,25 @@
     "subtitle": "インタビュー、レビュー、メディア掲載",
     "readMore": "記事を読む"
   },
+  "pressPreview": {
+    "sectionTitle": "アルバム・プレビュー",
+    "sectionSubtitle": "プレス向け試聴 — ワールドを選び、ログインして再生。",
+    "back": "戻る",
+    "email": "メール",
+    "password": "パスワード",
+    "loginHint": "メールとプレス用パスワードを入力してください。メールはアクセス記録のみに使用されます。",
+    "loginSubmit": "ログイン",
+    "loginBusy": "確認中…",
+    "loginFailed": "メールまたはパスワードが無効です。",
+    "loginExpired": "プレス用パスワードの有効期限が切れています。",
+    "loginNotConfigured": "プレビューはまだ有効になっていません。",
+    "playerLabel": "プレビュー・プレイヤー",
+    "loadingTracks": "トラックを読み込み中…",
+    "noTracks": "このワールドのプレビュー・トラックはまだありません。",
+    "play": "再生",
+    "pause": "一時停止",
+    "logout": "ログアウト"
+  },
   "live": {
     "title": "ライブ",
     "subtitle": "コンサートとパフォーマンス",

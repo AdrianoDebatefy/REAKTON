@@ -1,4 +1,5 @@
 import { getLocale, getTranslations } from "next-intl/server";
+import { PressPreviewSection } from "@/components/press/PressPreviewSection";
 import { getSiteContent } from "@/lib/content";
 import { getLocalized } from "@/lib/locale";
 import type { Locale } from "@/types/content";
@@ -16,6 +17,9 @@ export default async function PressPage() {
     <div className="mx-auto max-w-3xl px-4 pb-16 pt-24">
       <h1 className="text-2xl font-light tracking-wide">{t("title")}</h1>
       <p className="mt-2 text-sm text-white/50">{t("subtitle")}</p>
+
+      <PressPreviewSection />
+
       <ul className="mt-12 space-y-10">
         {entries.map((entry) => {
           const title = getLocalized(entry.title, locale);

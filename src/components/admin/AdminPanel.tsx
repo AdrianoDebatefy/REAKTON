@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { LiveVideo, LocalizedString, PressEntry, SiteContent, SiteLinks, Song, World } from "@/types/content";
+import type { LiveVideo, LocalizedString, PressEntry, PressPreviewTrack, SiteContent, SiteLinks, Song, World, WorldAtmosphere } from "@/types/content";
 import type { AnalyticsData } from "@/lib/analytics";
 import { CONTENT_LOCALES, LOCALE_LABELS, emptyLocalized } from "@/lib/locale";
 import { PasswordChangeForm } from "@/components/admin/PasswordChangeForm";
@@ -563,6 +563,241 @@ function PressEditor({
   );
 }
 
+function PressPreviewEditor({
+  config,
+  onChange,
+}: {
+  config: NonNullable<SiteContent["pressPreview"]>;
+  onChange: (config: NonNullable<SiteContent["pressPreview"]>) => void;
+}) {
+  const [passwordStatus, setPasswordStatus] = useState<{
+    configured: boolean;
+    expiresAt?: string;
+    expired?: boolean;
+    expiryDays?: number;
+  } | null>(null);
+  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [accessLog, setAccessLog] = useState<{ email: string; world: string; at: string }[]>([]);
+  const [voteSummary, setVoteSummary] = useState<Record<string, { average: number; voteCount: number }>>({});
+
+  const loadMeta = useCallback(async () => {
+    const res = await fetch("/api/admin/press-preview");
+    if (!res.ok) return;
+    const data = (await res.json()) as {
+      password: {
+        configured: boolean;
+        expiresAt?: string;
+        expired?: boolean;
+        expiryDays?: number;
+      };
+      accessLog: { email: string; world: string; at: string }[];
+      votes: Record<string, { average: number; voteCount: number }>;
+    };
+    setPasswordStatus(data.password);
+    setAccessLog(data.accessLog);
+    setVoteSummary(data.votes);
+  }, []);
+
+  useEffect(() => {
+    void loadMeta();
+  }, [loadMeta]);
+
+  const addTrack = (world: WorldAtmosphere) => {
+    const next: PressPreviewTrack = {
+      id: `preview-${Date.now()}`,
+      world,
+      title: "",
+      artist: "",
+      audioUrl: "",
+      coverImage: "",
+      order: config.tracks.filter((t) => t.world === world).length,
+    };
+    onChange({ ...config, tracks: [...config.tracks, next] });
+  };
+
+  const updateTrack = (id: string, patch: Partial<PressPreviewTrack>) => {
+    onChange({
+      ...config,
+      tracks: config.tracks.map((track) => (track.id === id ? { ...track, ...patch } : track)),
+    });
+  };
+
+  const removeTrack = (id: string) => {
+    onChange({ ...config, tracks: config.tracks.filter((track) => track.id !== id) });
+  };
+
+  const generatePassword = async () => {
+    setBusy(true);
+    setGeneratedPassword(null);
+    try {
+      const res = await fetch("/api/admin/press-preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expiryDays: config.expiryDays, regenerate: true }),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { password: string };
+      setGeneratedPassword(data.password);
+      await loadMeta();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const worlds: { id: WorldAtmosphere; label: string }[] = [
+    { id: "cosmos", label: "Weltall:Erde:Mensch" },
+    { id: "nano", label: "Micro:Macro:Nano" },
+    { id: "club", label: "Clip:Clap:Club" },
+  ];
+
+  return (
+    <div className="mt-10 space-y-8 border-t border-white/10 pt-8">
+      <div>
+        <h2 className="text-sm uppercase tracking-widest text-white/70">Album Preview Player</h2>
+        <p className="mt-2 text-sm text-white/50">
+          Tracks für den Presse-Preview-Player auf <code className="text-white/55">/press</code>.
+          Pro Welt eigene Preview-Tracks — nur ein Track spielt gleichzeitig.
+        </p>
+      </div>
+
+      <div className="rounded border border-white/15 p-4">
+        <h3 className="text-xs uppercase tracking-widest text-white/60">Presse-Zugang</h3>
+        <div className="mt-3 flex flex-wrap items-end gap-4">
+          <label className="block text-xs text-white/75">
+            Passwort läuft ab nach (Tage)
+            <input
+              type="number"
+              min={1}
+              max={365}
+              value={config.expiryDays}
+              onChange={(e) =>
+                onChange({ ...config, expiryDays: Math.max(1, Number(e.target.value) || 14) })
+              }
+              className="mt-1 w-28 border border-white/15 bg-black/40 px-2 py-1.5 text-sm text-white"
+            />
+          </label>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void generatePassword()}
+            className="rounded border border-white/25 px-4 py-2 text-[10px] uppercase tracking-widest text-white/80 hover:border-white/50 disabled:opacity-50"
+          >
+            Zufalls-Passwort erzeugen
+          </button>
+        </div>
+        {passwordStatus?.configured ? (
+          <p className="mt-3 text-xs text-white/45">
+            Aktuell gültig bis{" "}
+            <span className={passwordStatus.expired ? "text-red-300" : "text-white/70"}>
+              {passwordStatus.expiresAt
+                ? new Date(passwordStatus.expiresAt).toLocaleString("de-DE")
+                : "—"}
+            </span>
+            {passwordStatus.expired ? " (abgelaufen)" : ""}
+          </p>
+        ) : (
+          <p className="mt-3 text-xs text-amber-200/80">Noch kein Presse-Passwort erzeugt.</p>
+        )}
+        {generatedPassword ? (
+          <p className="mt-3 rounded border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+            Neues Passwort (einmalig anzeigen):{" "}
+            <code className="font-mono text-base">{generatedPassword}</code>
+          </p>
+        ) : null}
+      </div>
+
+      {worlds.map((world) => {
+        const tracks = config.tracks
+          .filter((track) => track.world === world.id)
+          .sort((a, b) => a.order - b.order);
+        return (
+          <div key={world.id} className="space-y-3 rounded border border-white/15 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-xs uppercase tracking-widest text-white/60">{world.label}</h3>
+              <button
+                type="button"
+                onClick={() => addTrack(world.id)}
+                className="rounded border border-white/25 px-4 py-2 text-[10px] uppercase tracking-widest text-white/80 hover:border-white/50"
+              >
+                + Track
+              </button>
+            </div>
+            {tracks.length === 0 ? (
+              <p className="text-sm text-white/40">Noch keine Preview-Tracks.</p>
+            ) : (
+              <ul className="space-y-4">
+                {tracks.map((track, index) => (
+                  <li key={track.id} className="space-y-3 rounded border border-white/10 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] uppercase tracking-widest text-white/45">
+                        Track {index + 1}
+                        {voteSummary[track.id]?.voteCount
+                          ? ` · Ø ${voteSummary[track.id]!.average} (${voteSummary[track.id]!.voteCount})`
+                          : ""}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeTrack(track.id)}
+                        className="text-[10px] uppercase tracking-widest text-white/45 underline hover:text-white/70"
+                      >
+                        Entfernen
+                      </button>
+                    </div>
+                    <label className="block text-xs text-white/75">
+                      Titel
+                      <input
+                        type="text"
+                        value={track.title}
+                        onChange={(e) => updateTrack(track.id, { title: e.target.value })}
+                        className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-xs"
+                      />
+                    </label>
+                    <label className="block text-xs text-white/75">
+                      Artist (optional)
+                      <input
+                        type="text"
+                        value={track.artist ?? ""}
+                        onChange={(e) => updateTrack(track.id, { artist: e.target.value })}
+                        className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-xs"
+                      />
+                    </label>
+                    <UploadField
+                      label="Audio (MP3)"
+                      accept="audio/mpeg,audio/mp3,audio/wav"
+                      value={track.audioUrl}
+                      onChange={(url) => updateTrack(track.id, { audioUrl: url })}
+                    />
+                    <UploadField
+                      label="Cover (optional)"
+                      accept="image/jpeg,image/png,image/webp"
+                      value={track.coverImage ?? ""}
+                      onChange={(url) => updateTrack(track.id, { coverImage: url || undefined })}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        );
+      })}
+
+      {accessLog.length > 0 ? (
+        <div className="rounded border border-white/15 p-4">
+          <h3 className="text-xs uppercase tracking-widest text-white/60">Letzte Logins</h3>
+          <ul className="mt-3 space-y-1 text-xs text-white/45">
+            {accessLog.slice(0, 10).map((entry, index) => (
+              <li key={`${entry.at}-${index}`}>
+                {new Date(entry.at).toLocaleString("de-DE")} — {entry.email} ({entry.world})
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function AnalyticsSection() {
   const [stats, setStats] = useState<AnalyticsData | null>(null);
   const [error, setError] = useState("");
@@ -869,10 +1104,16 @@ export function AdminPanel({
       )}
 
       {sectionTab === "press" && (
-        <PressEditor
-          entries={data.press}
-          onChange={(press) => setData({ ...data, press })}
-        />
+        <>
+          <PressEditor
+            entries={data.press}
+            onChange={(press) => setData({ ...data, press })}
+          />
+          <PressPreviewEditor
+            config={data.pressPreview ?? { expiryDays: 14, tracks: [] }}
+            onChange={(pressPreview) => setData({ ...data, pressPreview })}
+          />
+        </>
       )}
 
       {sectionTab === "kontakt" && <ContactMessagesSection />}

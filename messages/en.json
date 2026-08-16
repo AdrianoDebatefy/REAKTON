@@ -39,6 +39,25 @@
     "subtitle": "Interviews, reviews and mentions",
     "readMore": "Read article"
   },
+  "pressPreview": {
+    "sectionTitle": "Album Preview",
+    "sectionSubtitle": "Exclusive press previews — choose a world, log in, listen.",
+    "back": "Back",
+    "email": "Email",
+    "password": "Password",
+    "loginHint": "Enter your email and the press password. Email is used for access logging only.",
+    "loginSubmit": "Log in",
+    "loginBusy": "Checking…",
+    "loginFailed": "Invalid email or password.",
+    "loginExpired": "The press password has expired.",
+    "loginNotConfigured": "Preview is not enabled yet.",
+    "playerLabel": "Preview Player",
+    "loadingTracks": "Loading tracks…",
+    "noTracks": "No preview tracks for this world yet.",
+    "play": "Play",
+    "pause": "Pause",
+    "logout": "Logout"
+  },
   "live": {
     "title": "Live",
     "subtitle": "Concerts and performances",

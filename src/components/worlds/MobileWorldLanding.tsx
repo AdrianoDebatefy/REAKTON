@@ -158,12 +158,15 @@ function ColumnBgImage({
   onError,
   objectPosition = "center center",
   landingBgStyle,
+  stabilizeForOverlay = false,
 }: {
   desktopSrc: string;
   mobileSrc: string;
   onError?: () => void;
   objectPosition?: string;
   landingBgStyle?: CSSProperties;
+  /** Cosmos world view: plain img so fading covers don't composite-flash the GPU layer. */
+  stabilizeForOverlay?: boolean;
 }) {
   const [src, setSrc] = useState(desktopSrc);
 
@@ -189,6 +192,24 @@ function ColumnBgImage({
     onError?.();
   };
 
+  const imgStyle: CSSProperties = {
+    objectPosition,
+    ...landingBgStyle,
+  };
+
+  if (stabilizeForOverlay) {
+    imgStyle.backfaceVisibility = "hidden";
+    imgStyle.WebkitBackfaceVisibility = "hidden";
+  } else if (!landingBgStyle) {
+    Object.assign(imgStyle, GPU_COMPOSIT_LAYER, {
+      transform: mobileBgOverscanTransform(),
+      transformOrigin: "center center",
+    });
+  } else {
+    imgStyle.backfaceVisibility = "hidden";
+    imgStyle.WebkitBackfaceVisibility = "hidden";
+  }
+
   return (
     <img
       src={src}
@@ -196,13 +217,7 @@ function ColumnBgImage({
       className={`absolute left-0 right-0 w-full object-cover ${
         landingBgStyle ? "" : "inset-y-0 h-full"
       }`}
-      style={{
-        objectPosition,
-        ...landingBgStyle,
-        ...GPU_COMPOSIT_LAYER,
-        transform: mobileBgOverscanTransform(),
-        transformOrigin: "center center",
-      }}
+      style={imgStyle}
       onError={handleError}
       decoding="async"
     />
@@ -233,6 +248,7 @@ function PanelBgLayers({
   const hideOverlays =
     showWorld || isEntering || (isColumnReturning && !returnRevealLanding);
   const landingBgStyle = cosmosLandingBgStyle(world.atmosphere, usesLandingRowBgShift);
+  const stabilizeCosmosOverlay = showWorld && usesLandingRowBgShift;
   const overlayFade =
     isColumnReturning && returnRevealLanding
       ? { duration: MOBILE_RETURN_OVERLAY_FADE_S, ease: COLUMN_EASE }
@@ -242,7 +258,11 @@ function PanelBgLayers({
     <>
       <div
         className="pointer-events-none absolute inset-0 overflow-hidden"
-        style={{ ...GPU_COMPOSIT_LAYER, contain: "paint" }}
+        style={
+          stabilizeCosmosOverlay
+            ? undefined
+            : { ...GPU_COMPOSIT_LAYER, contain: "paint" }
+        }
       >
         <ColumnBgImage
           desktopSrc={bg.desktop}
@@ -250,6 +270,7 @@ function PanelBgLayers({
           onError={bg.onError}
           objectPosition="center center"
           landingBgStyle={landingBgStyle}
+          stabilizeForOverlay={stabilizeCosmosOverlay}
         />
         <motion.div
           className={`landing-column-overlay landing-column-overlay--${world.atmosphere} absolute inset-0`}
@@ -414,6 +435,7 @@ export function MobileWorldLanding({
             world.atmosphere,
             parkedOffscreen
           );
+          const stabilizeCosmosPanel = showWorld && usesLandingRowBgShift;
 
           return (
             <motion.div
@@ -427,7 +449,7 @@ export function MobileWorldLanding({
                   : atmosphereFallbackBg(world.atmosphere),
                 zIndex: panelZIndex,
                 pointerEvents: parkedOffscreen ? "none" : undefined,
-                ...GPU_COMPOSIT_LAYER,
+                ...(stabilizeCosmosPanel ? {} : GPU_COMPOSIT_LAYER),
                 willChange:
                   isEntering || returnSlidePhase ? "transform" : undefined,
               }}

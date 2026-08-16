@@ -17,8 +17,7 @@ import {
 } from "@/lib/mobile-world-timing";
 import {
   GPU_COMPOSIT_LAYER,
-  MOBILE_BG_OVERSCAN_SCALE,
-  mobileWorldBgObjectPosition,
+  mobileWorldBgImageStyle,
 } from "@/lib/mobile-compositor";
 import type { WorldAtmosphere } from "@/types/content";
 import cosmosLayout from "@/data/cosmos-layout.json";
@@ -37,7 +36,6 @@ function MobileWorldBackground({
   atmosphere: WorldAtmosphere;
 }) {
   const [src, setSrc] = useState(desktopSrc);
-  const objectPosition = mobileWorldBgObjectPosition(atmosphere);
 
   useEffect(() => {
     const media = window.matchMedia(MOBILE_MEDIA);
@@ -64,12 +62,7 @@ function MobileWorldBackground({
         src={src}
         alt=""
         className="pointer-events-none absolute left-1/2 top-1/2 block h-full w-full max-w-none object-cover"
-        style={{
-          objectPosition,
-          minWidth: `${MOBILE_BG_OVERSCAN_SCALE * 100}%`,
-          minHeight: `${MOBILE_BG_OVERSCAN_SCALE * 100}%`,
-          transform: `translate(-50%, -50%) scale(${MOBILE_BG_OVERSCAN_SCALE}) translateZ(0)`,
-        }}
+        style={mobileWorldBgImageStyle(atmosphere)}
         decoding="async"
       />
     </div>

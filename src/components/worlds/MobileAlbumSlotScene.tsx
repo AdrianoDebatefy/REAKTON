@@ -240,8 +240,7 @@ export function MobileAlbumSlotScene({
         const introDelay = coverFadeDelays[i] ?? 0;
         const exitDelay = coverExitDelays[i] ?? 0;
         const freezeLayout = exiting;
-        const fadePhase = exiting || !introDone || hidden;
-        const layoutTransition = freezeLayout || fadePhase ? NO_TRANSITION : MOVE_TRANSITION;
+        const layoutTransition = freezeLayout ? NO_TRANSITION : MOVE_TRANSITION;
         const opacityTransition = exiting
           ? {
               duration: MOBILE_COVER_FADE_DURATION_S,
@@ -259,20 +258,14 @@ export function MobileAlbumSlotScene({
               : FADE_TRANSITION;
 
         return (
-          <motion.button
+          <motion.div
             key={song.id}
-            type="button"
-            disabled={exiting || !introDone || (isPoleMode && !isActive)}
-            onClick={() => handleSelect(song)}
-            className={`album-cover-slot absolute overflow-hidden rounded-sm border focus:outline-none ${borderClass} ${
+            className={`album-cover-slot absolute overflow-hidden rounded-sm border ${borderClass} ${
               exiting ? "z-10" : isActive ? "z-40" : "z-10"
             } ${isActive ? "border-white/40 shadow-lg" : "shadow-md shadow-black/50"}`}
             style={{
               ...GPU_COMPOSIT_LAYER,
-              backgroundColor:
-                song.coverImage && !song.coverImage.includes("placeholder")
-                  ? "#080c12"
-                  : "#C1E5F9",
+              backgroundColor: "#080c12",
             }}
             initial={false}
             animate={{
@@ -282,6 +275,7 @@ export function MobileAlbumSlotScene({
               height: targetSize,
               x: "-50%",
               y: "-50%",
+              opacity: exiting || hidden ? 0 : 1,
             }}
             transition={{
               left: layoutTransition,
@@ -290,28 +284,17 @@ export function MobileAlbumSlotScene({
               height: layoutTransition,
               x: { duration: 0 },
               y: { duration: 0 },
+              opacity: opacityTransition,
             }}
-            aria-label={song.title}
-            aria-pressed={isActive}
           >
-            <motion.div
-              className="relative h-full w-full"
-              initial={false}
-              animate={{ opacity: exiting || hidden ? 0 : 1 }}
-              transition={{ opacity: opacityTransition }}
-              style={GPU_COMPOSIT_LAYER}
+            <button
+              type="button"
+              disabled={exiting || !introDone || (isPoleMode && !isActive)}
+              onClick={() => handleSelect(song)}
+              className="relative h-full w-full border-0 bg-transparent p-0 focus:outline-none"
+              aria-label={song.title}
+              aria-pressed={isActive}
             >
-              {isActive && !exiting && !infoPanelOpen && (
-                <button
-                  type="button"
-                  onClick={handleBackToGrid}
-                  className="absolute left-1.5 top-1.5 z-50 flex h-11 min-w-[3rem] items-center justify-center rounded-sm bg-black/50 px-2 text-[11px] uppercase tracking-[0.2em] text-white/85 backdrop-blur-sm"
-                  aria-label={t("backToGrid")}
-                >
-                  {t("backToGrid")}
-                </button>
-              )}
-
               {isActive && activeSong?.videoSnippet ? (
                 <video
                   ref={slotVideoRef}
@@ -328,7 +311,6 @@ export function MobileAlbumSlotScene({
                   src={song.coverImage || "/covers/placeholder.svg"}
                   alt={song.title}
                   className="h-full w-full object-cover"
-                  style={GPU_COMPOSIT_LAYER}
                   draggable={false}
                   decoding="async"
                 />
@@ -339,8 +321,20 @@ export function MobileAlbumSlotScene({
                   {song.title}
                 </span>
               )}
+            </button>
 
-              {isActive && activeSong && !exiting && (
+            {isActive && !exiting && !infoPanelOpen && (
+              <button
+                type="button"
+                onClick={handleBackToGrid}
+                className="absolute left-1.5 top-1.5 z-50 flex h-11 min-w-[3rem] items-center justify-center rounded-sm bg-black/50 px-2 text-[11px] uppercase tracking-[0.2em] text-white/85 backdrop-blur-sm"
+                aria-label={t("backToGrid")}
+              >
+                {t("backToGrid")}
+              </button>
+            )}
+
+            {isActive && activeSong && !exiting && (
                 <>
                   {!infoPanelOpen && (
                     <button
@@ -454,8 +448,7 @@ export function MobileAlbumSlotScene({
                   </motion.div>
                 </>
               )}
-            </motion.div>
-          </motion.button>
+          </motion.div>
         );
       })}
 

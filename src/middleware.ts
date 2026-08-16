@@ -1,8 +1,35 @@
 import createMiddleware from "next-intl/middleware";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { routing } from "./i18n/routing";
 
 const intlMiddleware = createMiddleware(routing);
+
+const INTERNAL_PORTS = new Set(["3000", "3001", "3010", "8080"]);
+
+function firstHeaderValue(value: string | null): string | undefined {
+  return value?.split(",")[0]?.trim() || undefined;
+}
+
+/** nginx may forward the Node port (3010) — next-intl then leaks it into redirect URLs. */
+function sanitizeProxyHeaders(request: NextRequest): NextRequest {
+  const headers = new Headers(request.headers);
+  const proto = firstHeaderValue(headers.get("x-forwarded-proto"))?.toLowerCase();
+  const host = firstHeaderValue(headers.get("x-forwarded-host") ?? headers.get("host"));
+  const port = firstHeaderValue(headers.get("x-forwarded-port"));
+
+  if (host && !host.includes(":")) {
+    if (port && INTERNAL_PORTS.has(port)) {
+      headers.delete("x-forwarded-port");
+    }
+    if (proto === "https") {
+      headers.set("x-forwarded-port", "443");
+    } else if (proto === "http" && !headers.get("x-forwarded-port")) {
+      headers.set("x-forwarded-port", "80");
+    }
+  }
+
+  return new NextRequest(request.nextUrl, { headers });
+}
 
 function detectLocale(pathname: string): string {
   for (const locale of routing.locales) {
@@ -13,23 +40,20 @@ function detectLocale(pathname: string): string {
   return routing.defaultLocale;
 }
 
-/** Behind nginx, middleware rewrites must target the local Node port (not the public domain). */
-function withInternalOrigin(request: NextRequest): NextRequest {
-  const url = request.nextUrl.clone();
-  url.protocol = "http:";
-  url.hostname = "127.0.0.1";
-  url.port = "3010";
-
-  return new NextRequest(url, {
-    headers: request.headers,
-  });
+function fixRedirectScheme(response: NextResponse, request: NextRequest): NextResponse {
+  const location = response.headers.get("location");
+  const proto = firstHeaderValue(request.headers.get("x-forwarded-proto"))?.toLowerCase();
+  if (location && proto === "https" && location.startsWith("http://")) {
+    response.headers.set("location", location.replace(/^http:/, "https:"));
+  }
+  return response;
 }
 
 export default function middleware(request: NextRequest) {
-  const internalRequest = withInternalOrigin(request);
-  const response = intlMiddleware(internalRequest);
+  const proxyRequest = sanitizeProxyHeaders(request);
+  const response = intlMiddleware(proxyRequest);
   response.headers.set("x-reakton-locale", detectLocale(request.nextUrl.pathname));
-  return response;
+  return fixRedirectScheme(response, request);
 }
 
 export const config = {

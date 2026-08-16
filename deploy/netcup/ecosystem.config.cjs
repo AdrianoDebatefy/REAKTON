@@ -4,7 +4,8 @@ module.exports = {
       name: "reakton",
       cwd: "/var/www/reakton",
       script: "node_modules/next/dist/bin/next",
-      args: "start -p 3010 -H 127.0.0.1",
+      // Bind to localhost (not 127.0.0.1) so next-intl rewrites stay in-process.
+      args: "start -p 3010 -H localhost",
       instances: 1,
       autorestart: true,
       max_memory_restart: "512M",

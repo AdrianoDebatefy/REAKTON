@@ -11,6 +11,7 @@ const COLUMN_STAGGER_S = 0.01;
 const COLUMN_EASE = [0.4, 0, 0.2, 1] as const;
 const CAPTION_DECODE_MS = 720;
 const EARTH_TRANSITION = { duration: COLUMN_EXIT_S, ease: COLUMN_EASE };
+const OVERLAY_EXIT_S = 0.45;
 const MOBILE_MEDIA = "(max-width: 767px)";
 const MOBILE_WORLD_ORDER: WorldAtmosphere[] = ["cosmos", "nano", "club"];
 
@@ -60,7 +61,6 @@ function mobileSlideY(
   displayIndex: number,
   pivotDisplay: number | null,
   isEntering: boolean,
-  isImmersed: boolean,
   isColumnReturning: boolean,
   returnBgExpandHold: boolean,
   returnPivotDisplay: number | null
@@ -75,7 +75,7 @@ function mobileSlideY(
     }
     return 0;
   }
-  if (pivotDisplay !== null && (isEntering || isImmersed)) {
+  if (isEntering && pivotDisplay !== null) {
     return bgOffscreenY(displayIndex, pivotDisplay);
   }
   return 0;
@@ -197,7 +197,11 @@ function PanelBgLayers({
           className={`landing-column-overlay landing-column-overlay--${world.atmosphere} absolute inset-0`}
           initial={false}
           animate={{ opacity: showWorld ? 0 : 1 }}
-          transition={{ opacity: EARTH_TRANSITION }}
+          transition={{
+            opacity: showWorld
+              ? { duration: OVERLAY_EXIT_S, ease: COLUMN_EASE }
+              : EARTH_TRANSITION,
+          }}
           aria-hidden
         />
       </div>
@@ -270,11 +274,16 @@ export function MobileWorldLanding({
 
   if (!landingVisible && !isColumnReturning && selectedIndex === null) return null;
 
+  const stackTop = fullBleedBg
+    ? "0px"
+    : "calc(5.5rem + env(safe-area-inset-top))";
+
   return (
-    <div
-      className={`pointer-events-none fixed inset-x-0 bottom-0 z-[15] md:hidden ${
-        fullBleedBg ? "top-0" : "top-[calc(5.5rem+env(safe-area-inset-top))]"
-      }`}
+    <motion.div
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-[15] md:hidden"
+      initial={false}
+      animate={{ top: stackTop }}
+      transition={EARTH_TRANSITION}
       aria-hidden={showWorld}
     >
       <div className="relative h-full overflow-hidden">
@@ -298,7 +307,6 @@ export function MobileWorldLanding({
             displayIndex,
             pivotSlot,
             isEntering,
-            isImmersed,
             isColumnReturning,
             returnBgExpandHold,
             returnPivotSlot
@@ -314,7 +322,7 @@ export function MobileWorldLanding({
           const slideOffscreen = isAnimating && !isPivot && !isColumnReturning;
           const slideBack = isColumnReturning && !isPivot;
           const geometryTransition =
-            fillsViewport || isAnimating
+            isEntering || isColumnReturning
               ? { ...EARTH_TRANSITION, type: "tween" as const }
               : { duration: 0 };
 
@@ -406,6 +414,6 @@ export function MobileWorldLanding({
           })}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

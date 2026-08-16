@@ -34,7 +34,11 @@ export function WorldView({ world, onBack }: WorldViewProps) {
   const t = useTranslations("world");
   const tNav = useTranslations("nav");
   const [exiting, setExiting] = useState(false);
-  const [headerDecodeMode, setHeaderDecodeMode] = useState<DecodeMode>("in");
+  const [headerDecodeMode, setHeaderDecodeMode] = useState<DecodeMode>(() =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches
+      ? "static"
+      : "in"
+  );
 
   const useSlotScene =
     world.atmosphere === "cosmos" || world.atmosphere === "nano" || world.atmosphere === "club";

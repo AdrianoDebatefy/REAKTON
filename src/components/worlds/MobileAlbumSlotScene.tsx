@@ -226,7 +226,7 @@ export function MobileAlbumSlotScene({
               x: "-50%",
               y: "-50%",
               opacity: 0,
-              scale: 0.82,
+              scale: 0.94,
             }}
             animate={{
               left: `${targetX}%`,

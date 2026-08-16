@@ -82,13 +82,19 @@ Bekannte Themen aus der Session (vor Video-Analyse):
 
 ## Nächste Schritte (wenn Session fortgesetzt wird)
 
-1. **Push prüfen:** Frames-Commit `9e38d31` auf debatyfyOnlinebetaFour?
-   ```powershell
-   git push https://github.com/AdrianoDebatefy/debatyfyOnlinebetaFour.git HEAD:cursor/mobile-version-d206
-   ```
-2. **Holperer gezielt beschreiben** (User) oder Video live durchgehen — Einzelframes reichen evtl. nicht für subtile Animationen; ggf. **YouTube unlisted** als Alternative testen.
-3. **Mobile feintunen:** Übergang `showWorld`, BACK-Return, Overlay-Timing, `MobileAlbumSlotScene` Intro.
-4. **Desktop-Regression** bei jedem Fix: ≥768px unverändert lassen.
+1. **Testen** (Mobile ≤767px): Welt-Eintritt, BACK-Rückkehr, Cover-Grid
+2. **Holperer** nach Fix `mobile-2026-08-16` — User-Feedback einholen
+3. **Desktop-Regression** bei jedem Fix: ≥768px unverändert lassen
+
+### Letzter Fix-Stand (`mobile-2026-08-16`)
+
+- BG-Stack `top` animiert mit Slide (kein harter Sprung bei Enter)
+- Geometry-Transition nur während `isEntering` / `isColumnReturning`
+- Overlay beim Welt-Eintritt schneller (0.45s statt 2s)
+- `mobileSlideY` nur während Enter/Return (nicht mehr `isImmersed` allein)
+- WorldView Mobile: Header ohne zweites Decode (`static`)
+- `useIsMobile` initial korrekt (kein Desktop→Mobile Flash)
+- Cover-Intro scale 0.94 statt 0.82 (subtiler)
 
 ---
 

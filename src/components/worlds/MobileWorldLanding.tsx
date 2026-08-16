@@ -63,20 +63,9 @@ function mobileSlideY(
   displayIndex: number,
   pivotDisplay: number | null,
   isEntering: boolean,
-  isColumnReturning: boolean,
-  returnBgExpandHold: boolean,
-  returnPivotDisplay: number | null,
-  returnAtmosphere: WorldAtmosphere | null
+  isColumnReturning: boolean
 ): string | number {
   if (isColumnReturning) {
-    if (
-      returnBgExpandHold &&
-      returnAtmosphere !== "nano" &&
-      returnPivotDisplay !== null &&
-      displayIndex !== returnPivotDisplay
-    ) {
-      return bgOffscreenY(displayIndex, returnPivotDisplay);
-    }
     return 0;
   }
   if (isEntering && pivotDisplay !== null) {
@@ -125,6 +114,16 @@ function pivotDisplayIndex(
   return slot >= 0 ? slot : null;
 }
 
+function mobileBgObjectPosition(
+  atmosphere: WorldAtmosphere,
+  worldViewHold: boolean
+): string {
+  if (!worldViewHold) return "center center";
+  if (atmosphere === "cosmos") return "center 42%";
+  if (atmosphere === "club") return "center 58%";
+  return "center center";
+}
+
 function sortWorldsForMobile(worlds: World[]): World[] {
   return [...worlds].sort(
     (a, b) =>
@@ -136,10 +135,14 @@ function ColumnBgImage({
   desktopSrc,
   mobileSrc,
   onError,
+  objectPosition = "center center",
+  objectPositionTransition,
 }: {
   desktopSrc: string;
   mobileSrc: string;
   onError?: () => void;
+  objectPosition?: string;
+  objectPositionTransition?: { duration: number; ease: [number, number, number, number] };
 }) {
   const [src, setSrc] = useState(desktopSrc);
 
@@ -166,11 +169,17 @@ function ColumnBgImage({
   };
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <motion.img
       src={src}
       alt=""
       className="absolute inset-0 block h-full w-full object-cover"
+      initial={false}
+      animate={{ objectPosition }}
+      transition={
+        objectPositionTransition
+          ? { objectPosition: objectPositionTransition }
+          : { duration: 0 }
+      }
       onError={handleError}
     />
   );
@@ -182,6 +191,8 @@ function PanelBgLayers({
   bg,
   showWorld,
   isColumnReturning,
+  isPivot,
+  returnBgExpandHold,
   scrimOpacity,
 }: {
   world: World;
@@ -189,9 +200,17 @@ function PanelBgLayers({
   bg: { desktop: string; mobile: string; onError?: () => void };
   showWorld: boolean;
   isColumnReturning: boolean;
+  isPivot: boolean;
+  returnBgExpandHold: boolean;
   scrimOpacity: number;
 }) {
   const hideOverlays = showWorld || isColumnReturning;
+  const bgRepositionActive =
+    isPivot &&
+    isColumnReturning &&
+    returnBgExpandHold &&
+    (world.atmosphere === "cosmos" || world.atmosphere === "club");
+  const objectPosition = mobileBgObjectPosition(world.atmosphere, bgRepositionActive);
 
   return (
     <>
@@ -200,6 +219,12 @@ function PanelBgLayers({
           desktopSrc={bg.desktop}
           mobileSrc={bg.mobile}
           onError={bg.onError}
+          objectPosition={objectPosition}
+          objectPositionTransition={
+            isColumnReturning && isPivot && world.atmosphere !== "nano"
+              ? { duration: MOBILE_RETURN_BG_DELAY_S, ease: [...COLUMN_EASE] as [number, number, number, number] }
+              : undefined
+          }
         />
         <motion.div
           className={`landing-column-overlay landing-column-overlay--${world.atmosphere} absolute inset-0`}
@@ -304,16 +329,8 @@ export function MobileWorldLanding({
           const pivotDataIndex = isColumnReturning ? returnFromIndex : selectedIndex;
           const isPivot = pivotDataIndex !== null && index === pivotDataIndex;
           const hiddenInWorldView = showWorld && !isPivot;
-          const pivotReturnHold =
-            isColumnReturning &&
-            returnBgExpandHold &&
-            world.atmosphere !== "nano";
           const fillsViewport =
-            isPivot &&
-            (isEntering ||
-              isImmersed ||
-              showWorld ||
-              pivotReturnHold);
+            isPivot && (isEntering || isImmersed || showWorld);
           const resting = panelGeometry(displayIndex, panelCount);
           const offscreenY = bgOffscreenY(
             displayIndex,
@@ -323,10 +340,7 @@ export function MobileWorldLanding({
             displayIndex,
             pivotSlot,
             isEntering,
-            isColumnReturning,
-            returnBgExpandHold,
-            returnPivotSlot,
-            returnAtmosphere
+            isColumnReturning
           );
           const delay = mobileSlideDelay(
             displayIndex,
@@ -337,22 +351,20 @@ export function MobileWorldLanding({
             returnAtmosphere
           );
           const slideOffscreen = isAnimating && !isPivot && !isColumnReturning;
-          const slideBack = isColumnReturning && !isPivot;
           const returnSlideS = isColumnReturning ? MOBILE_RETURN_SLIDE_S : COLUMN_EXIT_S;
-          const geometryDuration =
-            isColumnReturning && isPivot && returnAtmosphere !== "nano" && !returnBgExpandHold
-              ? MOBILE_RETURN_BG_DELAY_S
-              : isColumnReturning
-                ? MOBILE_RETURN_SLIDE_S
-                : COLUMN_EXIT_S;
           const geometryTransition =
             isEntering || isColumnReturning
               ? {
-                  duration: geometryDuration,
+                  duration: isColumnReturning ? MOBILE_RETURN_SLIDE_S : COLUMN_EXIT_S,
                   ease: COLUMN_EASE,
                   type: "tween" as const,
                 }
               : { duration: 0 };
+          const animateY = hiddenInWorldView
+            ? offscreenY
+            : slideOffscreen
+              ? slideY
+              : 0;
 
           return (
             <motion.div
@@ -365,11 +377,11 @@ export function MobileWorldLanding({
                 zIndex: fillsViewport ? 30 : displayIndex + 1,
                 visibility: hiddenInWorldView ? "hidden" : "visible",
               }}
-              initial={slideBack ? { y: slideY } : false}
+              initial={false}
               animate={{
                 top: fillsViewport ? "0%" : resting.top,
                 height: fillsViewport ? "100%" : resting.height,
-                y: hiddenInWorldView ? offscreenY : slideOffscreen ? slideY : 0,
+                y: animateY,
               }}
               transition={{
                 top: geometryTransition,
@@ -385,6 +397,8 @@ export function MobileWorldLanding({
                 bg={bg}
                 showWorld={showWorld}
                 isColumnReturning={isColumnReturning}
+                isPivot={isPivot}
+                returnBgExpandHold={returnBgExpandHold}
                 scrimOpacity={scrimOpacity}
               />
             </motion.div>

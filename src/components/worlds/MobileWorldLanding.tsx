@@ -328,14 +328,15 @@ export function MobileWorldLanding({
           const bg = bgSourcesForWorld(world);
           const pivotDataIndex = isColumnReturning ? returnFromIndex : selectedIndex;
           const isPivot = pivotDataIndex !== null && index === pivotDataIndex;
-          const hiddenInWorldView = showWorld && !isPivot;
+          const pivotDisplay = pivotSlot ?? returnPivotSlot ?? displayIndex;
+          const parkedOffscreen = !isPivot && showWorld;
+          const offscreenTop =
+            displayIndex < pivotDisplay
+              ? `-${100 / panelCount}%`
+              : "100%";
           const fillsViewport =
             isPivot && (isEntering || isImmersed || showWorld);
           const resting = panelGeometry(displayIndex, panelCount);
-          const offscreenY = bgOffscreenY(
-            displayIndex,
-            pivotSlot ?? returnPivotSlot ?? displayIndex
-          );
           const slideY = mobileSlideY(
             displayIndex,
             pivotSlot,
@@ -360,11 +361,13 @@ export function MobileWorldLanding({
                   type: "tween" as const,
                 }
               : { duration: 0 };
-          const animateY = hiddenInWorldView
-            ? offscreenY
-            : slideOffscreen
-              ? slideY
-              : 0;
+          const animateTop = fillsViewport
+            ? "0%"
+            : parkedOffscreen
+              ? offscreenTop
+              : resting.top;
+          const animateY = slideOffscreen ? slideY : 0;
+          const animateOpacity = parkedOffscreen ? 0 : 1;
 
           return (
             <motion.div
@@ -375,13 +378,14 @@ export function MobileWorldLanding({
                 position: "absolute",
                 backgroundColor: atmosphereFallbackBg(world.atmosphere),
                 zIndex: fillsViewport ? 30 : displayIndex + 1,
-                visibility: hiddenInWorldView ? "hidden" : "visible",
+                pointerEvents: parkedOffscreen ? "none" : undefined,
               }}
               initial={false}
               animate={{
-                top: fillsViewport ? "0%" : resting.top,
+                top: animateTop,
                 height: fillsViewport ? "100%" : resting.height,
                 y: animateY,
+                opacity: animateOpacity,
               }}
               transition={{
                 top: geometryTransition,
@@ -389,6 +393,7 @@ export function MobileWorldLanding({
                 y: isAnimating
                   ? { duration: returnSlideS, delay, ease: COLUMN_EASE }
                   : { duration: 0 },
+                opacity: { duration: 0 },
               }}
             >
               <PanelBgLayers

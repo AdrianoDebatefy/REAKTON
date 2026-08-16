@@ -112,6 +112,7 @@ export function PressPreviewPlayer({
   playbackError,
   onPlay,
   onStop,
+  onSeek,
   onVolumeChange,
   onVote,
   labels,

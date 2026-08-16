@@ -83,6 +83,7 @@
   },
   "contact": {
     "title": "Kontakt",
+    "metaDescription": "Kontaktieren Sie REAKTON — Booking, Presse und allgemeine Anfragen.",
     "name": "Name",
     "email": "E-Mail",
     "subject": "Betreff (optional)",
@@ -102,7 +103,9 @@
   },
   "legal": {
     "impressumTitle": "Impressum",
-    "datenschutzTitle": "Datenschutzerklärung"
+    "impressumDescription": "Impressum und Anbieterkennzeichnung von REAKTON.",
+    "datenschutzTitle": "Datenschutzerklärung",
+    "datenschutzDescription": "Informationen zur Verarbeitung personenbezogener Daten auf reakton.de."
   },
   "meta": {
     "title": "REAKTON — Robotronic Music",

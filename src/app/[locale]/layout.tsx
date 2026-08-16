@@ -10,7 +10,10 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { PageViewTracker } from "@/components/PageViewTracker";
 import { LocaleDocument } from "@/components/LocaleDocument";
+import { SiteJsonLd } from "@/components/seo/SiteJsonLd";
 import { getSiteContent } from "@/lib/content";
+import { buildPageMetadata } from "@/lib/seo";
+import { getSiteUrl } from "@/lib/site-url";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -23,13 +26,18 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "meta" });
+
   return {
-    title: t("title"),
-    description: t("description"),
-    openGraph: {
+    ...buildPageMetadata({
+      locale: locale as Locale,
+      path: "/",
       title: t("title"),
       description: t("description"),
-      siteName: "REAKTON",
+    }),
+    metadataBase: new URL(getSiteUrl()),
+    title: {
+      default: t("title"),
+      template: "%s | REAKTON",
     },
   };
 }
@@ -50,11 +58,9 @@ export default async function LocaleLayout({
   return (
     <ClientIntlShell initialLocale={locale as Locale} initialMessages={messages}>
       <LocaleDocument />
+      <SiteJsonLd />
       <CookieProvider>
-        <Header
-          logoUrl={content.brandLogo}
-          siteLinks={content.siteLinks}
-        />
+        <Header logoUrl={content.brandLogo} siteLinks={content.siteLinks} />
         <main>{children}</main>
         <Footer />
         <CookieBanner />

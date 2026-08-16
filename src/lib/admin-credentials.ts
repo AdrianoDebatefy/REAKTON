@@ -11,7 +11,11 @@ interface AdminCredentialsFile {
 }
 
 function defaultPassword(): string {
-  return process.env.ADMIN_PASSWORD || "4Q2a5yMBMsjD*hBWYjubR3^SJ9ncGk";
+  const password = process.env.ADMIN_PASSWORD;
+  if (!password && process.env.NODE_ENV === "production") {
+    throw new Error("ADMIN_PASSWORD must be set in production");
+  }
+  return password || "4Q2a5yMBMsjD*hBWYjubR3^SJ9ncGk";
 }
 
 export function hasStoredAdminPassword(): boolean {

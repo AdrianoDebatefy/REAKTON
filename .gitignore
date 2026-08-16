@@ -34,6 +34,8 @@ yarn-error.log*
 /data/site-content.local.json
 /data/admin.local.json
 /data/analytics.json
+/data/press-preview.local.json
+/data/press-access-log.json
 /public/uploads/
 
 # vercel

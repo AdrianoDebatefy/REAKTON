@@ -1,8 +1,25 @@
+import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { getSiteContent } from "@/lib/content";
 import { getLocalized } from "@/lib/locale";
+import { buildPageMetadata } from "@/lib/seo";
 import type { Locale } from "@/types/content";
 import { YouTubeEmbed } from "@/components/YouTubeEmbed";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "live" });
+  return buildPageMetadata({
+    locale: locale as Locale,
+    path: "/live",
+    title: t("title"),
+    description: t("subtitle"),
+  });
+}
 
 export default async function LivePage() {
   const content = getSiteContent();

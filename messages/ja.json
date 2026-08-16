@@ -83,6 +83,7 @@
   },
   "contact": {
     "title": "お問い合わせ",
+    "metaDescription": "REAKTONへのお問い合わせ — ブッキング、プレス、一般のご質問。",
     "name": "名前",
     "email": "メール",
     "subject": "件名（任意）",
@@ -102,7 +103,9 @@
   },
   "legal": {
     "impressumTitle": "法的情報",
-    "datenschutzTitle": "プライバシーポリシー"
+    "impressumDescription": "REAKTONの提供者情報および法的表示。",
+    "datenschutzTitle": "プライバシーポリシー",
+    "datenschutzDescription": "reakton.deにおける個人データの取り扱いについて。"
   },
   "meta": {
     "title": "REAKTON — Robotronic Music",

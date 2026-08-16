@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Rajdhani } from "next/font/google";
+import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 const rajdhani = Rajdhani({
@@ -9,13 +11,20 @@ const rajdhani = Rajdhani({
 });
 
 export const metadata: Metadata = {
-  title: "REAKTON WEBSITE 2026",
+  metadataBase: new URL(getSiteUrl()),
+  title: "REAKTON — Robotronic Music",
   description: "REAKTON — Robotronic music from Berlin. micro:macro:nano.",
+  icons: {
+    icon: "/brand/reakton-logo.svg",
+  },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const headerStore = await headers();
+  const locale = headerStore.get("x-reakton-locale") || "de";
+
   return (
-    <html lang="de" suppressHydrationWarning className={rajdhani.variable}>
+    <html lang={locale} suppressHydrationWarning className={rajdhani.variable}>
       <body
         className="min-h-screen bg-[#050508] font-sans text-[#e8e8ec] antialiased"
         style={{ fontFamily: "var(--font-rajdhani), system-ui, sans-serif" }}

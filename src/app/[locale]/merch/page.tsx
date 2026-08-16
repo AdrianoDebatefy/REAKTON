@@ -1,5 +1,23 @@
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { getSiteContent } from "@/lib/content";
+import { buildPageMetadata } from "@/lib/seo";
+import type { Locale } from "@/types/content";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "merch" });
+  return buildPageMetadata({
+    locale: locale as Locale,
+    path: "/merch",
+    title: t("title"),
+    description: t("subtitle"),
+  });
+}
 
 export default async function MerchPage() {
   const content = getSiteContent();

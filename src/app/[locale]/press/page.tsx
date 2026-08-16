@@ -1,8 +1,25 @@
+import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { PressPreviewSection } from "@/components/press/PressPreviewSection";
 import { getSiteContent } from "@/lib/content";
 import { getLocalized } from "@/lib/locale";
+import { buildPageMetadata } from "@/lib/seo";
 import type { Locale } from "@/types/content";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "press" });
+  return buildPageMetadata({
+    locale: locale as Locale,
+    path: "/press",
+    title: t("title"),
+    description: t("subtitle"),
+  });
+}
 
 export default async function PressPage() {
   const content = getSiteContent();

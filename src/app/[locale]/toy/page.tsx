@@ -1,5 +1,23 @@
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
+import { buildPageMetadata } from "@/lib/seo";
+import type { Locale } from "@/types/content";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "toy" });
+  return buildPageMetadata({
+    locale: locale as Locale,
+    path: "/toy",
+    title: t("title"),
+    description: t("subtitle"),
+  });
+}
 
 export default async function ToyPage() {
   const t = await getTranslations("toy");

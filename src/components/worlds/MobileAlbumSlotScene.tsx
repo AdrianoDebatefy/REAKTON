@@ -183,7 +183,12 @@ export function MobileAlbumSlotScene({
     });
   }, []);
 
-  if (exiting && !exitLayoutRef.current) {
+  useLayoutEffect(() => {
+    if (!exiting) {
+      exitLayoutRef.current = null;
+      return;
+    }
+    if (exitLayoutRef.current) return;
     exitLayoutRef.current = items.map((song, i) => {
       const pad = padPositions[i] ?? MOBILE_COVER_ACTIVE_CENTER;
       const isActive = activeId === song.id;
@@ -193,16 +198,7 @@ export function MobileAlbumSlotScene({
         size: isActive ? activeCoverSize : MOBILE_COVER_INACTIVE_PX,
       };
     });
-  }
-  if (!exiting) {
-    exitLayoutRef.current = null;
-  }
-
-  useLayoutEffect(() => {
-    if (!exiting) {
-      exitLayoutRef.current = null;
-    }
-  }, [exiting]);
+  }, [activeCoverSize, activeId, exiting, items, padPositions]);
 
   useEffect(() => {
     if (!exiting) {
@@ -235,10 +231,12 @@ export function MobileAlbumSlotScene({
         const targetSize = frozen?.size ?? (isActive ? activeCoverSize : MOBILE_COVER_INACTIVE_PX);
         const targetX = frozen?.x ?? (isActive ? MOBILE_COVER_ACTIVE_CENTER.x : pad.x);
         const targetY = frozen?.y ?? (isActive ? MOBILE_COVER_ACTIVE_CENTER.y : pad.y);
-        const hidden = !exiting && isPoleMode && !isActive;
+        /** In pole mode keep inactive covers hidden during exit — avoids scale/opacity snap. */
+        const hidden = isPoleMode && !isActive;
         const introDelay = coverFadeDelays[i] ?? 0;
         const exitDelay = coverExitDelays[i] ?? 0;
         const freezeLayout = exiting;
+        const restingScale = hidden ? 0.85 : 1;
 
         return (
           <motion.button
@@ -273,7 +271,7 @@ export function MobileAlbumSlotScene({
               x: "-50%",
               y: "-50%",
               opacity: exiting || hidden ? 0 : 1,
-              scale: hidden ? 0.85 : 1,
+              scale: exiting ? restingScale : hidden ? 0.85 : 1,
             }}
             transition={{
               left: freezeLayout ? NO_TRANSITION : MOVE_TRANSITION,
@@ -295,7 +293,7 @@ export function MobileAlbumSlotScene({
                         ease: [0.4, 0, 0.2, 1],
                       }
                     : FADE_TRANSITION,
-              scale: freezeLayout
+              scale: exiting
                 ? NO_TRANSITION
                 : hidden
                   ? FADE_TRANSITION
@@ -310,11 +308,14 @@ export function MobileAlbumSlotScene({
             aria-label={song.title}
             aria-pressed={isActive}
           >
-            {isActive && !exiting && !infoPanelOpen && (
+            {isActive && !infoPanelOpen && (
               <button
                 type="button"
                 onClick={handleBackToGrid}
-                className="absolute left-1.5 top-1.5 z-50 flex h-11 min-w-[3rem] items-center justify-center rounded-sm bg-black/50 px-2 text-[11px] uppercase tracking-[0.2em] text-white/85 backdrop-blur-sm"
+                disabled={exiting}
+                className={`absolute left-1.5 top-1.5 z-50 flex h-11 min-w-[3rem] items-center justify-center rounded-sm bg-black/50 px-2 text-[11px] uppercase tracking-[0.2em] text-white/85 backdrop-blur-sm ${
+                  exiting ? "pointer-events-none opacity-0" : ""
+                }`}
                 aria-label={t("backToGrid")}
               >
                 {t("backToGrid")}
@@ -350,7 +351,7 @@ export function MobileAlbumSlotScene({
                 </span>
               )}
 
-              {isActive && activeSong && !exiting && (
+              {isActive && activeSong && (
                 <>
                   {!infoPanelOpen && (
                     <button
@@ -359,7 +360,10 @@ export function MobileAlbumSlotScene({
                         e.stopPropagation();
                         setInfoPanelOpen(true);
                       }}
-                      className="cover-info-btn absolute right-2 top-2 z-50"
+                      disabled={exiting}
+                      className={`cover-info-btn absolute right-2 top-2 z-50 ${
+                        exiting ? "pointer-events-none opacity-0" : ""
+                      }`}
                       aria-label={t("songInfo")}
                     >
                       <span className="cover-info-btn__glyph">i</span>
@@ -423,8 +427,8 @@ export function MobileAlbumSlotScene({
                   <motion.div
                     className="absolute inset-x-0 bottom-0 z-20"
                     initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.35, delay: 0.2 }}
+                    animate={{ opacity: exiting ? 0 : 1 }}
+                    transition={{ duration: exiting ? 0.2 : 0.35, delay: exiting ? 0 : 0.2 }}
                   >
                     <div className="motif-bottom-bar bg-black/28 px-3 py-2 backdrop-blur-sm">
                       {activeSong.audioSnippet && (

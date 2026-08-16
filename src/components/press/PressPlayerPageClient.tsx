@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import type { WorldAtmosphere } from "@/types/content";
-import { WemPressPlayer } from "@/components/press/WemPressPlayer";
+import { PressPreviewPlayer } from "@/components/press/PressPreviewPlayer";
 import {
   atmosphereFromPlayerSlug,
   isPlayerSlugReady,
@@ -44,9 +44,8 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
   const [volume, setVolume] = useState(0.85);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
   const [analyserReady, setAnalyserReady] = useState(false);
 
   const refreshSession = useCallback(async () => {
@@ -97,7 +96,6 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
     const source = ctx.createMediaElementSource(audioRef.current);
     source.connect(analyser);
     analyser.connect(ctx.destination);
-    audioCtxRef.current = ctx;
     analyserRef.current = analyser;
     sourceRef.current = source;
     setAnalyserReady(true);
@@ -212,12 +210,14 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
 
   const activeTrack = tracks.find((track) => track.id === activeTrackId) ?? null;
   const activeIndex = tracks.findIndex((track) => track.id === activeTrackId);
+
   const playerTracks = tracks.map((track) => ({
     id: track.id,
     title: track.title,
     artist: track.artist,
     coverImage: track.coverImage,
     userStars: track.userStars,
+    votes: track.votes,
   }));
 
   const seekToRatio = (ratio: number) => {
@@ -228,7 +228,7 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
   };
 
   return (
-    <div className="mx-auto max-w-[1280px] px-4 pb-16 pt-24">
+    <div className="mx-auto max-w-3xl overflow-hidden px-4 pb-16 pt-24">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[10px] uppercase tracking-[0.35em] text-white/40 md:text-[7px]">
@@ -290,10 +290,10 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
       ) : tracks.length === 0 ? (
         <p className="mt-10 text-sm text-white/45">{t("noTracks")}</p>
       ) : (
-        <div className="mt-10 overflow-x-auto">
-          <WemPressPlayer
-            assetFolder={slug}
+        <div className="mt-10">
+          <PressPreviewPlayer
             accent={theme.accent}
+            glowClass={theme.glow}
             tracks={playerTracks}
             activeTrack={activeTrack ? playerTracks.find((row) => row.id === activeTrack.id) ?? null : null}
             playing={playing}
@@ -314,9 +314,14 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
             }}
             onSeek={seekToRatio}
             onVolumeChange={setVolume}
+            onSelectTrack={(id) => {
+              stopPlayback();
+              void playTrackById(id);
+            }}
             onVote={(stars) => {
               if (activeTrack) void handleVote(activeTrack.id, stars, activeTrack.title);
             }}
+            labels={{ play: t("play"), pause: t("pause"), volume: "Vol" }}
           />
         </div>
       )}

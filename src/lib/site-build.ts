@@ -1,2 +1,2 @@
 /** Shown in Admin footer — verify you run the expected build after git pull. */
-export const SITE_BUILD_LABEL = "mobile-2026-08-16-cosmos-shift-30";
+export const SITE_BUILD_LABEL = "mobile-2026-08-16-cosmos-shift-endpoints";

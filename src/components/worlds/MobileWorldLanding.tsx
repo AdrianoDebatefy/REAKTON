@@ -118,24 +118,23 @@ function pivotDisplayIndex(
   return slot >= 0 ? slot : null;
 }
 
-/** Cosmos landing default: shift visible motif 30 % upward within the panel. */
+/** Cosmos landing row: shift visible motif 30 % upward within the panel strip. */
 const MOBILE_COSMOS_LANDING_SHIFT = "30%";
 
-function mobileBgObjectPosition(
+/** Same BG crop whenever the cosmos panel sits in the 3-row landing strip (all animation endpoints). */
+function cosmosUsesLandingRowBgShift(
   atmosphere: WorldAtmosphere,
-  isLandingDefault: boolean
-): string {
-  if (isLandingDefault && atmosphere === "cosmos") {
-    return "center center";
-  }
-  return "center center";
+  fillsViewport: boolean,
+  parkedOffscreen: boolean
+): boolean {
+  return atmosphere === "cosmos" && !fillsViewport && !parkedOffscreen;
 }
 
 function cosmosLandingBgStyle(
   atmosphere: WorldAtmosphere,
-  isLandingDefault: boolean
+  usesLandingRowBgShift: boolean
 ): CSSProperties | undefined {
-  if (!isLandingDefault || atmosphere !== "cosmos") return undefined;
+  if (!usesLandingRowBgShift) return undefined;
   return {
     top: `-${MOBILE_COSMOS_LANDING_SHIFT}`,
     height: `calc(100% + ${MOBILE_COSMOS_LANDING_SHIFT})`,
@@ -213,7 +212,7 @@ function PanelBgLayers({
   isColumnReturning,
   returnRevealLanding,
   scrimOpacity,
-  isLandingDefault,
+  usesLandingRowBgShift,
 }: {
   world: World;
   tone: ReturnType<typeof columnCopyTone>;
@@ -223,12 +222,11 @@ function PanelBgLayers({
   isColumnReturning: boolean;
   returnRevealLanding: boolean;
   scrimOpacity: number;
-  isLandingDefault: boolean;
+  usesLandingRowBgShift: boolean;
 }) {
   const hideOverlays =
     showWorld || isEntering || (isColumnReturning && !returnRevealLanding);
-  const objectPosition = mobileBgObjectPosition(world.atmosphere, isLandingDefault);
-  const landingBgStyle = cosmosLandingBgStyle(world.atmosphere, isLandingDefault);
+  const landingBgStyle = cosmosLandingBgStyle(world.atmosphere, usesLandingRowBgShift);
   const overlayFade =
     isColumnReturning && returnRevealLanding
       ? { duration: MOBILE_RETURN_OVERLAY_FADE_S, ease: COLUMN_EASE }
@@ -241,7 +239,7 @@ function PanelBgLayers({
           desktopSrc={bg.desktop}
           mobileSrc={bg.mobile}
           onError={bg.onError}
-          objectPosition={objectPosition}
+          objectPosition="center center"
           landingBgStyle={landingBgStyle}
         />
         <motion.div
@@ -307,8 +305,6 @@ export function MobileWorldLanding({
   const returnSlidePhase = isColumnReturning && !returnRevealLanding;
   const returnSettlePhase = isColumnReturning && returnRevealLanding;
   const isAnimating = isEntering || isColumnReturning;
-  const isLandingDefault =
-    !showWorld && !isEntering && !isColumnReturning && selectedIndex === null;
   const landingVisible = !showWorld;
   const captionDuration =
     returnSettlePhase ? MOBILE_RETURN_LABEL_IN_MS : CAPTION_DECODE_MS;
@@ -403,6 +399,11 @@ export function MobileWorldLanding({
             (fillsViewport || isEntering || returnSlidePhase);
           const panelZIndex = keepPivotOnTop ? panelCount + 1 : displayIndex + 1;
           const panelOverflow = isAnimating ? "overflow-visible" : "overflow-hidden";
+          const usesLandingRowBgShift = cosmosUsesLandingRowBgShift(
+            world.atmosphere,
+            fillsViewport,
+            parkedOffscreen
+          );
 
           return (
             <motion.div
@@ -444,7 +445,7 @@ export function MobileWorldLanding({
                 isColumnReturning={isColumnReturning}
                 returnRevealLanding={returnRevealLanding}
                 scrimOpacity={scrimOpacity}
-                isLandingDefault={isLandingDefault}
+                usesLandingRowBgShift={usesLandingRowBgShift}
               />
             </motion.div>
           );

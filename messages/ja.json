@@ -15,9 +15,9 @@
     "locked": "近日公開",
     "lockedHint": "2026年11月より利用可能",
     "enterWorld": "ワールドへ",
-    "toyTitle": "Clap-Toy",
+    "toyTitle": "インタラクティブ・トイ",
     "toyDescription": "インタラクティブ体験 — 近日公開。",
-    "toyCta": "Clap-Toy へ"
+    "toyCta": "インタラクティブ・トイへ"
   },
   "world": {
     "watchVideo": "動画を見る",
@@ -75,10 +75,10 @@
   },
   "toy": {
     "eyebrow": "REAKTON Toy",
-    "title": "Clap-Toy",
-    "subtitle": "REAKTONのワールドを楽しむインタラクティブなクラップ体験。",
+    "title": "インタラクティブ・トイ",
+    "subtitle": "REAKTONのワールドを楽しむインタラクティブ体験。",
     "comingSoon": "近日公開",
-    "hint": "Clap-Toyは現在制作中です。もう少しお待ちください。",
+    "hint": "インタラクティブ・トイは現在制作中です。もう少しお待ちください。",
     "backHome": "ホームへ戻る"
   },
   "contact": {

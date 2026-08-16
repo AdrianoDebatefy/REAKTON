@@ -123,7 +123,7 @@ function mobileBgObjectPosition(
   isLandingDefault: boolean
 ): string {
   if (isLandingDefault && atmosphere === "cosmos") {
-    return "center 35%";
+    return "center 20%";
   }
   return "center center";
 }

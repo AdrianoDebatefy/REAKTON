@@ -16,6 +16,9 @@ interface HeaderProps {
 
 const headerTextClass = "text-[30px] uppercase tracking-widest";
 
+const mobileHeaderBtnClass =
+  "inline-flex min-h-[2.25rem] min-w-[2.75rem] items-center justify-center rounded border border-white/15 px-2.5 py-1 text-lg uppercase tracking-widest text-white/60 transition hover:border-white/30";
+
 type NavChipId = "live" | "merch" | "press" | "toy" | "contact";
 
 const navChipStyles: Record<NavChipId, { bg: string; text: string; hover: string }> = {
@@ -151,7 +154,7 @@ export function Header({ logoUrl, siteLinks, clapToyUrl, onHomeClick }: HeaderPr
         <Link
           href="/"
           onClick={onHomeClick}
-          className="flex shrink-0 origin-left items-center py-3 pl-[50px] opacity-90 transition hover:opacity-100 max-md:scale-[0.7] max-md:-translate-x-[30%]"
+          className="flex shrink-0 origin-left items-center py-3 pl-[50px] opacity-90 transition hover:opacity-100 max-md:scale-[0.7] max-md:translate-x-[20%]"
         >
           <img
             src={logoSrc}
@@ -176,7 +179,7 @@ export function Header({ logoUrl, siteLinks, clapToyUrl, onHomeClick }: HeaderPr
           ))}
         </nav>
 
-        <div className="flex items-center gap-3 py-3">
+        <div className="flex items-center gap-1.5 py-3 max-md:gap-1 max-md:pr-1">
           <div className="hidden items-center gap-2 sm:flex">
             {socialItems.map((item) => (
               <a
@@ -195,7 +198,7 @@ export function Header({ logoUrl, siteLinks, clapToyUrl, onHomeClick }: HeaderPr
           <button
             type="button"
             onClick={switchLocale}
-            className={`rounded border border-white/15 px-2.5 py-1 ${headerTextClass} text-white/60 hover:border-white/30`}
+            className={`rounded border border-white/15 px-2.5 py-1 ${headerTextClass} text-white/60 hover:border-white/30 max-md:inline-flex max-md:min-h-[2.25rem] max-md:min-w-[2.75rem] max-md:-translate-x-2 max-md:items-center max-md:justify-center max-md:text-lg`}
             aria-label="Switch language"
           >
             {localeSwitchLabel(locale)}
@@ -203,10 +206,10 @@ export function Header({ logoUrl, siteLinks, clapToyUrl, onHomeClick }: HeaderPr
 
           <details className="relative lg:hidden">
             <summary
-              className={`inline-flex origin-center scale-[0.6] cursor-pointer list-none items-center justify-center text-white/70`}
+              className={`${mobileHeaderBtnClass} max-md:-translate-x-2 cursor-pointer list-none`}
               aria-label={t("menu")}
             >
-              <HamburgerIcon />
+              <HamburgerIcon className="h-5 w-5" />
             </summary>
             <nav className="absolute right-0 mt-2 min-w-[10rem] rounded border border-white/10 bg-black/95 p-2">
               {navItems.map((item) => (

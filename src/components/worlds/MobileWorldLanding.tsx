@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { motion } from "framer-motion";
 import type { Locale, World, WorldAtmosphere } from "@/types/content";
 import { DecodeText, type DecodeMode } from "@/components/DecodeText";
@@ -118,14 +118,29 @@ function pivotDisplayIndex(
   return slot >= 0 ? slot : null;
 }
 
+/** Cosmos landing default: shift visible motif 30 % upward within the panel. */
+const MOBILE_COSMOS_LANDING_SHIFT = "30%";
+
 function mobileBgObjectPosition(
   atmosphere: WorldAtmosphere,
   isLandingDefault: boolean
 ): string {
   if (isLandingDefault && atmosphere === "cosmos") {
-    return "center 20%";
+    return "center center";
   }
   return "center center";
+}
+
+function cosmosLandingBgStyle(
+  atmosphere: WorldAtmosphere,
+  isLandingDefault: boolean
+): CSSProperties | undefined {
+  if (!isLandingDefault || atmosphere !== "cosmos") return undefined;
+  return {
+    top: `-${MOBILE_COSMOS_LANDING_SHIFT}`,
+    height: `calc(100% + ${MOBILE_COSMOS_LANDING_SHIFT})`,
+    objectPosition: "center center",
+  };
 }
 
 function sortWorldsForMobile(worlds: World[]): World[] {
@@ -140,13 +155,13 @@ function ColumnBgImage({
   mobileSrc,
   onError,
   objectPosition = "center center",
-  objectPositionTransition,
+  landingBgStyle,
 }: {
   desktopSrc: string;
   mobileSrc: string;
   onError?: () => void;
   objectPosition?: string;
-  objectPositionTransition?: { duration: number; ease: [number, number, number, number] };
+  landingBgStyle?: CSSProperties;
 }) {
   const [src, setSrc] = useState(desktopSrc);
 
@@ -173,18 +188,18 @@ function ColumnBgImage({
   };
 
   return (
-    <motion.img
+    <img
       src={src}
       alt=""
-      className="absolute inset-0 block h-full w-full object-cover"
-      initial={false}
-      animate={{ objectPosition }}
-      transition={
-        objectPositionTransition
-          ? { objectPosition: objectPositionTransition }
-          : { duration: 0 }
-      }
+        className={`absolute left-0 right-0 w-full object-cover ${
+          landingBgStyle ? "" : "inset-y-0 h-full"
+        }`}
+      style={{
+        objectPosition,
+        ...landingBgStyle,
+      }}
       onError={handleError}
+      decoding="async"
     />
   );
 }
@@ -213,6 +228,7 @@ function PanelBgLayers({
   const hideOverlays =
     showWorld || isEntering || (isColumnReturning && !returnRevealLanding);
   const objectPosition = mobileBgObjectPosition(world.atmosphere, isLandingDefault);
+  const landingBgStyle = cosmosLandingBgStyle(world.atmosphere, isLandingDefault);
   const overlayFade =
     isColumnReturning && returnRevealLanding
       ? { duration: MOBILE_RETURN_OVERLAY_FADE_S, ease: COLUMN_EASE }
@@ -226,6 +242,7 @@ function PanelBgLayers({
           mobileSrc={bg.mobile}
           onError={bg.onError}
           objectPosition={objectPosition}
+          landingBgStyle={landingBgStyle}
         />
         <motion.div
           className={`landing-column-overlay landing-column-overlay--${world.atmosphere} absolute inset-0`}

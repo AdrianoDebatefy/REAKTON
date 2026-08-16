@@ -99,6 +99,38 @@ function ProgressBar({
   );
 }
 
+function GlassTransportButton({
+  isPlaying,
+  label,
+  onClick,
+}: {
+  isPlaying: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group relative h-10 min-w-[8rem] max-w-[12rem] flex-[1.15] overflow-hidden rounded-lg border border-white/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0.04)_38%,rgba(0,0,0,0.22)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(255,255,255,0.08),0_4px_14px_rgba(0,0,0,0.35)] backdrop-blur-md transition hover:border-white/45 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(255,255,255,0.12),0_6px_18px_rgba(0,0,0,0.42)] md:h-9 md:min-w-[7rem]"
+      aria-label={label}
+    >
+      <span
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(125deg,transparent_35%,rgba(255,255,255,0.34)_48%,rgba(255,255,255,0.08)_58%,transparent_72%)]"
+        aria-hidden
+      />
+      <span
+        className="pointer-events-none absolute inset-[1px] rounded-[7px] border border-white/10"
+        aria-hidden
+      />
+      <span className="relative z-10 flex h-full items-center justify-center gap-2 px-4 text-sm uppercase tracking-[0.24em] text-white/90 md:text-xs">
+        <span className="text-xs leading-none">{isPlaying ? "⏹" : "▶"}</span>
+        <span>{label}</span>
+      </span>
+    </button>
+  );
+}
+
 export function PressPreviewPlayer({
   accent,
   atmosphere,
@@ -209,8 +241,9 @@ export function PressPreviewPlayer({
                   <span className="shrink-0 text-xl tabular-nums text-white/75 md:text-lg">
                     {timeCurrent} / {timeTotal}
                   </span>
-                  <button
-                    type="button"
+                  <GlassTransportButton
+                    isPlaying={isPlaying}
+                    label={isPlaying ? labels.stop : labels.play}
                     onClick={() => {
                       if (isPlaying) {
                         onStop();
@@ -218,15 +251,7 @@ export function PressPreviewPlayer({
                         onPlay(track.id);
                       }
                     }}
-                    className="flex h-9 min-w-[7.5rem] max-w-[11rem] flex-[1.15] items-center justify-center gap-2 border border-white/[0.14] bg-white/[0.05] text-base uppercase tracking-[0.22em] text-white/85 backdrop-blur-[3px] transition hover:border-white/25 hover:bg-white/[0.09] md:h-8 md:min-w-[6.5rem] md:text-sm"
-                    style={{ boxShadow: `inset 0 1px 0 ${accent}22` }}
-                    aria-label={isPlaying ? labels.stop : labels.play}
-                  >
-                    <span className="text-sm leading-none md:text-xs">
-                      {isPlaying ? "⏹" : "▶"}
-                    </span>
-                    <span>{isPlaying ? labels.stop : labels.play}</span>
-                  </button>
+                  />
                 </div>
               </div>
 

@@ -174,12 +174,15 @@ export function PressEqWaves({
   visible,
   active,
   className = "h-11 w-full",
+  renderBoost = 1,
 }: {
   atmosphere: WorldAtmosphere;
   analyser: AnalyserNode | null;
   visible: boolean;
   active: boolean;
   className?: string;
+  /** Extra canvas resolution when parent uses CSS scale (e.g. 1/0.6 inside scale(0.6)). */
+  renderBoost?: number;
 }) {
   const layers = PRESS_EQ_LAYERS[atmosphere];
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -190,6 +193,8 @@ export function PressEqWaves({
   const dynamicsRef = useRef(
     layers.map(() => ({ envelope: IDLE_LEVEL, sessionPeak: 0.08 }))
   );
+  const canvasCtxRef = useRef<CanvasRenderingContext2D | null>(null);
+  const logicalSizeRef = useRef({ width: 0, height: 0 });
 
   useEffect(() => {
     layersRef.current = layers.map(() => Array.from({ length: POINT_COUNT }, () => IDLE_LEVEL));
@@ -207,15 +212,28 @@ export function PressEqWaves({
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
 
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return undefined;
+    canvasCtxRef.current = ctx;
+
     const resize = () => {
-      canvas.width = canvas.clientWidth;
-      canvas.height = 44;
+      const dpr = window.devicePixelRatio || 1;
+      const boost = Math.max(1, renderBoost);
+      const logicalWidth = Math.max(1, canvas.clientWidth);
+      const logicalHeight = Math.max(1, canvas.clientHeight);
+      const bufferScale = dpr * boost;
+
+      canvas.width = Math.floor(logicalWidth * bufferScale);
+      canvas.height = Math.floor(logicalHeight * bufferScale);
+      ctx.setTransform(bufferScale, 0, 0, bufferScale, 0, 0);
+
+      logicalSizeRef.current = { width: logicalWidth, height: logicalHeight };
     };
     resize();
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
     return () => ro.disconnect();
-  }, []);
+  }, [renderBoost]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -230,7 +248,9 @@ export function PressEqWaves({
 
     const draw = () => {
       frameRef.current = requestAnimationFrame(draw);
-      const { width, height } = canvas;
+      const { width, height } = logicalSizeRef.current;
+      if (!width || !height) return;
+
       const baseline = height - 2;
       const time = performance.now() / 1000;
 
@@ -291,7 +311,7 @@ export function PressEqWaves({
 
     draw();
     return () => cancelAnimationFrame(frameRef.current);
-  }, [analyser, active, visible, layers]);
+  }, [analyser, active, visible, layers, renderBoost]);
 
   return <canvas ref={canvasRef} className={className} aria-hidden />;
 }

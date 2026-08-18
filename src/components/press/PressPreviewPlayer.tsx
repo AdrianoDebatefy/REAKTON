@@ -121,7 +121,7 @@ function GlassTransportButton({
     <button
       type="button"
       onClick={onClick}
-      className="group relative h-10 min-w-[8rem] max-w-[12rem] flex-[1.15] overflow-hidden rounded-lg border border-white/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0.04)_38%,rgba(0,0,0,0.22)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(255,255,255,0.08),0_4px_14px_rgba(0,0,0,0.35)] backdrop-blur-md transition hover:border-white/45 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(255,255,255,0.12),0_6px_18px_rgba(0,0,0,0.42)] md:h-9 md:min-w-[7rem]"
+      className="group relative h-10 w-[11.5rem] shrink-0 overflow-hidden rounded-lg border border-white/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0.04)_38%,rgba(0,0,0,0.22)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(255,255,255,0.08),0_4px_14px_rgba(0,0,0,0.35)] backdrop-blur-md transition hover:border-white/45 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(255,255,255,0.12),0_6px_18px_rgba(0,0,0,0.42)] md:h-9"
       aria-label={label}
     >
       <span
@@ -204,7 +204,7 @@ export function PressPreviewPlayer({
         </p>
       ) : null}
 
-      <ul className="space-y-1">
+      <ul className="flex flex-col items-center space-y-[10px]">
         {tracks.map((track, index) => {
           const isActive = track.id === activeTrackId;
           const isPlaying = isActive && playing;
@@ -217,7 +217,7 @@ export function PressPreviewPlayer({
           return (
             <li
               key={track.id}
-              className={`${SLOT_VISUAL_HEIGHT_CLASS} w-[60%] max-w-[60%] overflow-hidden border bg-black/40 backdrop-blur-[2px] transition-colors`}
+              className={`${SLOT_VISUAL_HEIGHT_CLASS} mx-auto w-[60%] max-w-[60%] overflow-hidden border bg-black/40 backdrop-blur-[2px] transition-colors`}
               style={{ borderColor: `${accent}66` }}
             >
               <div
@@ -251,6 +251,7 @@ export function PressPreviewPlayer({
                       visible={isActive}
                       active={isPlaying}
                       className="block h-full w-full"
+                      renderBoost={1 / SLOT_SCALE}
                     />
                     <GlassEqOverlay />
                   </div>

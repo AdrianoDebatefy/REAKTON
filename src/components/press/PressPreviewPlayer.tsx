@@ -125,7 +125,7 @@ function GlassTransportButton({
         aria-hidden
       />
       <span
-        className="pointer-events-none absolute inset-[1px] rounded-[5px] border border-white/10"
+        className="pointer-events-none absolute inset-[1px] rounded-[7px] border border-white/10"
         aria-hidden
       />
       <span className="relative z-10 flex h-full items-center justify-center gap-2 px-3 text-xs uppercase tracking-[0.24em] text-white/90">

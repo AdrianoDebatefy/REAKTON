@@ -41,8 +41,14 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(0.85);
+  const [trackVolumes, setTrackVolumes] = useState<Record<string, number>>({});
   const [playbackError, setPlaybackError] = useState<string | null>(null);
+
+  const DEFAULT_VOLUME = 0.85;
+  const getTrackVolume = useCallback(
+    (trackId: string) => trackVolumes[trackId] ?? DEFAULT_VOLUME,
+    [trackVolumes]
+  );
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -109,8 +115,19 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
   }, [atmosphere, loadTracks, refreshSession]);
 
   useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = volume;
-  }, [volume]);
+    if (!activeTrackId || !audioRef.current) return;
+    audioRef.current.volume = getTrackVolume(activeTrackId);
+  }, [activeTrackId, getTrackVolume]);
+
+  const handleVolumeChange = useCallback(
+    (trackId: string, value: number) => {
+      setTrackVolumes((prev) => ({ ...prev, [trackId]: value }));
+      if (trackId === activeTrackId && audioRef.current) {
+        audioRef.current.volume = value;
+      }
+    },
+    [activeTrackId]
+  );
 
   const ensureAudioGraph = useCallback(async () => {
     const audio = audioRef.current;
@@ -178,6 +195,7 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
         }
 
         await ensureAudioGraph();
+        audio.volume = getTrackVolume(trackId);
         await audio.play();
         setPlaying(true);
       } catch {
@@ -185,7 +203,7 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
         setPlaying(false);
       }
     },
-    [ensureAudioGraph, t, tracks, waitUntilCanPlay]
+    [ensureAudioGraph, getTrackVolume, t, tracks, waitUntilCanPlay]
   );
 
   useEffect(() => {
@@ -356,13 +374,13 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
             playing={playing}
             progress={progress}
             duration={duration}
-            volume={volume}
+            getVolume={getTrackVolume}
             analyser={analyserReady ? analyserRef.current : null}
             playbackError={playbackError}
             onPlay={(id) => void playTrackById(id)}
             onStop={stopPlayback}
             onSeek={seekToRatio}
-            onVolumeChange={setVolume}
+            onVolumeChange={handleVolumeChange}
             onVote={handleVote}
             labels={{ play: t("play"), stop: t("stop"), volume: t("volume") }}
           />

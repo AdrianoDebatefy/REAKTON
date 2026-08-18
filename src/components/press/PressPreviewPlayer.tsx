@@ -131,6 +131,25 @@ function GlassTransportButton({
   );
 }
 
+function GlassEqOverlay() {
+  return (
+    <>
+      <span
+        className="pointer-events-none absolute inset-0 rounded-lg border border-white/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.04)_38%,rgba(0,0,0,0.2)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(255,255,255,0.08)] backdrop-blur-[3px]"
+        aria-hidden
+      />
+      <span
+        className="pointer-events-none absolute inset-[1px] rounded-[7px] border border-white/10"
+        aria-hidden
+      />
+      <span
+        className="pointer-events-none absolute inset-0 rounded-lg bg-[linear-gradient(125deg,transparent_35%,rgba(255,255,255,0.22)_48%,rgba(255,255,255,0.06)_58%,transparent_72%)]"
+        aria-hidden
+      />
+    </>
+  );
+}
+
 export function PressPreviewPlayer({
   accent,
   atmosphere,
@@ -139,7 +158,7 @@ export function PressPreviewPlayer({
   playing,
   progress,
   duration,
-  volume,
+  getVolume,
   analyser,
   playbackError,
   onPlay,
@@ -156,62 +175,83 @@ export function PressPreviewPlayer({
   playing: boolean;
   progress: number;
   duration: number;
-  volume: number;
+  getVolume: (trackId: string) => number;
   analyser: AnalyserNode | null;
   playbackError: string | null;
   onPlay: (trackId: string) => void;
   onStop: () => void;
   onSeek: (ratio: number) => void;
-  onVolumeChange: (ratio: number) => void;
+  onVolumeChange: (trackId: string, ratio: number) => void;
   onVote: (trackId: string, stars: number) => void;
   labels: { play: string; stop: string; volume: string };
 }) {
   const activeProgressRatio = duration > 0 ? progress / duration : 0;
 
   return (
-    <div className="w-full max-w-7xl space-y-1">
+    <div className="w-full max-w-7xl">
       {playbackError ? (
         <p className="border border-red-400/25 bg-red-500/8 px-4 py-2 text-lg text-red-200">
           {playbackError}
         </p>
       ) : null}
 
-      <ul className="space-y-1">
-        {tracks.map((track, index) => {
-          const isActive = track.id === activeTrackId;
-          const isPlaying = isActive && playing;
-          const slotLabel = String(index + 1).padStart(2, "0");
-          const progressRatio = isActive ? activeProgressRatio : 0;
-          const timeCurrent = isActive ? formatTimeExtended(progress) : "00:00:00:00";
-          const timeTotal = isActive ? formatTimeExtended(duration) : "00:00:00:00";
+      <div className="origin-top-left scale-50 w-[200%] max-w-[200%]">
+        <ul className="space-y-1">
+          {tracks.map((track, index) => {
+            const isActive = track.id === activeTrackId;
+            const isPlaying = isActive && playing;
+            const slotLabel = String(index + 1).padStart(2, "0");
+            const progressRatio = isActive ? activeProgressRatio : 0;
+            const timeCurrent = isActive ? formatTimeExtended(progress) : "00:00:00:00";
+            const timeTotal = isActive ? formatTimeExtended(duration) : "00:00:00:00";
+            const slotVolume = getVolume(track.id);
 
-          return (
-            <li
-              key={track.id}
-              className="flex items-stretch overflow-hidden border bg-black/40 backdrop-blur-[2px] transition-colors"
-              style={{ borderColor: `${accent}66` }}
-            >
-              <div className="flex w-[7.5rem] shrink-0 flex-col items-center gap-2 px-3 py-3 md:w-32">
-                <div
-                  className="aspect-square w-full overflow-hidden"
-                  style={{ backgroundColor: track.coverImage ? undefined : accent }}
-                >
-                  {track.coverImage ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={track.coverImage} alt="" className="h-full w-full object-cover" />
-                  ) : null}
+            return (
+              <li
+                key={track.id}
+                className="flex items-stretch overflow-hidden border bg-black/40 backdrop-blur-[2px] transition-colors"
+                style={{ borderColor: `${accent}66` }}
+              >
+                <div className="flex w-[7.5rem] shrink-0 flex-col items-center gap-2 px-3 py-3 md:w-32">
+                  <div
+                    className="aspect-square w-full overflow-hidden"
+                    style={{ backgroundColor: track.coverImage ? undefined : accent }}
+                  >
+                    {track.coverImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={track.coverImage} alt="" className="h-full w-full object-cover" />
+                    ) : null}
+                  </div>
+                  <span className="text-[2.5rem] font-light leading-none tabular-nums text-white/60">
+                    {slotLabel}
+                  </span>
                 </div>
-                <span className="text-[2.5rem] font-light leading-none tabular-nums text-white/60">
-                  {slotLabel}
-                </span>
-              </div>
 
-              <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 py-2 pr-2">
-                <div className="relative flex min-h-8 items-start">
-                  <p className="min-w-0 flex-1 truncate pr-32 text-2xl font-light leading-tight text-white/90 md:pr-36">
+                <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 py-2 pr-2">
+                  <p className="min-w-0 truncate text-2xl font-light leading-tight text-white/90">
                     {track.title}
                   </p>
-                  <div className="absolute right-0 top-0 shrink-0">
+
+                  <div className="relative mt-0.5 overflow-hidden rounded-lg">
+                    <PressEqWaves
+                      atmosphere={atmosphere}
+                      analyser={isActive ? analyser : null}
+                      visible={isActive}
+                      active={isPlaying}
+                    />
+                    <GlassEqOverlay />
+                  </div>
+
+                  <div className="mt-2">
+                    <ProgressBar
+                      value={progressRatio}
+                      accent={accent}
+                      disabled={!isActive}
+                      onChange={onSeek}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4 pr-2 pt-1">
                     <StarRating
                       value={track.votes}
                       userStars={track.userStars}
@@ -220,51 +260,36 @@ export function PressPreviewPlayer({
                       atmosphere={atmosphere}
                       compact
                     />
+                    <div className="flex shrink-0 items-center gap-3">
+                      <span className="text-xl tabular-nums text-white/75">
+                        {timeCurrent} / {timeTotal}
+                      </span>
+                      <GlassTransportButton
+                        isPlaying={isPlaying}
+                        label={isPlaying ? labels.stop : labels.play}
+                        onClick={() => {
+                          if (isPlaying) {
+                            onStop();
+                          } else {
+                            onPlay(track.id);
+                          }
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <PressEqWaves
-                  atmosphere={atmosphere}
-                  analyser={isActive ? analyser : null}
-                  visible={isActive}
-                  active={isPlaying}
-                />
-
-                <ProgressBar
-                  value={progressRatio}
+                <SlotVolume
+                  volume={slotVolume}
                   accent={accent}
-                  disabled={!isActive}
-                  onChange={onSeek}
+                  label={labels.volume}
+                  onChange={(value) => onVolumeChange(track.id, value)}
                 />
-
-                <div className="flex items-center justify-end gap-3 pr-2">
-                  <span className="shrink-0 text-xl tabular-nums text-white/75">
-                    {timeCurrent} / {timeTotal}
-                  </span>
-                  <GlassTransportButton
-                    isPlaying={isPlaying}
-                    label={isPlaying ? labels.stop : labels.play}
-                    onClick={() => {
-                      if (isPlaying) {
-                        onStop();
-                      } else {
-                        onPlay(track.id);
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-
-              <SlotVolume
-                volume={volume}
-                accent={accent}
-                label={labels.volume}
-                onChange={onVolumeChange}
-              />
-            </li>
-          );
-        })}
-      </ul>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </div>
   );
 }

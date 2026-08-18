@@ -7,7 +7,7 @@ function starStyle(atmosphere: WorldAtmosphere, filled: boolean): string {
   if (atmosphere === "nano") {
     return filled
       ? "text-white"
-      : "text-transparent [-webkit-text-stroke:1.5px_rgba(255,255,255,0.55)]";
+      : "text-transparent [-webkit-text-stroke:1px_rgba(255,255,255,0.55)]";
   }
 
   if (atmosphere === "club") {
@@ -30,20 +30,23 @@ export function StarRating({
   userStars: number | null;
   onVote: (stars: number) => void;
   disabled?: boolean;
-  size?: "md" | "lg";
+  size?: "sm" | "md" | "lg";
   atmosphere?: WorldAtmosphere;
   compact?: boolean;
 }) {
   const accent = PRESS_WORLD_THEME[atmosphere].accent;
-  const starClass = size === "lg" ? "text-2xl" : "text-lg";
+  const starClass =
+    size === "lg" ? "text-2xl" : size === "sm" ? "text-[0.9rem]" : "text-lg";
   const labelClass =
     size === "lg"
       ? "text-base uppercase tracking-widest text-white/40"
-      : "text-xs uppercase tracking-widest text-white/40";
+      : size === "sm"
+        ? "text-[0.6rem] uppercase tracking-widest text-white/40"
+        : "text-xs uppercase tracking-widest text-white/40";
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="flex items-center gap-0.5" role="group" aria-label="Bewertung">
+    <div className={`flex flex-wrap items-center ${size === "sm" ? "gap-1" : "gap-2"}`}>
+      <div className={`flex items-center ${size === "sm" ? "gap-px" : "gap-0.5"}`} role="group" aria-label="Bewertung">
         {[1, 2, 3, 4, 5].map((star) => {
           const filled = (userStars ?? 0) >= star;
           const styleClass = starStyle(atmosphere, filled);

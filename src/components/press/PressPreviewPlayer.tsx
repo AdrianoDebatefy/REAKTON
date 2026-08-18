@@ -255,7 +255,7 @@ export function PressPreviewPlayer({
                   </div>
 
                   <div className="mt-1 flex items-center justify-between gap-2 pr-0.5">
-                    <p className="min-w-0 flex-1 truncate text-left text-lg font-light leading-tight text-white/90 md:text-xl">
+                    <p className="min-w-0 flex-1 truncate text-left text-[0.675rem] font-light leading-tight text-white/90 md:text-[0.75rem]">
                       {track.title}
                     </p>
                     <div className="flex shrink-0 items-center gap-2">
@@ -263,11 +263,11 @@ export function PressPreviewPlayer({
                         value={track.votes}
                         userStars={track.userStars}
                         onVote={(stars) => onVote(track.id, stars)}
-                        size="lg"
+                        size="sm"
                         atmosphere={atmosphere}
                         compact
                       />
-                      <span className="text-sm tabular-nums text-white/75 md:text-base">
+                      <span className="text-[0.525rem] tabular-nums text-white/75 md:text-[0.6rem]">
                         {timeCurrent} / {timeTotal}
                       </span>
                       <GlassTransportButton

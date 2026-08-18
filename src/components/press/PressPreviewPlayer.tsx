@@ -13,6 +13,10 @@ export interface PressPlayerTrack {
   votes: { totalStars: number; voteCount: number; average: number };
 }
 
+/** Square cover footprint; EQ uses same height, full column width. */
+const COVER_SIZE_CLASS = "h-[7.5rem] w-[7.5rem] md:h-32 md:w-32";
+const EQ_HEIGHT_CLASS = "h-[7.5rem] md:h-32";
+
 function formatTimeExtended(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "00:00:00:00";
   const hours = Math.floor(seconds / 3600);
@@ -195,26 +199,26 @@ export function PressPreviewPlayer({
         </p>
       ) : null}
 
-      <div className="origin-top-left scale-50 w-[200%] max-w-[200%]">
-        <ul className="space-y-1">
-          {tracks.map((track, index) => {
-            const isActive = track.id === activeTrackId;
-            const isPlaying = isActive && playing;
-            const slotLabel = String(index + 1).padStart(2, "0");
-            const progressRatio = isActive ? activeProgressRatio : 0;
-            const timeCurrent = isActive ? formatTimeExtended(progress) : "00:00:00:00";
-            const timeTotal = isActive ? formatTimeExtended(duration) : "00:00:00:00";
-            const slotVolume = getVolume(track.id);
+      <ul className="space-y-1">
+        {tracks.map((track, index) => {
+          const isActive = track.id === activeTrackId;
+          const isPlaying = isActive && playing;
+          const slotLabel = String(index + 1).padStart(2, "0");
+          const progressRatio = isActive ? activeProgressRatio : 0;
+          const timeCurrent = isActive ? formatTimeExtended(progress) : "00:00:00:00";
+          const timeTotal = isActive ? formatTimeExtended(duration) : "00:00:00:00";
+          const slotVolume = getVolume(track.id);
 
-            return (
-              <li
-                key={track.id}
-                className="flex items-stretch overflow-hidden border bg-black/40 backdrop-blur-[2px] transition-colors"
-                style={{ borderColor: `${accent}66` }}
-              >
-                <div className="flex w-[7.5rem] shrink-0 flex-col items-center gap-2 px-3 py-3 md:w-32">
+          return (
+            <li
+              key={track.id}
+              className="origin-left scale-x-[0.6] overflow-hidden border bg-black/40 backdrop-blur-[2px] transition-colors"
+              style={{ borderColor: `${accent}66` }}
+            >
+              <div className="flex items-stretch">
+                <div className="flex shrink-0 flex-col items-center gap-2 px-3 py-3">
                   <div
-                    className="aspect-square w-full overflow-hidden"
+                    className={`${COVER_SIZE_CLASS} overflow-hidden`}
                     style={{ backgroundColor: track.coverImage ? undefined : accent }}
                   >
                     {track.coverImage ? (
@@ -227,22 +231,19 @@ export function PressPreviewPlayer({
                   </span>
                 </div>
 
-                <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 py-2 pr-2">
-                  <p className="min-w-0 truncate text-2xl font-light leading-tight text-white/90">
-                    {track.title}
-                  </p>
-
-                  <div className="relative mt-0.5 overflow-hidden rounded-lg">
+                <div className="flex min-w-0 flex-1 flex-col py-3 pr-2">
+                  <div className={`relative w-full overflow-hidden rounded-lg ${EQ_HEIGHT_CLASS}`}>
                     <PressEqWaves
                       atmosphere={atmosphere}
                       analyser={isActive ? analyser : null}
                       visible={isActive}
                       active={isPlaying}
+                      className="block h-full w-full"
                     />
                     <GlassEqOverlay />
                   </div>
 
-                  <div className="mt-2">
+                  <div className="mt-1.5">
                     <ProgressBar
                       value={progressRatio}
                       accent={accent}
@@ -251,16 +252,19 @@ export function PressPreviewPlayer({
                     />
                   </div>
 
-                  <div className="flex items-center justify-between gap-4 pr-2 pt-1">
-                    <StarRating
-                      value={track.votes}
-                      userStars={track.userStars}
-                      onVote={(stars) => onVote(track.id, stars)}
-                      size="lg"
-                      atmosphere={atmosphere}
-                      compact
-                    />
+                  <div className="mt-1.5 flex items-center justify-between gap-4 pr-1">
+                    <p className="min-w-0 flex-1 truncate text-left text-2xl font-light leading-tight text-white/90">
+                      {track.title}
+                    </p>
                     <div className="flex shrink-0 items-center gap-3">
+                      <StarRating
+                        value={track.votes}
+                        userStars={track.userStars}
+                        onVote={(stars) => onVote(track.id, stars)}
+                        size="lg"
+                        atmosphere={atmosphere}
+                        compact
+                      />
                       <span className="text-xl tabular-nums text-white/75">
                         {timeCurrent} / {timeTotal}
                       </span>
@@ -285,11 +289,11 @@ export function PressPreviewPlayer({
                   label={labels.volume}
                   onChange={(value) => onVolumeChange(track.id, value)}
                 />
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

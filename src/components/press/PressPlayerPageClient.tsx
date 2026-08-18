@@ -55,7 +55,12 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const loadedAudioUrlRef = useRef<string | null>(null);
+  const tracksRef = useRef(tracks);
+  const activeTrackIdRef = useRef(activeTrackId);
   const [analyserReady, setAnalyserReady] = useState(false);
+
+  tracksRef.current = tracks;
+  activeTrackIdRef.current = activeTrackId;
 
   const waitUntilCanPlay = useCallback((audio: HTMLAudioElement) => {
     if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
@@ -206,6 +211,21 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
     [ensureAudioGraph, getTrackVolume, t, tracks, waitUntilCanPlay]
   );
 
+  const playNextTrackAfterEnd = useCallback(() => {
+    const list = tracksRef.current;
+    const currentId = activeTrackIdRef.current;
+    if (!currentId) return;
+
+    const currentIndex = list.findIndex((row) => row.id === currentId);
+    for (let i = currentIndex + 1; i < list.length; i += 1) {
+      const next = list[i];
+      if (next.audioUrl?.trim()) {
+        void playTrackById(next.id);
+        return;
+      }
+    }
+  }, [playTrackById]);
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return undefined;
@@ -214,7 +234,10 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
       setProgress(audio.currentTime);
       setDuration(audio.duration || 0);
     };
-    const onEnded = () => setPlaying(false);
+    const onEnded = () => {
+      setPlaying(false);
+      playNextTrackAfterEnd();
+    };
     const onError = () => {
       setPlaybackError(t("playbackFailed"));
       setPlaying(false);
@@ -230,7 +253,7 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
       audio.removeEventListener("ended", onEnded);
       audio.removeEventListener("error", onError);
     };
-  }, [t]);
+  }, [t, playNextTrackAfterEnd]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

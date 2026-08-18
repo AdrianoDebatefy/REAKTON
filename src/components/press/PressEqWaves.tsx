@@ -173,11 +173,13 @@ export function PressEqWaves({
   analyser,
   visible,
   active,
+  className = "h-11 w-full",
 }: {
   atmosphere: WorldAtmosphere;
   analyser: AnalyserNode | null;
   visible: boolean;
   active: boolean;
+  className?: string;
 }) {
   const layers = PRESS_EQ_LAYERS[atmosphere];
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -291,5 +293,5 @@ export function PressEqWaves({
     return () => cancelAnimationFrame(frameRef.current);
   }, [analyser, active, visible, layers]);
 
-  return <canvas ref={canvasRef} className="h-11 w-full" height={44} aria-hidden />;
+  return <canvas ref={canvasRef} className={className} aria-hidden />;
 }

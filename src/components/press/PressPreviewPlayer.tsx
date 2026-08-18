@@ -13,6 +13,11 @@ export interface PressPlayerTrack {
   votes: { totalStars: number; voteCount: number; average: number };
 }
 
+/** Uniform 60% scale — design canvas is full size inside, clipped to visual footprint. */
+const SLOT_SCALE = 0.6;
+const SLOT_INNER_WIDTH = `${100 / SLOT_SCALE}%`;
+const SLOT_VISUAL_HEIGHT_CLASS = "h-[7.5rem] md:h-[8.5rem]";
+
 /** Square cover footprint; EQ uses same height, full column width. */
 const COVER_SIZE_CLASS = "h-[7.5rem] w-[7.5rem] md:h-32 md:w-32";
 const EQ_HEIGHT_CLASS = "h-[7.5rem] md:h-32";
@@ -212,10 +217,17 @@ export function PressPreviewPlayer({
           return (
             <li
               key={track.id}
-              className="origin-left scale-x-[0.6] overflow-hidden border bg-black/40 backdrop-blur-[2px] transition-colors"
+              className={`${SLOT_VISUAL_HEIGHT_CLASS} w-[60%] max-w-[60%] overflow-hidden border bg-black/40 backdrop-blur-[2px] transition-colors`}
               style={{ borderColor: `${accent}66` }}
             >
-              <div className="flex items-stretch">
+              <div
+                className="origin-top-left"
+                style={{
+                  transform: `scale(${SLOT_SCALE})`,
+                  width: SLOT_INNER_WIDTH,
+                }}
+              >
+                <div className="flex items-stretch">
                 <div className="flex shrink-0 flex-col items-center gap-2 px-3 py-3">
                   <div
                     className={`${COVER_SIZE_CLASS} overflow-hidden`}
@@ -289,6 +301,7 @@ export function PressPreviewPlayer({
                   label={labels.volume}
                   onChange={(value) => onVolumeChange(track.id, value)}
                 />
+              </div>
               </div>
             </li>
           );

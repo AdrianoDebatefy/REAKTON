@@ -13,14 +13,10 @@ export interface PressPlayerTrack {
   votes: { totalStars: number; voteCount: number; average: number };
 }
 
-/** Uniform 60% scale — design canvas is full size inside, clipped to visual footprint. */
-const SLOT_SCALE = 0.6;
-const SLOT_INNER_WIDTH = `${100 / SLOT_SCALE}%`;
-const SLOT_VISUAL_HEIGHT_CLASS = "h-[7.5rem] md:h-[8.5rem]";
-
-/** Square cover footprint; EQ uses same height, full column width. */
-const COVER_SIZE_CLASS = "h-[7.5rem] w-[7.5rem] md:h-32 md:w-32";
-const EQ_HEIGHT_CLASS = "h-[7.5rem] md:h-32";
+/** Native 60% layout (no CSS transform — keeps canvas/EQ sharp). */
+const SLOT_WIDTH_CLASS = "w-[60%] max-w-[60%]";
+const COVER_SIZE_CLASS = "h-[4.5rem] w-[4.5rem] md:h-[4.8rem] md:w-[4.8rem]";
+const EQ_HEIGHT_CLASS = "h-[4.5rem] md:h-[4.8rem]";
 
 function formatTimeExtended(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "00:00:00:00";
@@ -44,17 +40,17 @@ function SlotVolume({
 }) {
   return (
     <div
-      className="flex w-9 shrink-0 self-stretch items-stretch border-l px-1.5 py-2"
+      className="flex w-5 shrink-0 self-stretch items-stretch border-l px-1 py-1.5"
       style={{ borderColor: `${accent}99` }}
     >
       <div className="relative h-full w-full">
         <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-white/20" />
         <div
-          className="pointer-events-none absolute left-1/2 h-0.5 w-6 -translate-x-1/2"
+          className="pointer-events-none absolute left-1/2 h-0.5 w-4 -translate-x-1/2"
           style={{
             bottom: `calc(${volume * 100}% - 1px)`,
             backgroundColor: accent,
-            boxShadow: `0 0 6px ${accent}88`,
+            boxShadow: `0 0 4px ${accent}88`,
           }}
         />
         <input
@@ -84,13 +80,13 @@ function ProgressBar({
   disabled?: boolean;
   onChange: (ratio: number) => void;
 }) {
-  const thumbLeft = `calc(${value * 100}% - 6px)`;
+  const thumbLeft = `calc(${value * 100}% - 5px)`;
 
   return (
-    <div className="relative h-5 w-full">
+    <div className="relative h-3 w-full">
       <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white/35" />
       <div
-        className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border-2 border-white bg-black/20"
+        className="pointer-events-none absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full border-2 border-white bg-black/20"
         style={{ left: thumbLeft, boxShadow: `0 0 0 1px ${accent}55` }}
       />
       <input
@@ -121,7 +117,7 @@ function GlassTransportButton({
     <button
       type="button"
       onClick={onClick}
-      className="group relative h-10 w-[11.5rem] shrink-0 overflow-hidden rounded-lg border border-white/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0.04)_38%,rgba(0,0,0,0.22)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(255,255,255,0.08),0_4px_14px_rgba(0,0,0,0.35)] backdrop-blur-md transition hover:border-white/45 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(255,255,255,0.12),0_6px_18px_rgba(0,0,0,0.42)] md:h-9"
+      className="group relative h-6 w-[6.9rem] shrink-0 overflow-hidden rounded-md border border-white/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0.04)_38%,rgba(0,0,0,0.22)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(255,255,255,0.08),0_3px_10px_rgba(0,0,0,0.35)] transition hover:border-white/45"
       aria-label={label}
     >
       <span
@@ -129,30 +125,31 @@ function GlassTransportButton({
         aria-hidden
       />
       <span
-        className="pointer-events-none absolute inset-[1px] rounded-[7px] border border-white/10"
+        className="pointer-events-none absolute inset-[1px] rounded-[5px] border border-white/10"
         aria-hidden
       />
-      <span className="relative z-10 flex h-full items-center justify-center gap-2 px-4 text-sm uppercase tracking-[0.24em] text-white/90">
-        <span className="text-xs leading-none">{isPlaying ? "⏹" : "▶"}</span>
+      <span className="relative z-10 flex h-full items-center justify-center gap-1.5 px-2 text-[10px] uppercase tracking-[0.22em] text-white/90">
+        <span className="text-[9px] leading-none">{isPlaying ? "⏹" : "▶"}</span>
         <span>{label}</span>
       </span>
     </button>
   );
 }
 
+/** Glass sheen only — no backdrop-blur (that softens the EQ canvas underneath). */
 function GlassEqOverlay() {
   return (
     <>
       <span
-        className="pointer-events-none absolute inset-0 rounded-lg border border-white/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.04)_38%,rgba(0,0,0,0.2)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(255,255,255,0.08)] backdrop-blur-[3px]"
+        className="pointer-events-none absolute inset-0 rounded-md border border-white/25 bg-[linear-gradient(135deg,rgba(255,255,255,0.12)_0%,rgba(255,255,255,0.03)_40%,rgba(0,0,0,0.15)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-1px_0_rgba(255,255,255,0.06)]"
         aria-hidden
       />
       <span
-        className="pointer-events-none absolute inset-[1px] rounded-[7px] border border-white/10"
+        className="pointer-events-none absolute inset-[1px] rounded-[5px] border border-white/10"
         aria-hidden
       />
       <span
-        className="pointer-events-none absolute inset-0 rounded-lg bg-[linear-gradient(125deg,transparent_35%,rgba(255,255,255,0.22)_48%,rgba(255,255,255,0.06)_58%,transparent_72%)]"
+        className="pointer-events-none absolute inset-0 rounded-md bg-[linear-gradient(125deg,transparent_38%,rgba(255,255,255,0.18)_50%,rgba(255,255,255,0.05)_60%,transparent_74%)]"
         aria-hidden
       />
     </>
@@ -217,18 +214,11 @@ export function PressPreviewPlayer({
           return (
             <li
               key={track.id}
-              className={`${SLOT_VISUAL_HEIGHT_CLASS} mx-auto w-[60%] max-w-[60%] overflow-hidden border bg-black/40 backdrop-blur-[2px] transition-colors`}
+              className={`${SLOT_WIDTH_CLASS} mx-auto overflow-hidden border bg-black/40 transition-colors`}
               style={{ borderColor: `${accent}66` }}
             >
-              <div
-                className="origin-top-left"
-                style={{
-                  transform: `scale(${SLOT_SCALE})`,
-                  width: SLOT_INNER_WIDTH,
-                }}
-              >
-                <div className="flex items-stretch">
-                <div className="flex shrink-0 flex-col items-center gap-2 px-3 py-3">
+              <div className="flex items-stretch">
+                <div className="flex shrink-0 flex-col items-center gap-1 px-2 py-2">
                   <div
                     className={`${COVER_SIZE_CLASS} overflow-hidden`}
                     style={{ backgroundColor: track.coverImage ? undefined : accent }}
@@ -238,25 +228,24 @@ export function PressPreviewPlayer({
                       <img src={track.coverImage} alt="" className="h-full w-full object-cover" />
                     ) : null}
                   </div>
-                  <span className="text-[2.5rem] font-light leading-none tabular-nums text-white/60">
+                  <span className="text-[1.5rem] font-light leading-none tabular-nums text-white/60">
                     {slotLabel}
                   </span>
                 </div>
 
-                <div className="flex min-w-0 flex-1 flex-col py-3 pr-2">
-                  <div className={`relative w-full overflow-hidden rounded-lg ${EQ_HEIGHT_CLASS}`}>
+                <div className="flex min-w-0 flex-1 flex-col py-2 pr-1.5">
+                  <div className={`relative w-full overflow-hidden rounded-md ${EQ_HEIGHT_CLASS}`}>
                     <PressEqWaves
                       atmosphere={atmosphere}
                       analyser={isActive ? analyser : null}
                       visible={isActive}
                       active={isPlaying}
                       className="block h-full w-full"
-                      renderBoost={1 / SLOT_SCALE}
                     />
                     <GlassEqOverlay />
                   </div>
 
-                  <div className="mt-1.5">
+                  <div className="mt-1">
                     <ProgressBar
                       value={progressRatio}
                       accent={accent}
@@ -265,11 +254,11 @@ export function PressPreviewPlayer({
                     />
                   </div>
 
-                  <div className="mt-1.5 flex items-center justify-between gap-4 pr-1">
-                    <p className="min-w-0 flex-1 truncate text-left text-2xl font-light leading-tight text-white/90">
+                  <div className="mt-1 flex items-center justify-between gap-2 pr-0.5">
+                    <p className="min-w-0 flex-1 truncate text-left text-lg font-light leading-tight text-white/90 md:text-xl">
                       {track.title}
                     </p>
-                    <div className="flex shrink-0 items-center gap-3">
+                    <div className="flex shrink-0 items-center gap-2">
                       <StarRating
                         value={track.votes}
                         userStars={track.userStars}
@@ -278,7 +267,7 @@ export function PressPreviewPlayer({
                         atmosphere={atmosphere}
                         compact
                       />
-                      <span className="text-xl tabular-nums text-white/75">
+                      <span className="text-sm tabular-nums text-white/75 md:text-base">
                         {timeCurrent} / {timeTotal}
                       </span>
                       <GlassTransportButton
@@ -302,7 +291,6 @@ export function PressPreviewPlayer({
                   label={labels.volume}
                   onChange={(value) => onVolumeChange(track.id, value)}
                 />
-              </div>
               </div>
             </li>
           );

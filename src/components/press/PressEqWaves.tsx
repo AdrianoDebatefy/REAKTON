@@ -161,8 +161,10 @@ function drawWaveLayer(
 
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
-  ctx.shadowBlur = active ? layer.glow * (0.4 + displayLevel * 0.6) : 3;
-  ctx.shadowColor = rgbString(layer.colorTop, 0.55);
+  if (active) {
+    ctx.shadowBlur = Math.min(3, layer.glow * 0.22);
+    ctx.shadowColor = rgbString(layer.colorTop, 0.4);
+  }
   ctx.fillStyle = gradient;
   ctx.fill();
   ctx.restore();
@@ -313,5 +315,12 @@ export function PressEqWaves({
     return () => cancelAnimationFrame(frameRef.current);
   }, [analyser, active, visible, layers, renderBoost]);
 
-  return <canvas ref={canvasRef} className={className} aria-hidden />;
+  return (
+    <canvas
+      ref={canvasRef}
+      className={className}
+      style={{ imageRendering: "auto" }}
+      aria-hidden
+    />
+  );
 }

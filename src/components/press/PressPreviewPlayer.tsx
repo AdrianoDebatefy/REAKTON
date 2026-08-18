@@ -254,11 +254,11 @@ export function PressPreviewPlayer({
                     />
                   </div>
 
-                  <div className="mt-1 flex items-center justify-between gap-2 pr-0.5">
+                  <div className="mt-1 flex items-center gap-2 pr-0.5">
                     <p className="min-w-0 flex-1 truncate text-left text-[0.675rem] font-light leading-tight text-white/90 md:text-[0.75rem]">
                       {track.title}
                     </p>
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex shrink-0 basis-[4.25rem] items-center justify-center">
                       <StarRating
                         value={track.votes}
                         userStars={track.userStars}
@@ -267,21 +267,23 @@ export function PressPreviewPlayer({
                         atmosphere={atmosphere}
                         compact
                       />
-                      <span className="text-[0.525rem] tabular-nums text-white/75 md:text-[0.6rem]">
-                        {timeCurrent} / {timeTotal}
-                      </span>
-                      <GlassTransportButton
-                        isPlaying={isPlaying}
-                        label={isPlaying ? labels.stop : labels.play}
-                        onClick={() => {
-                          if (isPlaying) {
-                            onStop();
-                          } else {
-                            onPlay(track.id);
-                          }
-                        }}
-                      />
                     </div>
+                    <span
+                      className="shrink-0 w-[23ch] text-right font-mono tabular-nums text-[0.525rem] leading-none text-white/75 md:text-[0.6rem]"
+                    >
+                      {timeCurrent} / {timeTotal}
+                    </span>
+                    <GlassTransportButton
+                      isPlaying={isPlaying}
+                      label={isPlaying ? labels.stop : labels.play}
+                      onClick={() => {
+                        if (isPlaying) {
+                          onStop();
+                        } else {
+                          onPlay(track.id);
+                        }
+                      }}
+                    />
                   </div>
                 </div>
 

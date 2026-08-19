@@ -30,7 +30,7 @@ export function StarRating({
   userStars: number | null;
   onVote: (stars: number) => void;
   disabled?: boolean;
-  size?: "sm" | "md" | "lg" | "touch";
+  size?: "sm" | "md" | "lg" | "touch" | "touch-sm";
   atmosphere?: WorldAtmosphere;
   compact?: boolean;
 }) {
@@ -40,10 +40,17 @@ export function StarRating({
       ? "text-2xl"
       : size === "touch"
         ? "text-2xl"
-        : size === "sm"
-          ? "text-[0.9rem]"
-          : "text-lg";
-  const touchClass = size === "touch" ? "flex h-11 w-11 items-center justify-center touch-manipulation" : "";
+        : size === "touch-sm"
+          ? "text-[1.05rem]"
+          : size === "sm"
+            ? "text-[0.9rem]"
+            : "text-lg";
+  const touchClass =
+    size === "touch"
+      ? "flex h-11 w-11 items-center justify-center touch-manipulation"
+      : size === "touch-sm"
+        ? "flex h-8 w-8 items-center justify-center touch-manipulation"
+        : "";
   const labelClass =
     size === "lg"
       ? "text-base uppercase tracking-widest text-white/40"

@@ -116,7 +116,7 @@ export function PressPreviewPlayerMobile({
               style={{ borderColor: `${accent}66` }}
             >
               <div className="overflow-hidden border bg-black/40" style={{ borderColor: `${accent}66` }}>
-                <div className="grid grid-cols-2 gap-3 p-3">
+                <div className="grid grid-cols-2 gap-[0.525rem] p-[0.525rem]">
                   <div className="min-w-0">
                     <div
                       className="aspect-square w-full overflow-hidden"
@@ -127,7 +127,7 @@ export function PressPreviewPlayerMobile({
                         <img src={track.coverImage} alt="" className="h-full w-full object-cover" />
                       ) : null}
                     </div>
-                    <p className="mt-2 text-center text-2xl font-light tabular-nums text-white/60">
+                    <p className="mt-[0.35rem] text-center text-[1.05rem] font-light tabular-nums text-white/60">
                       {slotLabel}
                     </p>
                   </div>
@@ -144,27 +144,27 @@ export function PressPreviewPlayerMobile({
                   </div>
                 </div>
 
-                <div className="space-y-3 px-3 pb-4">
-                  <p className="truncate text-left text-base font-light text-white/90">{track.title}</p>
+                <div className="space-y-[0.525rem] px-[0.525rem] pb-[0.7rem]">
+                  <p className="truncate text-left text-[0.7rem] font-light text-white/90">{track.title}</p>
 
                   <ProgressBar
                     value={progressRatio}
                     accent={accent}
                     disabled={!isActive}
                     onChange={onSeek}
-                    touch
+                    touchCompact
                   />
 
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center justify-between gap-[0.525rem]">
                     <StarRating
                       value={track.votes}
                       userStars={track.userStars}
                       onVote={(stars) => onVote(track.id, stars)}
-                      size="touch"
+                      size="touch-sm"
                       atmosphere={atmosphere}
                       compact
                     />
-                    <span className="shrink-0 font-mono text-xs tabular-nums text-white/75">
+                    <span className="shrink-0 font-mono text-[0.525rem] tabular-nums text-white/75">
                       {timeCurrent} / {timeTotal}
                     </span>
                   </div>
@@ -174,11 +174,12 @@ export function PressPreviewPlayerMobile({
                     accent={accent}
                     label={labels.volume}
                     onChange={(value) => onVolumeChange(track.id, value)}
+                    compact
                   />
 
-                  <div className="flex justify-end pt-1">
+                  <div className="flex justify-end pt-0.5">
                     <GlassTransportButton
-                      large
+                      largeCompact
                       isPlaying={isPlaying}
                       label={isPlaying ? labels.stop : labels.play}
                       onClick={() => {
@@ -195,24 +196,24 @@ export function PressPreviewPlayerMobile({
       </div>
 
       {tracks.length > 1 ? (
-        <div className="mt-4 flex items-center justify-center gap-6">
+        <div className="mt-[0.7rem] flex items-center justify-center gap-[1.05rem]">
           <button
             type="button"
             onClick={() => scrollToIndex(slideIndex - 1)}
             disabled={slideIndex <= 0}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-white/25 text-xl text-white/80 disabled:opacity-30 touch-manipulation"
+            className="flex h-[2.1rem] w-[2.1rem] items-center justify-center rounded-full border border-white/25 text-[0.875rem] text-white/80 disabled:opacity-30 touch-manipulation"
             aria-label="Vorheriger Track"
           >
             ‹
           </button>
-          <span className="min-w-[4rem] text-center text-sm tabular-nums text-white/55">
+          <span className="min-w-[2.8rem] text-center text-[0.7rem] tabular-nums text-white/55">
             {slideIndex + 1} / {tracks.length}
           </span>
           <button
             type="button"
             onClick={() => scrollToIndex(slideIndex + 1)}
             disabled={slideIndex >= tracks.length - 1}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-white/25 text-xl text-white/80 disabled:opacity-30 touch-manipulation"
+            className="flex h-[2.1rem] w-[2.1rem] items-center justify-center rounded-full border border-white/25 text-[0.875rem] text-white/80 disabled:opacity-30 touch-manipulation"
             aria-label="Nächster Track"
           >
             ›

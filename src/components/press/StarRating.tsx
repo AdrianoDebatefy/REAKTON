@@ -30,13 +30,20 @@ export function StarRating({
   userStars: number | null;
   onVote: (stars: number) => void;
   disabled?: boolean;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "touch";
   atmosphere?: WorldAtmosphere;
   compact?: boolean;
 }) {
   const accent = PRESS_WORLD_THEME[atmosphere].accent;
   const starClass =
-    size === "lg" ? "text-2xl" : size === "sm" ? "text-[0.9rem]" : "text-lg";
+    size === "lg"
+      ? "text-2xl"
+      : size === "touch"
+        ? "text-2xl"
+        : size === "sm"
+          ? "text-[0.9rem]"
+          : "text-lg";
+  const touchClass = size === "touch" ? "flex h-11 w-11 items-center justify-center touch-manipulation" : "";
   const labelClass =
     size === "lg"
       ? "text-base uppercase tracking-widest text-white/40"
@@ -63,7 +70,7 @@ export function StarRating({
               type="button"
               disabled={disabled}
               onClick={() => onVote(star)}
-              className={`${starClass} leading-none transition hover:scale-110 disabled:opacity-40 ${styleClass}`}
+              className={`${starClass} leading-none transition hover:scale-110 disabled:opacity-40 ${styleClass} ${touchClass}`}
               style={colorStyle}
               aria-label={`${star} Sterne`}
             >

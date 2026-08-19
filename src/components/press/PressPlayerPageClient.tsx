@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import type { WorldAtmosphere } from "@/types/content";
 import { PressPreviewPlayer } from "@/components/press/PressPreviewPlayer";
+import { PressPreviewPlayerMobile } from "@/components/press/PressPreviewPlayerMobile";
 import {
   atmosphereFromPlayerSlug,
   isPlayerSlugReady,
@@ -175,6 +176,15 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
     setPlaying(false);
   }, []);
 
+  const selectTrack = useCallback(
+    (trackId: string) => {
+      if (trackId === activeTrackId) return;
+      stopPlayback();
+      setActiveTrackId(trackId);
+    },
+    [activeTrackId, stopPlayback]
+  );
+
   const playTrackById = useCallback(
     async (trackId: string) => {
       const track = tracks.find((row) => row.id === trackId);
@@ -325,6 +335,26 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
     setProgress(audio.currentTime);
   };
 
+  const playerLabels = { play: t("play"), stop: t("stop"), volume: t("volume") };
+  const playerProps = {
+    accent: theme.accent,
+    atmosphere,
+    tracks: playerTracks,
+    activeTrackId,
+    playing,
+    progress,
+    duration,
+    getVolume: getTrackVolume,
+    analyser: analyserReady ? analyserRef.current : null,
+    playbackError,
+    onPlay: (id: string) => void playTrackById(id),
+    onStop: stopPlayback,
+    onSeek: seekToRatio,
+    onVolumeChange: handleVolumeChange,
+    onVote: handleVote,
+    labels: playerLabels,
+  };
+
   return (
     <div className="mx-auto max-w-7xl overflow-hidden px-4 pb-16 pt-24">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -389,24 +419,8 @@ export function PressPlayerPageClient({ slug }: { slug: string }) {
         <p className="mt-10 text-lg text-white/45">{t("noTracks")}</p>
       ) : (
         <div className="mt-10">
-          <PressPreviewPlayer
-            accent={theme.accent}
-            atmosphere={atmosphere}
-            tracks={playerTracks}
-            activeTrackId={activeTrackId}
-            playing={playing}
-            progress={progress}
-            duration={duration}
-            getVolume={getTrackVolume}
-            analyser={analyserReady ? analyserRef.current : null}
-            playbackError={playbackError}
-            onPlay={(id) => void playTrackById(id)}
-            onStop={stopPlayback}
-            onSeek={seekToRatio}
-            onVolumeChange={handleVolumeChange}
-            onVote={handleVote}
-            labels={{ play: t("play"), stop: t("stop"), volume: t("volume") }}
-          />
+          <PressPreviewPlayerMobile {...playerProps} onSelectTrack={selectTrack} />
+          <PressPreviewPlayer {...playerProps} />
         </div>
       )}
 

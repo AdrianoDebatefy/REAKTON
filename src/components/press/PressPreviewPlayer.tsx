@@ -2,6 +2,7 @@
 
 import type { WorldAtmosphere } from "@/types/content";
 import { PressEqWaves } from "@/components/press/PressEqWaves";
+import { PressSlotCover } from "@/components/press/PressSlotCover";
 import { StarRating } from "@/components/press/StarRating";
 import {
   formatTimeExtended,
@@ -129,15 +130,13 @@ export function PressPreviewPlayer({
             >
               <div className="flex items-stretch">
                 <div className="flex shrink-0 flex-col items-center gap-1 px-2 py-2">
-                  <div
+                  <PressSlotCover
+                    trackId={track.id}
+                    coverImage={track.coverImage}
+                    accent={accent}
+                    title={track.title}
                     className={`${COVER_SIZE_CLASS} overflow-hidden`}
-                    style={{ backgroundColor: track.coverImage ? undefined : accent }}
-                  >
-                    {track.coverImage ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={track.coverImage} alt="" className="h-full w-full object-cover" />
-                    ) : null}
-                  </div>
+                  />
                   <span className="text-[1.2rem] font-light leading-none tabular-nums text-white/60">
                     {slotLabel}
                   </span>

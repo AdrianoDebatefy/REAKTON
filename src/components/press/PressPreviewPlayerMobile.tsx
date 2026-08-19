@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { WorldAtmosphere } from "@/types/content";
 import { PressEqWaves } from "@/components/press/PressEqWaves";
+import { PressSlotCover } from "@/components/press/PressSlotCover";
 import { StarRating } from "@/components/press/StarRating";
 import type { PressPlayerTrack } from "@/components/press/PressPreviewPlayer";
 import {
@@ -118,15 +119,13 @@ export function PressPreviewPlayerMobile({
               <div className="overflow-hidden border bg-black/40" style={{ borderColor: `${accent}66` }}>
                 <div className="grid grid-cols-2 gap-[0.525rem] p-[0.525rem]">
                   <div className="min-w-0">
-                    <div
+                    <PressSlotCover
+                      trackId={track.id}
+                      coverImage={track.coverImage}
+                      accent={accent}
+                      title={track.title}
                       className="aspect-square w-full overflow-hidden"
-                      style={{ backgroundColor: track.coverImage ? undefined : accent }}
-                    >
-                      {track.coverImage ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={track.coverImage} alt="" className="h-full w-full object-cover" />
-                      ) : null}
-                    </div>
+                    />
                     <p className="mt-[0.35rem] text-center text-[1.05rem] font-light tabular-nums text-white/60">
                       {slotLabel}
                     </p>

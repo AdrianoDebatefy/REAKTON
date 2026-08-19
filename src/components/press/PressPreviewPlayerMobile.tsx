@@ -87,7 +87,7 @@ export function PressPreviewPlayerMobile({
   }, [onSelectTrack, slideIndex, tracks]);
 
   return (
-    <div className="w-full">
+    <div className="w-full md:hidden">
       {playbackError ? (
         <p className="mb-3 border border-red-400/25 bg-red-500/8 px-3 py-2 text-sm text-red-200">
           {playbackError}

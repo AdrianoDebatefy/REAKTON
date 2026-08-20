@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { SkeletonUtils } from "three-stdlib";
 import {
   CLUB_ROBOT_BG,
   CLUB_ROBOT_CAMERA,
@@ -9,20 +8,13 @@ import {
   CLUB_ROBOT_MODEL,
   CLUB_ROBOT_MODEL_PATH,
 } from "@/lib/club-robot";
-import { findLookBone, normalizeRobotMaterials } from "@/components/worlds/club/club-robot-utils";
-
-function fitModelToScene(root: THREE.Object3D) {
-  const box = new THREE.Box3().setFromObject(root);
-  const size = box.getSize(new THREE.Vector3());
-  const center = box.getCenter(new THREE.Vector3());
-  root.position.sub(center);
-  root.position.y -= box.min.y;
-
-  const targetHeight = 1.65;
-  const scale = targetHeight / Math.max(size.y, 0.001);
-  root.scale.setScalar(scale * CLUB_ROBOT_MODEL.scale);
-  root.position.add(new THREE.Vector3(...CLUB_ROBOT_MODEL.position));
-}
+import {
+  findLookBone,
+  prepareGltfScene,
+  refreshSkinnedMeshes,
+  updateSkeletons,
+  wrapAndFitModel,
+} from "@/components/worlds/club/club-robot-utils";
 
 function addPlaceholderBust(scene: THREE.Group) {
   const bust = new THREE.Group();
@@ -63,14 +55,15 @@ export function mountClubRobotScene(container: HTMLElement): () => void {
   camera.lookAt(...CLUB_ROBOT_CAMERA.lookAt);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = true;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
   renderer.setSize(Math.max(container.clientWidth, 1), Math.max(container.clientHeight, 1));
   container.appendChild(renderer.domElement);
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 
-  const keyLight = new THREE.DirectionalLight(0xffffff, 1.35);
+  const keyLight = new THREE.DirectionalLight(0xffffff, 1.25);
   keyLight.position.set(2.5, 4, 3);
   keyLight.castShadow = true;
   scene.add(keyLight);
@@ -79,14 +72,13 @@ export function mountClubRobotScene(container: HTMLElement): () => void {
   fillLight.position.set(-3, 2, -2);
   scene.add(fillLight);
 
-  const spot = new THREE.SpotLight(0xffffff, 0.85, 20, 0.45, 0.6);
-  spot.position.set(0, 5, 1.5);
-  spot.castShadow = true;
-  scene.add(spot);
+  const rim = new THREE.SpotLight(0xffffff, 0.7, 20, 0.5, 0.55);
+  rim.position.set(0, 4.5, 2);
+  scene.add(rim);
 
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(8, 8),
-    new THREE.ShadowMaterial({ opacity: 0.55 })
+    new THREE.ShadowMaterial({ opacity: 0.45 })
   );
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = -0.02;
@@ -110,19 +102,28 @@ export function mountClubRobotScene(container: HTMLElement): () => void {
   loader.load(
     CLUB_ROBOT_MODEL_PATH,
     (gltf) => {
-      const model = SkeletonUtils.clone(gltf.scene) as THREE.Object3D;
-      normalizeRobotMaterials(model);
-      fitModelToScene(model);
-      robotRoot.add(model);
+      prepareGltfScene(gltf);
 
-      const bone = findLookBone(model);
+      const wrapper = wrapAndFitModel(
+        gltf.scene,
+        1.65,
+        CLUB_ROBOT_MODEL.scale,
+        CLUB_ROBOT_MODEL.position,
+        CLUB_ROBOT_MODEL.rotation
+      );
+      robotRoot.add(wrapper);
+
+      const bone = findLookBone(gltf.scene);
       if (bone) {
         lookTarget = bone;
         baseRotation = bone.rotation.clone();
       }
+
+      refreshSkinnedMeshes(wrapper, true);
     },
     undefined,
-    () => {
+    (error) => {
+      console.warn("[club-robot] model load failed:", error);
       lookTarget = addPlaceholderBust(robotRoot);
     }
   );
@@ -144,6 +145,7 @@ export function mountClubRobotScene(container: HTMLElement): () => void {
         baseRotation.x + targetPitch,
         0.12
       );
+      updateSkeletons(robotRoot);
     }
 
     renderer.render(scene, camera);

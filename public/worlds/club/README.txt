@@ -59,3 +59,14 @@ Ohne Modell
 -----------
 
 Placeholder-Büste mit Maus-Tracking, bis die GLB-Datei liegt.
+
+Modell-Export (Blender)
+-----------------------
+
+GLB ist ideal. Falls der Mesh kaputt aussieht, neu exportieren mit:
+
+- Format: glTF Binary (.glb)
+- +Y Up
+- „Apply Transform“ / Applied Modifiers
+- Keine laufende Animation im Export (Rest Pose / T-Pose)
+- Optional: nur Oberkörper (ab Hüfte) für besseres Framing

@@ -32,7 +32,9 @@ export const CLUB_ROBOT_CAMERA = {
 };
 
 export const CLUB_ROBOT_MODEL = {
-  position: [0, -0.35, 0] as const,
+  /** Manual offset after auto-fit (wrapper group only). */
+  position: [0, 0, 0] as const,
   rotation: [0, 0, 0] as const,
+  /** Extra scale multiplier on top of auto height-fit. */
   scale: 1,
 };

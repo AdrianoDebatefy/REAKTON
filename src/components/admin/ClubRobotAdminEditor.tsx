@@ -14,7 +14,7 @@ type UploadFieldProps = {
   inputClassName?: string;
 };
 
-function AdminUploadField({
+function AdminImageUploadField({
   label,
   accept,
   value,
@@ -58,6 +58,61 @@ function AdminUploadField({
   );
 }
 
+function AdminModelUploadField({
+  label,
+  value,
+  onChange,
+  onUpload,
+  inputClassName = "min-w-0 flex-1 border border-white/20 bg-black/40 px-2 py-1.5 text-xs text-white",
+}: {
+  label: string;
+  value: string;
+  onChange: (url: string) => void;
+  onUpload: (file: File) => Promise<string>;
+  inputClassName?: string;
+}) {
+  const isGlb = value.toLowerCase().includes(".glb") || value.toLowerCase().includes(".gltf");
+
+  return (
+    <label className="block text-xs text-white/75">
+      <span className="mb-1 block uppercase tracking-widest text-white/50">{label}</span>
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="/uploads/…"
+          className={inputClassName}
+        />
+        <label className="cursor-pointer rounded border border-white/25 px-3 py-1.5 text-[10px] uppercase tracking-widest text-white/75 hover:border-white/45">
+          GLB hochladen
+          <input
+            type="file"
+            accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              void onUpload(file).then(onChange);
+              e.target.value = "";
+            }}
+          />
+        </label>
+      </div>
+      {value ? (
+        <p className="mt-2 text-[11px] text-white/45">
+          {isGlb ? "Modell: " : "Pfad: "}
+          <code className="text-white/65">{value}</code>
+        </p>
+      ) : (
+        <p className="mt-2 text-[11px] text-white/40">
+          GLB-Datei hochladen (z. B. reakton_hires_Robot_Modell.glb). Nach Upload: Alles speichern.
+        </p>
+      )}
+    </label>
+  );
+}
+
 export function ClubRobotAdminEditor({
   config,
   onChange,
@@ -88,8 +143,8 @@ export function ClubRobotAdminEditor({
       <div>
         <h2 className="text-sm uppercase tracking-widest text-white/70">Clip:Clap:Club — 3D Roboter</h2>
         <p className="mt-2 max-w-2xl text-sm text-white/50">
-          Desktop-Vorschau auf der Startseite, wenn die Club-Welt geoeffnet ist. Modell-Datei liegt auf dem
-          Server unter <code className="text-white/55">public/worlds/</code> (per SCP hochladen).
+          Desktop auf der Startseite, wenn die Club-Welt geoeffnet ist. Roboter-Modell per Upload
+          hochladen — kein SCP oder Server-Zugriff noetig.
         </p>
       </div>
 
@@ -135,7 +190,7 @@ export function ClubRobotAdminEditor({
         </label>
       </div>
 
-      <AdminUploadField
+      <AdminImageUploadField
         label="Hintergrundfoto hinter Roboter (optional)"
         accept="image/*"
         value={config.backgroundImage ?? ""}
@@ -143,15 +198,12 @@ export function ClubRobotAdminEditor({
         onUpload={onUpload}
       />
 
-      <label className="block max-w-xl text-xs text-white/75">
-        <span className="mb-1 block uppercase tracking-widest text-white/50">Modell-Pfad (GLB)</span>
-        <input
-          type="text"
-          value={config.modelPath ?? CLUB_ROBOT_MODEL_PATH}
-          onChange={(e) => onChange({ ...config, modelPath: e.target.value || undefined })}
-          className="mt-1 w-full border border-white/20 bg-black/40 px-2 py-1.5 text-sm text-white"
-        />
-      </label>
+      <AdminModelUploadField
+        label="Roboter-Modell (GLB)"
+        value={config.modelPath ?? CLUB_ROBOT_MODEL_PATH}
+        onChange={(url) => onChange({ ...config, modelPath: url || undefined })}
+        onUpload={onUpload}
+      />
 
       <div className="rounded border border-white/15 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">

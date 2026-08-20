@@ -27,8 +27,13 @@ echo "curl localhost:3010:"
 curl -sI --max-time 5 http://localhost:3010 | head -8 || echo "  FAILED"
 echo ""
 
-echo "GLB via API route:"
-curl -sI --max-time 5 http://localhost:3010/api/world-asset/reakton_hires_Robot_Modell.glb | head -5 || true
+echo "GLB via API (worlds):"
+curl -sI --max-time 5 http://localhost:3010/api/world-asset/worlds/reakton_hires_Robot_Modell.glb | head -3 || true
+echo "GLB via API (uploads sample):"
+ls /var/www/reakton/public/uploads/*.glb 2>/dev/null | head -1 | while read -r f; do
+  name=$(basename "$f")
+  curl -sI --max-time 5 "http://localhost:3010/api/world-asset/uploads/$name" | head -3 || true
+done
 echo ""
 
 echo "Last PM2 logs:"

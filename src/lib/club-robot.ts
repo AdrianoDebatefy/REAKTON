@@ -7,19 +7,28 @@ export const CLUB_ROBOT_BG = "#9e1d23";
 export const CLUB_ROBOT_MODEL_FILE = "reakton_hires_Robot_Modell.glb";
 export const CLUB_ROBOT_MODEL_PATH = `/worlds/${encodeURIComponent(CLUB_ROBOT_MODEL_FILE)}`;
 
-/** Production-safe path via API route (Next.js may not serve GLB from public/worlds). */
+/** Map stored public paths to the world-asset API route. */
 export function resolveWorldModelPath(modelPath?: string | null): string {
   const raw = modelPath?.trim() || CLUB_ROBOT_MODEL_PATH;
   if (raw.startsWith("/api/world-asset/")) return raw;
-  if (raw.startsWith("/worlds/")) {
-    const relative = raw.slice("/worlds/".length);
+
+  const toApiPath = (prefix: "/worlds/" | "/uploads/", apiPrefix: string) => {
+    if (!raw.startsWith(prefix)) return null;
+    const relative = raw.slice(prefix.length);
     const encoded = relative
       .split("/")
       .filter(Boolean)
       .map((part) => encodeURIComponent(decodeURIComponent(part)))
       .join("/");
-    return `/api/world-asset/${encoded}`;
-  }
+    return `/api/world-asset/${apiPrefix}/${encoded}`;
+  };
+
+  const uploadsPath = toApiPath("/uploads/", "uploads");
+  if (uploadsPath) return uploadsPath;
+
+  const worldsPath = toApiPath("/worlds/", "worlds");
+  if (worldsPath) return worldsPath;
+
   return raw;
 }
 

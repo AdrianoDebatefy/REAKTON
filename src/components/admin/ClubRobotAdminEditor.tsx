@@ -22,8 +22,10 @@ function AdminImageUploadField({
   onUpload,
   inputClassName = "min-w-0 flex-1 border border-white/20 bg-black/40 px-2 py-1.5 text-xs text-white",
 }: UploadFieldProps) {
+  const uploadId = `upload-${label.replace(/\s+/g, "-").toLowerCase()}`;
+
   return (
-    <label className="block text-xs text-white/75">
+    <div className="block text-xs text-white/75">
       <span className="mb-1 block uppercase tracking-widest text-white/50">{label}</span>
       <div className="flex flex-wrap items-center gap-2">
         <input
@@ -32,20 +34,24 @@ function AdminImageUploadField({
           onChange={(e) => onChange(e.target.value)}
           className={inputClassName}
         />
-        <label className="cursor-pointer rounded border border-white/25 px-3 py-1.5 text-[10px] uppercase tracking-widest text-white/75 hover:border-white/45">
-          Upload
-          <input
-            type="file"
-            accept={accept}
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              void onUpload(file).then(onChange);
-              e.target.value = "";
-            }}
-          />
+        <label
+          htmlFor={uploadId}
+          className="cursor-pointer rounded border border-white/25 bg-white/10 px-4 py-2 text-[10px] font-medium uppercase tracking-widest text-white hover:border-white/45"
+        >
+          Datei waehlen
         </label>
+        <input
+          id={uploadId}
+          type="file"
+          accept={accept}
+          className="sr-only"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            void onUpload(file).then(onChange);
+            e.target.value = "";
+          }}
+        />
       </div>
       {value ? (
         <img
@@ -54,18 +60,16 @@ function AdminImageUploadField({
           className="mt-2 max-h-32 rounded border border-white/15 object-cover"
         />
       ) : null}
-    </label>
+    </div>
   );
 }
 
 function AdminModelUploadField({
-  label,
   value,
   onChange,
   onUpload,
   inputClassName = "min-w-0 flex-1 border border-white/20 bg-black/40 px-2 py-1.5 text-xs text-white",
 }: {
-  label: string;
   value: string;
   onChange: (url: string) => void;
   onUpload: (file: File) => Promise<string>;
@@ -74,8 +78,8 @@ function AdminModelUploadField({
   const isGlb = value.toLowerCase().includes(".glb") || value.toLowerCase().includes(".gltf");
 
   return (
-    <label className="block text-xs text-white/75">
-      <span className="mb-1 block uppercase tracking-widest text-white/50">{label}</span>
+    <div className="block text-xs text-white/75">
+      <span className="mb-1 block uppercase tracking-widest text-white/50">Roboter-Modell (GLB)</span>
       <div className="flex flex-wrap items-center gap-2">
         <input
           type="text"
@@ -84,20 +88,24 @@ function AdminModelUploadField({
           placeholder="/uploads/…"
           className={inputClassName}
         />
-        <label className="cursor-pointer rounded border border-white/25 px-3 py-1.5 text-[10px] uppercase tracking-widest text-white/75 hover:border-white/45">
+        <label
+          htmlFor="club-robot-glb-upload"
+          className="cursor-pointer rounded border border-amber-300/40 bg-amber-300/15 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-amber-100 hover:border-amber-200/60"
+        >
           GLB hochladen
-          <input
-            type="file"
-            accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              void onUpload(file).then(onChange);
-              e.target.value = "";
-            }}
-          />
         </label>
+        <input
+          id="club-robot-glb-upload"
+          type="file"
+          accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
+          className="sr-only"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            void onUpload(file).then(onChange);
+            e.target.value = "";
+          }}
+        />
       </div>
       {value ? (
         <p className="mt-2 text-[11px] text-white/45">
@@ -109,7 +117,7 @@ function AdminModelUploadField({
           GLB-Datei hochladen (z. B. reakton_hires_Robot_Modell.glb). Nach Upload: Alles speichern.
         </p>
       )}
-    </label>
+    </div>
   );
 }
 
@@ -199,7 +207,6 @@ export function ClubRobotAdminEditor({
       />
 
       <AdminModelUploadField
-        label="Roboter-Modell (GLB)"
         value={config.modelPath ?? CLUB_ROBOT_MODEL_PATH}
         onChange={(url) => onChange({ ...config, modelPath: url || undefined })}
         onUpload={onUpload}

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import type { ResolvedClubRobotConfig } from "@/lib/club-robot";
-import { resolvePublicAssetUrl } from "@/lib/asset-url";
 import {
   mountClubRobotScene,
   type ClubRobotSceneHandle,
@@ -23,6 +22,8 @@ export function ClubRobotCanvas({
   const configRef = useRef(config);
   configRef.current = config;
 
+  const hasPhotoBackground = Boolean(config?.backgroundImage);
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -32,19 +33,17 @@ export function ClubRobotCanvas({
       modelPath: active?.modelPath,
       backgroundColor: active?.backgroundColor,
       initialTuning: active?.tuning,
+      transparentBackground: Boolean(active?.backgroundImage),
     });
     onReadyRef.current?.(handle);
     return dispose;
-  }, [config?.modelPath, config?.backgroundColor]);
+  }, [config?.modelPath, config?.backgroundColor, config?.backgroundImage]);
 
-  const backdropStyle = config?.backgroundImage
-    ? {
-        backgroundColor: config.backgroundColor,
-        backgroundImage: `url(${resolvePublicAssetUrl(config.backgroundImage)})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }
-    : { background: config?.backgroundColor };
-
-  return <div ref={containerRef} className={`h-full w-full ${className}`} style={backdropStyle} />;
+  return (
+    <div
+      ref={containerRef}
+      className={`h-full w-full ${className}`}
+      style={hasPhotoBackground ? { background: "transparent" } : { background: config?.backgroundColor }}
+    />
+  );
 }

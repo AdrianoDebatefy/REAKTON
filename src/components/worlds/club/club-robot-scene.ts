@@ -2,7 +2,6 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import type { ClubRobotTuning } from "@/types/content";
-import { resolvePublicAssetUrl } from "@/lib/asset-url";
 import {
   CLUB_ROBOT_BG,
   CLUB_ROBOT_CAMERA,
@@ -10,6 +9,7 @@ import {
   CLUB_ROBOT_MODEL,
   CLUB_ROBOT_MODEL_PATH,
   CLUB_ROBOT_TUNING_DEFAULTS,
+  resolveWorldModelPath,
 } from "@/lib/club-robot";
 import {
   findHeadBone,
@@ -56,6 +56,8 @@ export type ClubRobotSceneOptions = {
   modelPath?: string;
   backgroundColor?: string;
   initialTuning?: Partial<ClubRobotTuning>;
+  /** When true, renderer is transparent so a CSS photo background shows through. */
+  transparentBackground?: boolean;
 };
 
 export function mountClubRobotScene(
@@ -65,12 +67,15 @@ export function mountClubRobotScene(
   dispose: () => void;
   handle: ClubRobotSceneHandle;
 } {
-  const modelPath = resolvePublicAssetUrl(options.modelPath?.trim() || CLUB_ROBOT_MODEL_PATH);
+  const modelPath = resolveWorldModelPath(options.modelPath?.trim() || CLUB_ROBOT_MODEL_PATH);
   const backgroundColor = options.backgroundColor?.trim() || CLUB_ROBOT_BG;
+  const transparentBg = options.transparentBackground === true;
   const tuningDefaults = { ...CLUB_ROBOT_TUNING_DEFAULTS, ...options.initialTuning };
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(backgroundColor);
+  if (!transparentBg) {
+    scene.background = new THREE.Color(backgroundColor);
+  }
 
   const camera = new THREE.PerspectiveCamera(
     tuningDefaults.cameraFov,
@@ -102,8 +107,11 @@ export function mountClubRobotScene(
 
   applyTuning();
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: transparentBg });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  if (transparentBg) {
+    renderer.setClearColor(0x000000, 0);
+  }
   renderer.shadowMap.enabled = true;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
   renderer.setSize(Math.max(container.clientWidth, 1), Math.max(container.clientHeight, 1));

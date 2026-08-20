@@ -1,8 +1,8 @@
 /** Clip:Clap:Club desktop robot scene — preview behind env flag. */
 export const CLUB_ROBOT_BG = "#9e1d23";
 
-/** Local file: public/worlds/humanoid robot 3d model.glb */
-export const CLUB_ROBOT_MODEL_FILE = "humanoid robot 3d model.glb";
+/** Local file: public/worlds/reakton_hires_Robot_Modell.glb */
+export const CLUB_ROBOT_MODEL_FILE = "reakton_hires_Robot_Modell.glb";
 export const CLUB_ROBOT_MODEL_PATH = `/worlds/${encodeURIComponent(CLUB_ROBOT_MODEL_FILE)}`;
 
 export const CLUB_ROBOT_ENABLED = process.env.NEXT_PUBLIC_CLUB_ROBOT_PREVIEW === "true";

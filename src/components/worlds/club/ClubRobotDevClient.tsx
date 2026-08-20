@@ -32,7 +32,7 @@ export function ClubRobotDevClient() {
 
       <footer className="relative z-10 border-t border-white/10 px-6 py-3 text-xs text-white/50">
         Modell:{" "}
-        <code className="text-white/70">public/worlds/humanoid robot 3d model.glb</code>
+        <code className="text-white/70">public/worlds/reakton_hires_Robot_Modell.glb</code>
       </footer>
     </div>
   );

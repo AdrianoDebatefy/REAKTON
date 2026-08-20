@@ -25,7 +25,7 @@ Windows — Schritt für Schritt (PowerShell)
 
 3. GLB (exakter Dateiname):
 
-   public\worlds\humanoid robot 3d model.glb
+   public\worlds\reakton_hires_Robot_Modell.glb
 
 4. Abhängigkeiten + Dev-Server:
 

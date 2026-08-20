@@ -51,6 +51,9 @@ Schritt 7 — Dev-Server (aus REAKTON-Ordner!)
   Oder alles in einem (empfohlen unter Windows):
   .\scripts\start-club-robot-dev.ps1
 
+  Falls das Script fehlschlaegt, direkt:
+  npm run dev
+
   WICHTIG: Das Terminal muss offen bleiben. Ohne laufenden Server
   ist localhost nicht erreichbar.
 

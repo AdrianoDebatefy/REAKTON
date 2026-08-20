@@ -30,6 +30,7 @@ interface AlbumSlotSceneProps {
 }
 
 const POLE = { x: 50, y: 26 };
+const CLUB_POLE = { x: 50, y: 14 };
 const INACTIVE_SIZE = 80;
 const LINE_STROKE_PX = 1.5;
 const COVER_COLOR = "#C1E5F9";
@@ -150,6 +151,7 @@ function useActiveCoverSize() {
 }
 
 function layoutStorageKey(variant: string, count: number) {
+  if (variant === "club") return `reakton-cover-layout-club-v2-${count}`;
   return `reakton-cover-layout-${variant}-${count}`;
 }
 
@@ -278,6 +280,7 @@ export function AlbumSlotScene({
   const isPoleMode = activeId !== null;
   const isCloud = variant === "nano" || variant === "club";
   const usePoleLines = variant === "cosmos";
+  const pole = variant === "club" ? CLUB_POLE : POLE;
 
   useEffect(() => {
     const key = layoutStorageKey(variant, items.length);
@@ -319,13 +322,13 @@ export function AlbumSlotScene({
     }
 
     const inactiveCount = items.length - 1;
-    const orbit = orbitAroundPole(inactiveCount, POLE);
+    const orbit = orbitAroundPole(inactiveCount, pole);
     let o = 0;
     return items.map((song) => {
-      if (song.id === activeId) return POLE;
-      return orbit[o++] ?? POLE;
+      if (song.id === activeId) return pole;
+      return orbit[o++] ?? pole;
     });
-  }, [activeId, activeUsesLayout, items, layoutPositions]);
+  }, [activeId, activeUsesLayout, items, layoutPositions, pole]);
 
   const coverEdges = useMemo(() => {
     const edgePositions =
@@ -502,7 +505,7 @@ export function AlbumSlotScene({
           commitLayoutPositions(snapshot);
           setActiveUsesLayout(true);
         }
-        const startPos = layoutPositionsRef.current[drag.index] ?? POLE;
+        const startPos = layoutPositionsRef.current[drag.index] ?? pole;
         setDragLivePos(startPos);
         setDraggingIndex(drag.index);
       }

@@ -29,6 +29,7 @@ Windows — Schritt für Schritt (PowerShell)
 
 4. Abhängigkeiten + Dev-Server:
 
+   Remove-Item -Recurse -Force node_modules,.next -ErrorAction SilentlyContinue
    npm install
    npm run dev
 

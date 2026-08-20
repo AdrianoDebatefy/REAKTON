@@ -9,6 +9,7 @@ const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 const nextConfig = {
   poweredByHeader: false,
   outputFileTracingRoot: projectRoot,
+  transpilePackages: ["three", "three-stdlib"],
   images: {
     unoptimized: true,
   },

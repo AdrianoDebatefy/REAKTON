@@ -1,21 +1,5 @@
 import * as THREE from "three";
 import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { CLUB_ROBOT_HEAD_BONE_HINTS } from "@/lib/club-robot";
-
-export function findLookBone(root: THREE.Object3D): THREE.Bone | null {
-  const hints = CLUB_ROBOT_HEAD_BONE_HINTS.map((h) => h.toLowerCase());
-  let match: THREE.Bone | null = null;
-
-  root.traverse((child) => {
-    if (match || !(child instanceof THREE.Bone)) return;
-    const name = child.name.toLowerCase();
-    if (hints.some((hint) => name.includes(hint))) {
-      match = child;
-    }
-  });
-
-  return match;
-}
 
 export function listBoneNames(root: THREE.Object3D): string[] {
   const names: string[] = [];

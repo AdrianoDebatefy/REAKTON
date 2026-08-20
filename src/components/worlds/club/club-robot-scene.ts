@@ -3,22 +3,19 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import {
   CLUB_ROBOT_BG,
   CLUB_ROBOT_CAMERA,
-  CLUB_ROBOT_MAX_PITCH,
-  CLUB_ROBOT_MAX_YAW,
+  CLUB_ROBOT_LOOK,
   CLUB_ROBOT_MODEL,
   CLUB_ROBOT_MODEL_PATH,
 } from "@/lib/club-robot";
 import {
-  findLookBone,
   prepareGltfScene,
   refreshSkinnedMeshes,
-  updateSkeletons,
   wrapAndFitModel,
 } from "@/components/worlds/club/club-robot-utils";
 
-function addPlaceholderBust(scene: THREE.Group) {
+function addPlaceholderBust(parent: THREE.Group) {
   const bust = new THREE.Group();
-  bust.position.y = 0.2;
+  bust.position.y = 0.55;
 
   const head = new THREE.Mesh(
     new THREE.SphereGeometry(0.42, 32, 32),
@@ -36,14 +33,12 @@ function addPlaceholderBust(scene: THREE.Group) {
   torso.castShadow = true;
   bust.add(torso);
 
-  scene.add(bust);
-  return head;
+  parent.add(bust);
 }
 
 export function mountClubRobotScene(container: HTMLElement): () => void {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(CLUB_ROBOT_BG);
-  scene.fog = new THREE.Fog(CLUB_ROBOT_BG, 4, 14);
 
   const camera = new THREE.PerspectiveCamera(
     CLUB_ROBOT_CAMERA.fov,
@@ -61,37 +56,24 @@ export function mountClubRobotScene(container: HTMLElement): () => void {
   renderer.setSize(Math.max(container.clientWidth, 1), Math.max(container.clientHeight, 1));
   container.appendChild(renderer.domElement);
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
 
-  const keyLight = new THREE.DirectionalLight(0xffffff, 1.25);
-  keyLight.position.set(2.5, 4, 3);
-  keyLight.castShadow = true;
+  const keyLight = new THREE.DirectionalLight(0xffffff, 1.35);
+  keyLight.position.set(1.5, 2.5, 2.2);
   scene.add(keyLight);
 
-  const fillLight = new THREE.DirectionalLight(0xff8a8a, 0.35);
-  fillLight.position.set(-3, 2, -2);
+  const fillLight = new THREE.DirectionalLight(0xffb4b4, 0.28);
+  fillLight.position.set(-2, 1.8, 1.5);
   scene.add(fillLight);
 
-  const rim = new THREE.SpotLight(0xffffff, 0.7, 20, 0.5, 0.55);
-  rim.position.set(0, 4.5, 2);
+  const rim = new THREE.DirectionalLight(0xffffff, 0.45);
+  rim.position.set(0, 2.2, -1.5);
   scene.add(rim);
 
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(8, 8),
-    new THREE.ShadowMaterial({ opacity: 0.45 })
-  );
-  floor.rotation.x = -Math.PI / 2;
-  floor.position.y = -0.02;
-  floor.receiveShadow = true;
-  scene.add(floor);
+  const lookPivot = new THREE.Group();
+  scene.add(lookPivot);
 
-  const robotRoot = new THREE.Group();
-  scene.add(robotRoot);
-
-  let lookTarget: THREE.Object3D | null = null;
-  let baseRotation = new THREE.Euler();
   const mouse = { x: 0, y: 0 };
-
   const onPointerMove = (event: PointerEvent) => {
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -106,25 +88,18 @@ export function mountClubRobotScene(container: HTMLElement): () => void {
 
       const wrapper = wrapAndFitModel(
         gltf.scene,
-        1.65,
+        CLUB_ROBOT_MODEL.targetHeight,
         CLUB_ROBOT_MODEL.scale,
         CLUB_ROBOT_MODEL.position,
         CLUB_ROBOT_MODEL.rotation
       );
-      robotRoot.add(wrapper);
-
-      const bone = findLookBone(gltf.scene);
-      if (bone) {
-        lookTarget = bone;
-        baseRotation = bone.rotation.clone();
-      }
-
+      lookPivot.add(wrapper);
       refreshSkinnedMeshes(wrapper, true);
     },
     undefined,
     (error) => {
       console.warn("[club-robot] model load failed:", error);
-      lookTarget = addPlaceholderBust(robotRoot);
+      addPlaceholderBust(lookPivot);
     }
   );
 
@@ -132,21 +107,18 @@ export function mountClubRobotScene(container: HTMLElement): () => void {
   const animate = () => {
     frameId = window.requestAnimationFrame(animate);
 
-    if (lookTarget) {
-      const targetYaw = mouse.x * CLUB_ROBOT_MAX_YAW;
-      const targetPitch = mouse.y * CLUB_ROBOT_MAX_PITCH;
-      lookTarget.rotation.y = THREE.MathUtils.lerp(
-        lookTarget.rotation.y,
-        baseRotation.y + targetYaw,
-        0.12
-      );
-      lookTarget.rotation.x = THREE.MathUtils.lerp(
-        lookTarget.rotation.x,
-        baseRotation.x + targetPitch,
-        0.12
-      );
-      updateSkeletons(robotRoot);
-    }
+    const targetYaw = mouse.x * CLUB_ROBOT_LOOK.maxYaw;
+    const targetPitch = mouse.y * CLUB_ROBOT_LOOK.maxPitch;
+    lookPivot.rotation.y = THREE.MathUtils.lerp(
+      lookPivot.rotation.y,
+      targetYaw,
+      CLUB_ROBOT_LOOK.smooth
+    );
+    lookPivot.rotation.x = THREE.MathUtils.lerp(
+      lookPivot.rotation.x,
+      targetPitch,
+      CLUB_ROBOT_LOOK.smooth
+    );
 
     renderer.render(scene, camera);
   };

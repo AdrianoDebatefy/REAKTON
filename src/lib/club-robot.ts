@@ -10,31 +10,24 @@ export const CLUB_ROBOT_ENABLED = process.env.NEXT_PUBLIC_CLUB_ROBOT_PREVIEW ===
 /** Seconds for world image fade once the club world is open. */
 export const CLUB_ROBOT_IMAGE_FADE_S = 1.4;
 
-/** Head look limits (radians). */
-export const CLUB_ROBOT_MAX_YAW = 0.55;
-export const CLUB_ROBOT_MAX_PITCH = 0.28;
-
-/** Bone name fragments to search (Mixamo, Blender, humanoid rigs). */
-export const CLUB_ROBOT_HEAD_BONE_HINTS = [
-  "head",
-  "neck",
-  "mixamorighead",
-  "mixamorigneck",
-  "humanoid",
-  "spine2",
-  "chest",
-];
-
+/** Bust framing — upper body like reference (chest up, ~10% screen margin). */
 export const CLUB_ROBOT_CAMERA = {
-  position: [0, 1.05, 2.35] as const,
-  fov: 36,
-  lookAt: [0, 1.15, 0] as const,
+  position: [0, 1.52, 1.02] as const,
+  fov: 30,
+  lookAt: [0, 1.58, 0] as const,
 };
 
+/** Full model is scaled, then shifted down so legs sit below the frame. */
 export const CLUB_ROBOT_MODEL = {
-  /** Manual offset after auto-fit (wrapper group only). */
-  position: [0, 0, 0] as const,
+  position: [0, -0.72, 0] as const,
   rotation: [0, 0, 0] as const,
-  /** Extra scale multiplier on top of auto height-fit. */
-  scale: 1,
+  scale: 1.18,
+  targetHeight: 2.1,
+};
+
+/** Mouse look via safe wrapper rotation (no bone edits — avoids head stretch). */
+export const CLUB_ROBOT_LOOK = {
+  maxYaw: 0.22,
+  maxPitch: 0.07,
+  smooth: 0.1,
 };

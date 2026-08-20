@@ -3,36 +3,52 @@ Clip:Clap:Club — 3D Roboter (Desktop Preview)
 
 Lokaler Test — nicht auf den Live-Server deployen, bis Ray freigibt.
 
-Setup
------
+Windows — Schritt für Schritt (PowerShell)
+------------------------------------------
 
-1. `.env.local` anlegen (oder ergänzen):
+1. Branch holen (im Projektordner REAKTON):
 
-   NEXT_PUBLIC_CLUB_ROBOT_PREVIEW=true
+   cd C:\Users\adria\REAKTON
+   git remote -v
+   git fetch origin
+   git checkout -b cursor/club-robot-scene-d206 origin/cursor/club-robot-scene-d206
 
-2. GLB ablegen (exakter Dateiname):
+   Falls "couldn't find remote ref":
+   - Remote muss auf github.com/AdrianoDebatefy/debatyfyOnlinebetaFour zeigen
+   - Oder: git fetch origin --prune && git branch -r
 
-   public/worlds/humanoid robot 3d model.glb
+2. .env.local anlegen (NICHT in der Konsole tippen — Datei erstellen):
 
-   Windows-Quelle:
-   c:\Users\adria\REAKTON\public\worlds\humanoid robot 3d model.glb
+   Set-Content -Path .env.local -Value "NEXT_PUBLIC_CLUB_ROBOT_PREVIEW=true"
 
-3. Dev-Server starten:
+   Oder manuell: Datei .env.local im Projektroot mit genau dieser Zeile.
 
+3. GLB (exakter Dateiname):
+
+   public\worlds\humanoid robot 3d model.glb
+
+4. Abhängigkeiten + Dev-Server:
+
+   npm install
    npm run dev
 
-4. Testen:
+5. Im Browser öffnen:
 
-   - Isoliert:  http://localhost:3000/de/dev/club-robot
-   - Voll-Flow: Startseite → Clip:Clap:Club klicken → Welt öffnet →
-     Weltbild faded weg → Roboter auf Rot (#9e1d23)
+   http://localhost:3000/dev/club-robot
+   (oder http://localhost:3000/de/dev/club-robot)
+
+Lockfile-Warnung
+----------------
+
+Wenn Next.js C:\Users\adria\package-lock.json statt REAKTON nutzt:
+- Im Ordner REAKTON starten (nicht darüber)
+- Optional übergeordnete package-lock.json entfernen, falls nicht gebraucht
 
 Bone-Namen
 ----------
 
 Der Kopf sucht Bones mit Namen wie Head, Neck, mixamorigHead.
-Falls der Blick nicht reagiert: Bone-Namen in src/lib/club-robot.ts
-(CLUB_ROBOT_HEAD_BONE_HINTS) ergänzen.
+Falls der Blick nicht reagiert: src/lib/club-robot.ts → CLUB_ROBOT_HEAD_BONE_HINTS
 
 Feintuning
 ----------
@@ -42,4 +58,4 @@ src/lib/club-robot.ts — Kamera, Modell-Scale, Blick-Winkel, Fade-Dauer.
 Ohne Modell
 -----------
 
-Placeholder-Büste mit Maus-Tracking, bis die FBX-Datei liegt.
+Placeholder-Büste mit Maus-Tracking, bis die GLB-Datei liegt.

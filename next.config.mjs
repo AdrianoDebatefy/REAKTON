@@ -1,10 +1,14 @@
 import createNextIntlPlugin from "next-intl/plugin";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
+  outputFileTracingRoot: projectRoot,
   images: {
     unoptimized: true,
   },

@@ -87,6 +87,34 @@ export interface SiteLinks {
   facebook: string;
 }
 
+/** Live tuning for Clip:Clap:Club desktop 3D robot (admin-editable). */
+export interface ClubRobotTuning {
+  modelX: number;
+  modelY: number;
+  modelZ: number;
+  modelScale: number;
+  modelRotY: number;
+  cameraDistance: number;
+  cameraPosY: number;
+  cameraLookAtY: number;
+  cameraFov: number;
+}
+
+/** Clip:Clap:Club desktop robot scene — stored in site content, edited in admin. */
+export interface ClubRobotConfig {
+  /** Show 3D robot when club world is open (desktop). */
+  enabled: boolean;
+  /** Solid backdrop color behind robot (hex). */
+  backgroundColor: string;
+  /** Optional full-bleed photo behind robot (upload via admin). */
+  backgroundImage?: string;
+  /** GLB path under public/, e.g. /worlds/reakton_hires_Robot_Modell.glb */
+  modelPath?: string;
+  /** Seconds for world image fade once club world opens. */
+  imageFadeS?: number;
+  tuning: ClubRobotTuning;
+}
+
 export interface SiteContent {
   /** Header logo (WebP/PNG/SVG), default /brand/reakton-logo.webp */
   brandLogo?: string;
@@ -98,4 +126,5 @@ export interface SiteContent {
   impressum: LocalizedString;
   datenschutz: LocalizedString;
   pressPreview?: PressPreviewConfig;
+  clubRobot?: ClubRobotConfig;
 }

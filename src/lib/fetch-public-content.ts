@@ -1,6 +1,8 @@
-import type { SiteContent, World } from "@/types/content";
+import type { ClubRobotConfig, SiteContent, World } from "@/types/content";
 
-export async function fetchPublicWorlds(): Promise<World[] | null> {
+export type PublicSiteContent = Pick<SiteContent, "worlds" | "clubRobot">;
+
+export async function fetchPublicContent(): Promise<PublicSiteContent | null> {
   for (let attempt = 0; attempt < 4; attempt++) {
     try {
       const res = await fetch(`/api/content?t=${Date.now()}`, {
@@ -9,7 +11,12 @@ export async function fetchPublicWorlds(): Promise<World[] | null> {
       });
       if (!res.ok) continue;
       const data = (await res.json()) as SiteContent;
-      if (data.worlds?.length) return data.worlds;
+      if (data.worlds?.length) {
+        return {
+          worlds: data.worlds,
+          clubRobot: data.clubRobot,
+        };
+      }
     } catch {
       /* retry */
     }
@@ -18,4 +25,10 @@ export async function fetchPublicWorlds(): Promise<World[] | null> {
     }
   }
   return null;
+}
+
+/** @deprecated Use fetchPublicContent */
+export async function fetchPublicWorlds(): Promise<World[] | null> {
+  const content = await fetchPublicContent();
+  return content?.worlds ?? null;
 }

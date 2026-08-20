@@ -6,6 +6,7 @@ import type { AnalyticsData } from "@/lib/analytics";
 import { CONTENT_LOCALES, LOCALE_LABELS, emptyLocalized } from "@/lib/locale";
 import { PasswordChangeForm } from "@/components/admin/PasswordChangeForm";
 import { ContactMessagesSection } from "@/components/admin/ContactMessagesSection";
+import { ClubRobotAdminEditor, ensureClubRobotConfig } from "@/components/admin/ClubRobotAdminEditor";
 import { SITE_BUILD_LABEL } from "@/lib/site-build";
 import { resolvePublicAssetUrl } from "@/lib/asset-url";
 
@@ -18,7 +19,7 @@ async function uploadFile(file: File): Promise<string> {
   return data.url;
 }
 
-type SectionTab = "content" | "header" | "live" | "press" | "kontakt" | "analytics" | "account";
+type SectionTab = "content" | "club3d" | "header" | "live" | "press" | "kontakt" | "analytics" | "account";
 
 const WORLD_THEME: Record<
   World["atmosphere"],
@@ -1165,6 +1166,17 @@ export function AdminPanel({
         </button>
         <button
           type="button"
+          onClick={() => setSectionTab("club3d")}
+          className={`pb-2 text-sm uppercase tracking-[0.35em] transition ${
+            sectionTab === "club3d"
+              ? "border-b-2 border-white text-white"
+              : "text-white/40 hover:text-white/70"
+          }`}
+        >
+          Club 3D
+        </button>
+        <button
+          type="button"
           onClick={() => setSectionTab("header")}
           className={`pb-2 text-sm uppercase tracking-[0.35em] transition ${
             sectionTab === "header"
@@ -1235,6 +1247,14 @@ export function AdminPanel({
         <ContentSection
           worlds={data.worlds}
           onWorldsChange={(worlds) => setData((prev) => ({ ...prev, worlds }))}
+        />
+      )}
+
+      {sectionTab === "club3d" && (
+        <ClubRobotAdminEditor
+          config={ensureClubRobotConfig(data.clubRobot)}
+          onChange={(clubRobot) => setData((prev) => ({ ...prev, clubRobot }))}
+          onUpload={uploadFile}
         />
       )}
 

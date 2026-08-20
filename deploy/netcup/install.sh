@@ -3,7 +3,7 @@
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/var/www/reakton}"
-BRANCH="${BRANCH:-cursor/deploy-seo-ready-d206}"
+BRANCH="${BRANCH:-cursor/club-robot-admin-d206}"
 REPO="${REPO:-https://github.com/AdrianoDebatefy/debatyfyOnlinebetaFour.git}"
 PORT="${PORT:-3010}"
 

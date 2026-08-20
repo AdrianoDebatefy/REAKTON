@@ -2,6 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
 import type { SiteContent, SiteLinks, World } from "@/types/content";
 import { resolveSongVideoUrl } from "@/lib/youtube-url";
+import { defaultClubRobotConfig } from "@/lib/club-robot";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DATA_PATH = path.join(DATA_DIR, "site-content.json");
@@ -40,6 +41,14 @@ function normalizeSiteContent(raw: Record<string, unknown>): SiteContent {
     pressPreview: {
       expiryDays: base.pressPreview?.expiryDays ?? 14,
       tracks: base.pressPreview?.tracks ?? [],
+    },
+    clubRobot: {
+      ...defaultClubRobotConfig(),
+      ...base.clubRobot,
+      tuning: {
+        ...defaultClubRobotConfig().tuning,
+        ...base.clubRobot?.tuning,
+      },
     },
   };
 

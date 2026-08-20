@@ -1,8 +1,8 @@
 # REAKTON auf Netcup VPS installieren
 
 **Ziel:** `reakton.de` auf dem VPS `v2202512327578422024` (neben 2 bestehenden Seiten)  
-**Branch:** `cursor/deploy-seo-ready-d206` (Press-Player + SEO + Toy)  
-**Build-Label nach Deploy:** `deploy-seo-ready-2026-08-16`
+**Branch:** `cursor/club-robot-admin-d206` (Club 3D Roboter + Admin-Konfiguration)  
+**Build-Label nach Deploy:** `club-robot-admin-2026-08-20`
 
 ---
 
@@ -14,7 +14,7 @@ Gleiches gilt für:
 - `public\og\` (Social-Preview-Bilder)
 - `public\brand\reakton-logo.webp`
 - `public\uploads\` (falls vorhanden)
-- `public\press-player\` (falls PNG-Assets vorhanden)
+- `public\worlds\reakton_hires_Robot_Modell.glb` (Club 3D Roboter)
 
 ---
 
@@ -97,12 +97,10 @@ cd /var/www/reakton
 
 # Erstinstallation
 git clone https://github.com/AdrianoDebatefy/debatyfyOnlinebetaFour.git .
-git checkout cursor/deploy-seo-ready-d206
+git checkout cursor/club-robot-admin-d206
 
-# Spätere Updates
-# git fetch origin cursor/deploy-seo-ready-d206
-# git checkout cursor/deploy-seo-ready-d206
-# git reset --hard origin/cursor/deploy-seo-ready-d206
+# Spaetere Updates (auf dem VPS):
+# BRANCH=cursor/club-robot-admin-d206 bash deploy/netcup/install.sh
 
 npm ci
 ```
@@ -215,7 +213,8 @@ certbot --nginx -d reakton.de -d www.reakton.de
 ## Schritt 7 — Prüfen
 
 1. https://reakton.de — Startseite, Welten mit Hintergrundbildern  
-2. https://reakton.de/admin — Login, Footer: Build-Label `deploy-seo-ready-2026-08-16`  
+2. https://reakton.de/admin — Login, Tab **Club 3D**: Roboter aktivieren, Hintergrundfoto, Tuning  
+   Footer: Build-Label `club-robot-admin-2026-08-20`  
 3. https://reakton.de/robots.txt  
 4. https://reakton.de/sitemap.xml  
 5. https://reakton.de/press — Press-Player  

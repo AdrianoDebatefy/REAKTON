@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { motion, AnimatePresence } from "framer-motion";
-import type { World, WorldAtmosphere, Locale } from "@/types/content";
+import type { World, WorldAtmosphere, Locale, ClubRobotConfig } from "@/types/content";
 import { WorldView } from "./WorldView";
 import { MobileWorldLanding } from "./MobileWorldLanding";
 import { DecodeText, type DecodeMode } from "@/components/DecodeText";
@@ -13,10 +13,10 @@ import { getInitialWorldUiState, writeWorldSession } from "@/lib/world-session";
 import { getLocalized } from "@/lib/locale";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import {
-  CLUB_ROBOT_BG,
-  CLUB_ROBOT_ENABLED,
-  CLUB_ROBOT_IMAGE_FADE_S,
+  resolveClubRobotConfig,
+  type ResolvedClubRobotConfig,
 } from "@/lib/club-robot";
+import { resolvePublicAssetUrl } from "@/lib/asset-url";
 import {
   MOBILE_COLUMN_SLIDE_S,
   MOBILE_RETURN_REVEAL_MS,
@@ -30,6 +30,7 @@ const ClubRobotCanvas = dynamic(
 
 interface WorldColumnsProps {
   worlds: World[];
+  clubRobot?: ClubRobotConfig | null;
 }
 
 const columnClass: Record<World["color"], string> = {
@@ -264,6 +265,7 @@ function WorldBgLayer({
   onError,
   robotEnabled = false,
   robotReveal = false,
+  robotConfig,
 }: {
   desktopSrc: string;
   expanded: boolean;
@@ -283,6 +285,7 @@ function WorldBgLayer({
   onError?: () => void;
   robotEnabled?: boolean;
   robotReveal?: boolean;
+  robotConfig?: ResolvedClubRobotConfig;
 }) {
   const clipPath = columnClipPath(columnIndex, columnWidth, expanded);
   const panLeft = columnPanLeft(columnIndex, columnWidth, expanded);
@@ -316,8 +319,22 @@ function WorldBgLayer({
       }}
     >
       {robotEnabled ? (
-        <div className="absolute inset-0 z-0" style={{ background: CLUB_ROBOT_BG }}>
-          {robotReveal ? <ClubRobotCanvas className="absolute inset-0" /> : null}
+        <div
+          className="absolute inset-0 z-0"
+          style={
+            robotConfig?.backgroundImage
+              ? {
+                  backgroundColor: robotConfig.backgroundColor,
+                  backgroundImage: `url(${resolvePublicAssetUrl(robotConfig.backgroundImage)})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }
+              : { background: robotConfig?.backgroundColor ?? "#9e1d23" }
+          }
+        >
+          {robotReveal ? (
+            <ClubRobotCanvas className="absolute inset-0" config={robotConfig} />
+          ) : null}
         </div>
       ) : null}
       <motion.div
@@ -337,7 +354,7 @@ function WorldBgLayer({
           animate={{ opacity: robotEnabled && robotReveal ? 0 : 1 }}
           transition={{
             opacity: {
-              duration: robotEnabled ? CLUB_ROBOT_IMAGE_FADE_S : 0,
+              duration: robotEnabled ? (robotConfig?.imageFadeS ?? 1.4) : 0,
               ease: EARTH_TRANSITION.ease,
             },
           }}
@@ -386,8 +403,10 @@ function columnCopyTone(atmosphere: WorldAtmosphere) {
   };
 }
 
-export function WorldColumns({ worlds }: WorldColumnsProps) {
+export function WorldColumns({ worlds, clubRobot }: WorldColumnsProps) {
   const locale = useLocale() as Locale;
+  const robotConfig = resolveClubRobotConfig(clubRobot);
+  const robotActive = robotConfig.enabled;
   const t = useTranslations("home");
   const isMobile = useIsMobile();
   const initialUi = getInitialWorldUiState();
@@ -754,8 +773,9 @@ export function WorldColumns({ worlds }: WorldColumnsProps) {
             atmosphere="club"
             className="landing-earth landing-club"
             inWorld={showWorld && activeWorld?.atmosphere === "club"}
-            robotEnabled={CLUB_ROBOT_ENABLED}
-            robotReveal={CLUB_ROBOT_ENABLED && showWorld && activeWorld?.atmosphere === "club"}
+            robotEnabled={robotActive}
+            robotReveal={robotActive && showWorld && activeWorld?.atmosphere === "club"}
+            robotConfig={robotConfig}
             onError={handleClubError}
           />
         )}

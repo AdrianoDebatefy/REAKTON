@@ -2,24 +2,33 @@
 
 import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import type { World } from "@/types/content";
+import type { ClubRobotConfig, World } from "@/types/content";
 import { onContentUpdated } from "@/lib/content-events";
-import { fetchPublicWorlds } from "@/lib/fetch-public-content";
+import { fetchPublicContent } from "@/lib/fetch-public-content";
 
 const WorldColumns = dynamic(
   () => import("./WorldColumns").then((m) => m.WorldColumns),
   { ssr: false }
 );
 
-export function WorldColumnsLoader({ worlds: _initialWorlds }: { worlds: World[] }) {
+export function WorldColumnsLoader({
+  worlds: _initialWorlds,
+  clubRobot: _initialClubRobot,
+}: {
+  worlds: World[];
+  clubRobot?: ClubRobotConfig | null;
+}) {
   void _initialWorlds;
+  void _initialClubRobot;
   const [worlds, setWorlds] = useState<World[] | null>(null);
+  const [clubRobot, setClubRobot] = useState<ClubRobotConfig | null | undefined>(undefined);
   const [loadFailed, setLoadFailed] = useState(false);
 
   const refresh = useCallback(async () => {
-    const next = await fetchPublicWorlds();
+    const next = await fetchPublicContent();
     if (next) {
-      setWorlds(next);
+      setWorlds(next.worlds);
+      setClubRobot(next.clubRobot);
       setLoadFailed(false);
       return;
     }
@@ -66,5 +75,5 @@ export function WorldColumnsLoader({ worlds: _initialWorlds }: { worlds: World[]
     );
   }
 
-  return <WorldColumns worlds={worlds} />;
+  return <WorldColumns worlds={worlds} clubRobot={clubRobot} />;
 }

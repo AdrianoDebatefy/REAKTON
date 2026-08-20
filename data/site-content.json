@@ -135,5 +135,22 @@
   "datenschutz": {
     "de": "Diese Datenschutzerklärung informiert Sie über die Verarbeitung personenbezogener Daten auf reakton.de. Verantwortlicher ist Adriano Theel, Rathenower Str. 30, 10559 Berlin. Kontaktformular-Daten werden ausschließlich zur Bearbeitung Ihrer Anfrage verwendet. YouTube-Einbettungen werden erst nach Cookie-Einwilligung geladen.",
     "en": "This privacy policy explains how personal data is processed on reakton.de. The controller is Adriano Theel, Rathenower Str. 30, 10559 Berlin. Contact form data is used solely to process your inquiry. YouTube embeds load only after cookie consent."
+  },
+  "clubRobot": {
+    "enabled": false,
+    "backgroundColor": "#9e1d23",
+    "modelPath": "/worlds/reakton_hires_Robot_Modell.glb",
+    "imageFadeS": 1.4,
+    "tuning": {
+      "modelX": 0,
+      "modelY": -0.72,
+      "modelZ": 0,
+      "modelScale": 1.18,
+      "modelRotY": 0,
+      "cameraDistance": 1.3,
+      "cameraPosY": 1.52,
+      "cameraLookAtY": 1.58,
+      "cameraFov": 30
+    }
   }
 }

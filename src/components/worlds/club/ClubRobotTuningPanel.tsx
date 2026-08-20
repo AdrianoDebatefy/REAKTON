@@ -1,10 +1,9 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import {
-  CLUB_ROBOT_TUNING_DEFAULTS,
-  type ClubRobotTuning,
-} from "@/lib/club-robot";
+import { CLUB_ROBOT_TUNING_DEFAULTS } from "@/lib/club-robot";
+import type { ClubRobotTuning } from "@/types/content";
+import { CLUB_ROBOT_TUNING_SLIDERS } from "@/lib/club-robot-tuning-fields";
 import type { ClubRobotSceneHandle } from "@/components/worlds/club/club-robot-scene";
 
 type SliderSpec = {
@@ -15,17 +14,7 @@ type SliderSpec = {
   step: number;
 };
 
-const SLIDERS: SliderSpec[] = [
-  { key: "modelX", label: "Position X", min: -1.5, max: 1.5, step: 0.01 },
-  { key: "modelY", label: "Position Y", min: -1.5, max: 0.5, step: 0.01 },
-  { key: "modelZ", label: "Position Z", min: -1, max: 1, step: 0.01 },
-  { key: "modelScale", label: "Scale", min: 0.5, max: 2.5, step: 0.01 },
-  { key: "modelRotY", label: "Rotation Y", min: -3.14, max: 3.14, step: 0.01 },
-  { key: "cameraDistance", label: "Kamera Abstand", min: 0.6, max: 2.5, step: 0.01 },
-  { key: "cameraPosY", label: "Kamera Höhe", min: 0.8, max: 2.2, step: 0.01 },
-  { key: "cameraLookAtY", label: "Blickpunkt Y", min: 0.8, max: 2.2, step: 0.01 },
-  { key: "cameraFov", label: "FOV", min: 18, max: 50, step: 1 },
-];
+const SLIDERS: SliderSpec[] = CLUB_ROBOT_TUNING_SLIDERS;
 
 function formatConfig(tuning: ClubRobotTuning) {
   return `// club-robot.ts

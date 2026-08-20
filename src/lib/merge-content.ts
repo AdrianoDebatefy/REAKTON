@@ -1,5 +1,6 @@
 import type { Song, World, SiteContent } from "@/types/content";
 import { resolveSongVideoUrl } from "@/lib/youtube-url";
+import { defaultClubRobotConfig } from "@/lib/club-robot";
 
 function isPlaceholderCover(url?: string): boolean {
   return !url || url.includes("placeholder");
@@ -58,6 +59,18 @@ export function mergeSiteContent(server: SiteContent, client: SiteContent): Site
   return {
     ...server,
     ...client,
+    clubRobot: client.clubRobot
+      ? {
+          ...defaultClubRobotConfig(),
+          ...server.clubRobot,
+          ...client.clubRobot,
+          tuning: {
+            ...defaultClubRobotConfig().tuning,
+            ...server.clubRobot?.tuning,
+            ...client.clubRobot.tuning,
+          },
+        }
+      : server.clubRobot ?? client.clubRobot,
     worlds: client.worlds.map((clientWorld) => {
       const serverWorld = serverWorlds.get(clientWorld.id);
       if (!serverWorld) return clientWorld;

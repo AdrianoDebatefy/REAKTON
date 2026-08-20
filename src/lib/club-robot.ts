@@ -1,3 +1,5 @@
+import type { ClubRobotConfig, ClubRobotTuning } from "@/types/content";
+
 /** Clip:Clap:Club desktop robot scene — preview behind env flag. */
 export const CLUB_ROBOT_BG = "#9e1d23";
 
@@ -45,18 +47,7 @@ export const CLUB_ROBOT_HEAD_BONE_PATTERNS = [
 
 export const CLUB_ROBOT_HEAD_BONE_EXCLUDE = /neck|spine|chest|humanoid|hips|root|arm|hand|leg|foot|shoulder/i;
 
-/** Live tuning values (dev panel / sliders). */
-export type ClubRobotTuning = {
-  modelX: number;
-  modelY: number;
-  modelZ: number;
-  modelScale: number;
-  modelRotY: number;
-  cameraDistance: number;
-  cameraPosY: number;
-  cameraLookAtY: number;
-  cameraFov: number;
-};
+export type { ClubRobotTuning, ClubRobotConfig };
 
 export const CLUB_ROBOT_TUNING_DEFAULTS: ClubRobotTuning = {
   modelX: CLUB_ROBOT_MODEL.position[0],
@@ -69,3 +60,39 @@ export const CLUB_ROBOT_TUNING_DEFAULTS: ClubRobotTuning = {
   cameraLookAtY: CLUB_ROBOT_CAMERA.lookAt[1],
   cameraFov: CLUB_ROBOT_CAMERA.fov,
 };
+
+export type ResolvedClubRobotConfig = {
+  enabled: boolean;
+  backgroundColor: string;
+  backgroundImage?: string;
+  modelPath: string;
+  imageFadeS: number;
+  tuning: ClubRobotTuning;
+};
+
+export function defaultClubRobotConfig(): ClubRobotConfig {
+  return {
+    enabled: false,
+    backgroundColor: CLUB_ROBOT_BG,
+    modelPath: CLUB_ROBOT_MODEL_PATH,
+    imageFadeS: CLUB_ROBOT_IMAGE_FADE_S,
+    tuning: { ...CLUB_ROBOT_TUNING_DEFAULTS },
+  };
+}
+
+export function resolveClubRobotConfig(config?: ClubRobotConfig | null): ResolvedClubRobotConfig {
+  return {
+    enabled: isClubRobotActive(config),
+    backgroundColor: config?.backgroundColor?.trim() || CLUB_ROBOT_BG,
+    backgroundImage: config?.backgroundImage?.trim() || undefined,
+    modelPath: config?.modelPath?.trim() || CLUB_ROBOT_MODEL_PATH,
+    imageFadeS: config?.imageFadeS ?? CLUB_ROBOT_IMAGE_FADE_S,
+    tuning: { ...CLUB_ROBOT_TUNING_DEFAULTS, ...config?.tuning },
+  };
+}
+
+/** Admin flag wins; env preview flag still enables local dev without admin save. */
+export function isClubRobotActive(config?: ClubRobotConfig | null): boolean {
+  if (config?.enabled) return true;
+  return CLUB_ROBOT_ENABLED;
+}

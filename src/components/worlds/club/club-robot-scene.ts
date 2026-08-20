@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import type { ClubRobotTuning } from "@/types/content";
 import {
   CLUB_ROBOT_BG,
   CLUB_ROBOT_CAMERA,
@@ -7,7 +8,6 @@ import {
   CLUB_ROBOT_MODEL,
   CLUB_ROBOT_MODEL_PATH,
   CLUB_ROBOT_TUNING_DEFAULTS,
-  type ClubRobotTuning,
 } from "@/lib/club-robot";
 import {
   findHeadBone,
@@ -50,21 +50,34 @@ function addPlaceholderBust(parent: THREE.Group) {
   return head;
 }
 
-export function mountClubRobotScene(container: HTMLElement): {
+export type ClubRobotSceneOptions = {
+  modelPath?: string;
+  backgroundColor?: string;
+  initialTuning?: Partial<ClubRobotTuning>;
+};
+
+export function mountClubRobotScene(
+  container: HTMLElement,
+  options: ClubRobotSceneOptions = {}
+): {
   dispose: () => void;
   handle: ClubRobotSceneHandle;
 } {
+  const modelPath = options.modelPath?.trim() || CLUB_ROBOT_MODEL_PATH;
+  const backgroundColor = options.backgroundColor?.trim() || CLUB_ROBOT_BG;
+  const tuningDefaults = { ...CLUB_ROBOT_TUNING_DEFAULTS, ...options.initialTuning };
+
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(CLUB_ROBOT_BG);
+  scene.background = new THREE.Color(backgroundColor);
 
   const camera = new THREE.PerspectiveCamera(
-    CLUB_ROBOT_TUNING_DEFAULTS.cameraFov,
+    tuningDefaults.cameraFov,
     Math.max(container.clientWidth, 1) / Math.max(container.clientHeight, 1),
     0.1,
     50
   );
 
-  const tuning: ClubRobotTuning = { ...CLUB_ROBOT_TUNING_DEFAULTS };
+  const tuning: ClubRobotTuning = { ...tuningDefaults };
   let modelWrapper: THREE.Group | null = null;
   let baseFitScale = 1;
 
@@ -123,7 +136,7 @@ export function mountClubRobotScene(container: HTMLElement): {
 
   const loader = new GLTFLoader();
   loader.load(
-    CLUB_ROBOT_MODEL_PATH,
+    modelPath,
     (gltf) => {
       prepareGltfScene(gltf);
 
@@ -197,7 +210,7 @@ export function mountClubRobotScene(container: HTMLElement): {
       return { ...tuning };
     },
     resetTuning() {
-      Object.assign(tuning, CLUB_ROBOT_TUNING_DEFAULTS);
+      Object.assign(tuning, tuningDefaults);
       applyTuning();
     },
   };

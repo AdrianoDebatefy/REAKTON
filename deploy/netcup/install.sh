@@ -9,14 +9,18 @@ PORT="${PORT:-3010}"
 
 echo "==> REAKTON install/update in ${APP_DIR} (branch ${BRANCH})"
 
-if [[ ! -d "${APP_DIR}/.git" ]]; then
-  mkdir -p "${APP_DIR}"
-  git clone --branch "${BRANCH}" "${REPO}" "${APP_DIR}"
+if [[ "${SKIP_GIT:-0}" != "1" ]]; then
+  if [[ ! -d "${APP_DIR}/.git" ]]; then
+    mkdir -p "${APP_DIR}"
+    git clone --branch "${BRANCH}" "${REPO}" "${APP_DIR}"
+  else
+    cd "${APP_DIR}"
+    git fetch origin "${BRANCH}"
+    git checkout "${BRANCH}"
+    git reset --hard "origin/${BRANCH}"
+  fi
 else
-  cd "${APP_DIR}"
-  git fetch origin "${BRANCH}"
-  git checkout "${BRANCH}"
-  git reset --hard "origin/${BRANCH}"
+  echo "==> SKIP_GIT=1 — ueberspringe git fetch/checkout"
 fi
 
 cd "${APP_DIR}"
@@ -42,6 +46,7 @@ else
 fi
 
 echo ""
-echo "==> Fertig. App läuft auf http://127.0.0.1:${PORT}"
+echo "==> Fertig. App laeuft auf http://localhost:${PORT}"
+echo "==> Test: curl -I http://localhost:${PORT}   (nicht 127.0.0.1)"
 echo "==> Vergiss nicht: public/worlds und public/og von Windows hochladen (docs/DEPLOY-NETCUP.md Schritt 4)"
 echo "==> Nginx: deploy/netcup/nginx-reakton.de.conf"

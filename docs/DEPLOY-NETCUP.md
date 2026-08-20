@@ -134,6 +134,22 @@ cd /var/www/reakton
 npm run build
 ```
 
+**Nach manuellem `git pull`** (ohne erneutes GitHub-Passwort):
+
+```bash
+cd /var/www/reakton
+SKIP_GIT=1 bash deploy/netcup/install.sh
+# oder nur Build + Restart:
+bash deploy/netcup/restart.sh
+```
+
+Diagnose bei Problemen:
+
+```bash
+bash deploy/netcup/diagnose.sh
+pm2 logs reakton --lines 50
+```
+
 ---
 
 ## Schritt 3 — PM2 (Port 3010)
@@ -150,8 +166,10 @@ pm2 startup    # Anweisung ausführen, damit PM2 nach Reboot startet
 Test lokal auf dem VPS:
 
 ```bash
-curl -I http://127.0.0.1:3010
+curl -I http://localhost:3010
 ```
+
+Wichtig: PM2 startet mit `-H localhost`. `curl http://127.0.0.1:3010` kann fehlschlagen, obwohl die App laeuft.
 
 ---
 
@@ -247,7 +265,7 @@ Bilder nur erneut hochladen, wenn sich etwas unter `public/worlds` geändert hat
 |--------|--------|
 | Welten ohne Hintergrund | `public/worlds/*.jpg` auf Server prüfen: `ls -la /var/www/reakton/public/worlds/` |
 | Admin-Login geht nicht | `.env` mit `ADMIN_PASSWORD` / `ADMIN_SECRET` prüfen, `pm2 restart reakton` |
-| 502 Bad Gateway | `pm2 status`, Port 3010 in Nginx-Config und ecosystem.config.cjs |
+| 502 Bad Gateway | `pm2 status`, `curl -I http://localhost:3010`, `bash deploy/netcup/diagnose.sh` |
 | 500 / 307 auf `/` oder `/press` | PM2: `-H localhost` (siehe `deploy/netcup/ecosystem.config.cjs`), Nginx upstream `localhost:3010` + `X-Forwarded-Port 443`, dann `git pull`, `npm run build`, `pm2 restart reakton`, `nginx -t && systemctl reload nginx` |
 | Uploads verschwinden | Persistentes Volume — nicht auf serverless deployen |
 | Port 3010 belegt | In `deploy/netcup/ecosystem.config.cjs` und nginx auf z. B. 3011 ändern |

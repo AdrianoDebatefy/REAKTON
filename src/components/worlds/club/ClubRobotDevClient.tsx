@@ -2,7 +2,10 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useCallback, useState } from "react";
 import { CLUB_ROBOT_BG } from "@/lib/club-robot";
+import { ClubRobotTuningPanel } from "@/components/worlds/club/ClubRobotTuningPanel";
+import type { ClubRobotSceneHandle } from "@/components/worlds/club/club-robot-scene";
 
 const ClubRobotCanvas = dynamic(
   () =>
@@ -11,6 +14,13 @@ const ClubRobotCanvas = dynamic(
 );
 
 export function ClubRobotDevClient() {
+  const [handle, setHandle] = useState<ClubRobotSceneHandle | null>(null);
+  const [panelOpen, setPanelOpen] = useState(true);
+
+  const onReady = useCallback((sceneHandle: ClubRobotSceneHandle) => {
+    setHandle(sceneHandle);
+  }, []);
+
   return (
     <div className="fixed inset-0 flex flex-col" style={{ background: CLUB_ROBOT_BG }}>
       <header className="relative z-10 flex items-center justify-between gap-4 border-b border-white/15 px-6 py-4 text-white/80">
@@ -27,12 +37,17 @@ export function ClubRobotDevClient() {
       </header>
 
       <div className="relative min-h-0 flex-1">
-        <ClubRobotCanvas className="absolute inset-0" />
+        <ClubRobotCanvas className="absolute inset-0" onReady={onReady} />
+        <ClubRobotTuningPanel
+          handle={handle}
+          open={panelOpen}
+          onToggle={() => setPanelOpen((v) => !v)}
+        />
       </div>
 
       <footer className="relative z-10 border-t border-white/10 px-6 py-3 text-xs text-white/50">
-        Modell:{" "}
-        <code className="text-white/70">public/worlds/reakton_hires_Robot_Modell.glb</code>
+        Slider rechts → Werte justieren → „Config“ kopiert Code für{" "}
+        <code className="text-white/70">club-robot.ts</code>
       </footer>
     </div>
   );

@@ -44,3 +44,28 @@ export const CLUB_ROBOT_HEAD_BONE_PATTERNS = [
 ];
 
 export const CLUB_ROBOT_HEAD_BONE_EXCLUDE = /neck|spine|chest|humanoid|hips|root|arm|hand|leg|foot|shoulder/i;
+
+/** Live tuning values (dev panel / sliders). */
+export type ClubRobotTuning = {
+  modelX: number;
+  modelY: number;
+  modelZ: number;
+  modelScale: number;
+  modelRotY: number;
+  cameraDistance: number;
+  cameraPosY: number;
+  cameraLookAtY: number;
+  cameraFov: number;
+};
+
+export const CLUB_ROBOT_TUNING_DEFAULTS: ClubRobotTuning = {
+  modelX: CLUB_ROBOT_MODEL.position[0],
+  modelY: CLUB_ROBOT_MODEL.position[1],
+  modelZ: CLUB_ROBOT_MODEL.position[2],
+  modelScale: CLUB_ROBOT_MODEL.scale,
+  modelRotY: CLUB_ROBOT_MODEL.rotation[1],
+  cameraDistance: CLUB_ROBOT_CAMERA.distanceMultiplier,
+  cameraPosY: CLUB_ROBOT_CAMERA.position[1],
+  cameraLookAtY: CLUB_ROBOT_CAMERA.lookAt[1],
+  cameraFov: CLUB_ROBOT_CAMERA.fov,
+};

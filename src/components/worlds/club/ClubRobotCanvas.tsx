@@ -2,15 +2,29 @@
 
 import { useEffect, useRef } from "react";
 import { CLUB_ROBOT_BG } from "@/lib/club-robot";
-import { mountClubRobotScene } from "@/components/worlds/club/club-robot-scene";
+import {
+  mountClubRobotScene,
+  type ClubRobotSceneHandle,
+} from "@/components/worlds/club/club-robot-scene";
 
-export function ClubRobotCanvas({ className = "" }: { className?: string }) {
+export function ClubRobotCanvas({
+  className = "",
+  onReady,
+}: {
+  className?: string;
+  onReady?: (handle: ClubRobotSceneHandle) => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    return mountClubRobotScene(container);
+
+    const { dispose, handle } = mountClubRobotScene(container);
+    onReadyRef.current?.(handle);
+    return dispose;
   }, []);
 
   return (

@@ -6,6 +6,8 @@ import {
   CLUB_ROBOT_LOOK,
   CLUB_ROBOT_MODEL,
   CLUB_ROBOT_MODEL_PATH,
+  CLUB_ROBOT_TUNING_DEFAULTS,
+  type ClubRobotTuning,
 } from "@/lib/club-robot";
 import {
   findHeadBone,
@@ -15,6 +17,12 @@ import {
   refreshSkinnedMeshes,
   wrapAndFitModel,
 } from "@/components/worlds/club/club-robot-utils";
+
+export type ClubRobotSceneHandle = {
+  setTuning: (partial: Partial<ClubRobotTuning>) => void;
+  getTuning: () => ClubRobotTuning;
+  resetTuning: () => void;
+};
 
 function addPlaceholderBust(parent: THREE.Group) {
   const bust = new THREE.Group();
@@ -42,22 +50,42 @@ function addPlaceholderBust(parent: THREE.Group) {
   return head;
 }
 
-export function mountClubRobotScene(container: HTMLElement): () => void {
+export function mountClubRobotScene(container: HTMLElement): {
+  dispose: () => void;
+  handle: ClubRobotSceneHandle;
+} {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(CLUB_ROBOT_BG);
 
   const camera = new THREE.PerspectiveCamera(
-    CLUB_ROBOT_CAMERA.fov,
+    CLUB_ROBOT_TUNING_DEFAULTS.cameraFov,
     Math.max(container.clientWidth, 1) / Math.max(container.clientHeight, 1),
     0.1,
     50
   );
-  placeCameraForBust(
-    camera,
-    CLUB_ROBOT_CAMERA.position,
-    CLUB_ROBOT_CAMERA.lookAt,
-    CLUB_ROBOT_CAMERA.distanceMultiplier
-  );
+
+  const tuning: ClubRobotTuning = { ...CLUB_ROBOT_TUNING_DEFAULTS };
+  let modelWrapper: THREE.Group | null = null;
+  let baseFitScale = 1;
+
+  const applyTuning = () => {
+    placeCameraForBust(
+      camera,
+      [0, tuning.cameraPosY, CLUB_ROBOT_CAMERA.position[2]],
+      [0, tuning.cameraLookAtY, CLUB_ROBOT_CAMERA.lookAt[2]],
+      tuning.cameraDistance
+    );
+    camera.fov = tuning.cameraFov;
+    camera.updateProjectionMatrix();
+
+    if (!modelWrapper) return;
+    modelWrapper.position.set(tuning.modelX, tuning.modelY, tuning.modelZ);
+    modelWrapper.scale.setScalar(baseFitScale * tuning.modelScale);
+    modelWrapper.rotation.set(0, tuning.modelRotY, 0);
+    refreshSkinnedMeshes(modelWrapper);
+  };
+
+  applyTuning();
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -102,12 +130,15 @@ export function mountClubRobotScene(container: HTMLElement): () => void {
       const wrapper = wrapAndFitModel(
         gltf.scene,
         CLUB_ROBOT_MODEL.targetHeight,
-        CLUB_ROBOT_MODEL.scale,
-        CLUB_ROBOT_MODEL.position,
-        CLUB_ROBOT_MODEL.rotation
+        1,
+        [0, 0, 0],
+        [0, 0, 0]
       );
+      modelWrapper = wrapper;
+      baseFitScale = wrapper.scale.x;
       modelRoot.add(wrapper);
       refreshSkinnedMeshes(wrapper, true);
+      applyTuning();
 
       const headBone = findHeadBone(gltf.scene);
       if (headBone) {
@@ -157,7 +188,21 @@ export function mountClubRobotScene(container: HTMLElement): () => void {
   const resizeObserver = new ResizeObserver(onResize);
   resizeObserver.observe(container);
 
-  return () => {
+  const handle: ClubRobotSceneHandle = {
+    setTuning(partial) {
+      Object.assign(tuning, partial);
+      applyTuning();
+    },
+    getTuning() {
+      return { ...tuning };
+    },
+    resetTuning() {
+      Object.assign(tuning, CLUB_ROBOT_TUNING_DEFAULTS);
+      applyTuning();
+    },
+  };
+
+  const dispose = () => {
     window.cancelAnimationFrame(frameId);
     window.removeEventListener("pointermove", onPointerMove);
     resizeObserver.disconnect();
@@ -171,4 +216,6 @@ export function mountClubRobotScene(container: HTMLElement): () => void {
       }
     });
   };
+
+  return { dispose, handle };
 }

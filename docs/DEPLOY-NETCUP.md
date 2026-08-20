@@ -177,11 +177,17 @@ Wichtig: PM2 startet mit `-H localhost`. `curl http://127.0.0.1:3010` kann fehls
 
 **Auf deinem PC** (PowerShell), Pfade anpassen:
 
+Wichtig: Von Windows aus die **oeffentliche IPv4-Adresse** des VPS nutzen — `v2202512327578422024` ist oft nur intern und von deinem PC nicht aufloesbar.
+
 ```powershell
 cd C:\Users\adria\REAKTON
 
-$SERVER = "root@DEINE-VPS-IP"
+# IP aus Netcup-Kundenpanel oder auf dem VPS: curl -4 ifconfig.me
+$SERVER = "ray@DEINE-VPS-IP"
 $REMOTE = "/var/www/reakton/public"
+
+.\deploy\netcup\upload-assets-from-windows.ps1 -Server $SERVER
+```
 
 # Welten-Hintergründe (liegen bei dir lokal!)
 scp -r public\worlds\*.jpg "${SERVER}:${REMOTE}/worlds/"

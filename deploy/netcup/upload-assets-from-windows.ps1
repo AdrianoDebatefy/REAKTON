@@ -1,5 +1,6 @@
 ﻿# Upload local public assets to Netcup VPS (Windows PowerShell 5.1+)
-# Run: .\deploy\netcup\upload-assets-from-windows.ps1 -Server ray@v2202512327578422024
+# Use the VPS PUBLIC IPv4 address, not the internal hostname v2202512327578422024
+# Example: .\deploy\netcup\upload-assets-from-windows.ps1 -Server ray@123.45.67.89
 
 param(
   [Parameter(Mandatory = $true)]

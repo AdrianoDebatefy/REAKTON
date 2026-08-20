@@ -1,4 +1,4 @@
-import type { ClubRobotConfig, SiteContent, World } from "@/types/content";
+import type { SiteContent, World } from "@/types/content";
 
 export type PublicSiteContent = Pick<SiteContent, "worlds" | "clubRobot">;
 

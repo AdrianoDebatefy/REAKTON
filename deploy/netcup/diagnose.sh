@@ -27,8 +27,14 @@ echo "curl localhost:3010:"
 curl -sI --max-time 5 http://localhost:3010 | head -8 || echo "  FAILED"
 echo ""
 
-echo "curl 127.0.0.1:3010:"
-curl -sI --max-time 5 http://127.0.0.1:3010 | head -3 || echo "  FAILED (normal if app binds -H localhost only)"
+echo "GLB model (if configured):"
+GLB_PATH="/var/www/reakton/public/worlds/reakton_hires_Robot_Modell.glb"
+if [[ -f "$GLB_PATH" ]]; then
+  ls -lh "$GLB_PATH"
+  curl -sI --max-time 5 http://localhost:3010/worlds/reakton_hires_Robot_Modell.glb | head -5 || true
+else
+  echo "  MISSING: $GLB_PATH"
+fi
 echo ""
 
 echo "Last PM2 logs:"

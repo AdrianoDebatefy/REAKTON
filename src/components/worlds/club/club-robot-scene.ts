@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import type { ClubRobotTuning } from "@/types/content";
+import { resolvePublicAssetUrl } from "@/lib/asset-url";
 import {
   CLUB_ROBOT_BG,
   CLUB_ROBOT_CAMERA,
@@ -63,7 +65,7 @@ export function mountClubRobotScene(
   dispose: () => void;
   handle: ClubRobotSceneHandle;
 } {
-  const modelPath = options.modelPath?.trim() || CLUB_ROBOT_MODEL_PATH;
+  const modelPath = resolvePublicAssetUrl(options.modelPath?.trim() || CLUB_ROBOT_MODEL_PATH);
   const backgroundColor = options.backgroundColor?.trim() || CLUB_ROBOT_BG;
   const tuningDefaults = { ...CLUB_ROBOT_TUNING_DEFAULTS, ...options.initialTuning };
 
@@ -135,6 +137,10 @@ export function mountClubRobotScene(
   window.addEventListener("pointermove", onPointerMove, { passive: true });
 
   const loader = new GLTFLoader();
+  const dracoLoader = new DRACOLoader();
+  dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.7/");
+  loader.setDRACOLoader(dracoLoader);
+
   loader.load(
     modelPath,
     (gltf) => {
@@ -160,7 +166,7 @@ export function mountClubRobotScene(
     },
     undefined,
     (error) => {
-      console.warn("[club-robot] model load failed:", error);
+      console.warn("[club-robot] model load failed:", modelPath, error);
       placeholderHead = addPlaceholderBust(modelRoot);
     }
   );

@@ -1,8 +1,9 @@
 /** Clip:Clap:Club desktop robot scene — preview behind env flag. */
 export const CLUB_ROBOT_BG = "#9e1d23";
 
-/** Drop your rigged mesh here (FBX works; GLB is faster on the web). */
-export const CLUB_ROBOT_MODEL_PATH = "/worlds/club/models/robot.fbx";
+/** Local file: public/worlds/humanoid robot 3d model.glb */
+export const CLUB_ROBOT_MODEL_FILE = "humanoid robot 3d model.glb";
+export const CLUB_ROBOT_MODEL_PATH = `/worlds/${encodeURIComponent(CLUB_ROBOT_MODEL_FILE)}`;
 
 export const CLUB_ROBOT_ENABLED = process.env.NEXT_PUBLIC_CLUB_ROBOT_PREVIEW === "true";
 
@@ -13,12 +14,15 @@ export const CLUB_ROBOT_IMAGE_FADE_S = 1.4;
 export const CLUB_ROBOT_MAX_YAW = 0.55;
 export const CLUB_ROBOT_MAX_PITCH = 0.28;
 
-/** Bone name fragments to search (Mixamo, Blender, etc.). */
+/** Bone name fragments to search (Mixamo, Blender, humanoid rigs). */
 export const CLUB_ROBOT_HEAD_BONE_HINTS = [
   "head",
   "neck",
   "mixamorighead",
   "mixamorigneck",
+  "humanoid",
+  "spine2",
+  "chest",
 ];
 
 export const CLUB_ROBOT_CAMERA = {

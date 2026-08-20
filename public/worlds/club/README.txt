@@ -10,12 +10,12 @@ Setup
 
    NEXT_PUBLIC_CLUB_ROBOT_PREVIEW=true
 
-2. FBX ablegen:
+2. GLB ablegen (exakter Dateiname):
 
-   public/worlds/club/models/robot.fbx
+   public/worlds/humanoid robot 3d model.glb
 
-   Alternativ GLB (schneller im Web): robot.glb
-   → dann CLUB_ROBOT_MODEL_PATH in src/lib/club-robot.ts anpassen.
+   Windows-Quelle:
+   c:\Users\adria\REAKTON\public\worlds\humanoid robot 3d model.glb
 
 3. Dev-Server starten:
 

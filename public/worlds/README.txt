@@ -29,7 +29,7 @@ Desktop:
   club-bg.jpg
 
 3D Roboter (lokaler Preview, siehe public/worlds/club/README.txt):
-  club/models/robot.fbx
+  humanoid robot 3d model.glb
 
 Anzeige: object-fit cover — füllt den Bildschirm ohne schwarze Streifen.
 

@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { Link } from "@/i18n/routing";
-import { CLUB_ROBOT_BG, CLUB_ROBOT_MODEL_PATH } from "@/lib/club-robot";
+import { CLUB_ROBOT_BG } from "@/lib/club-robot";
 
 const ClubRobotCanvas = dynamic(
   () =>
@@ -31,8 +31,8 @@ export function ClubRobotDevClient() {
       </div>
 
       <footer className="relative z-10 border-t border-white/10 px-6 py-3 text-xs text-white/50">
-        Maus bewegen — Blick folgt dem Cursor. Modell:{" "}
-        <code className="text-white/70">{CLUB_ROBOT_MODEL_PATH}</code>
+        Modell:{" "}
+        <code className="text-white/70">public/worlds/humanoid robot 3d model.glb</code>
       </footer>
     </div>
   );

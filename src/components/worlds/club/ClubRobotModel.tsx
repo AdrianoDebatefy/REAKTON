@@ -1,18 +1,19 @@
 "use client";
 
-import { useFBX } from "@react-three/drei";
+import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { SkeletonUtils } from "three-stdlib";
 import {
   CLUB_ROBOT_MAX_PITCH,
   CLUB_ROBOT_MAX_YAW,
   CLUB_ROBOT_MODEL,
+  CLUB_ROBOT_MODEL_PATH,
 } from "@/lib/club-robot";
 import { findLookBone, normalizeRobotMaterials } from "@/components/worlds/club/club-robot-utils";
 
-function PlaceholderBust() {
-  const headRef = useRef<THREE.Group>(null);
+function useMouseLookRef() {
   const mouse = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -20,9 +21,17 @@ function PlaceholderBust() {
       mouse.current.x = (event.clientX / window.innerWidth) * 2 - 1;
       mouse.current.y = -(event.clientY / window.innerHeight) * 2 + 1;
     };
+
     window.addEventListener("pointermove", onMove, { passive: true });
     return () => window.removeEventListener("pointermove", onMove);
   }, []);
+
+  return mouse;
+}
+
+function PlaceholderBust() {
+  const headRef = useRef<THREE.Group>(null);
+  const mouse = useMouseLookRef();
 
   useFrame(() => {
     if (!headRef.current) return;
@@ -65,11 +74,11 @@ function PlaceholderBust() {
 function LoadedRobot({ url }: { url: string }) {
   const lookBoneRef = useRef<THREE.Bone | null>(null);
   const baseRotation = useRef(new THREE.Euler());
-  const mouse = useRef({ x: 0, y: 0 });
-  const fbx = useFBX(url);
+  const mouse = useMouseLookRef();
+  const { scene } = useGLTF(url);
 
   const model = useMemo(() => {
-    const clone = fbx.clone(true);
+    const clone = SkeletonUtils.clone(scene) as THREE.Object3D;
     normalizeRobotMaterials(clone);
 
     const box = new THREE.Box3().setFromObject(clone);
@@ -88,17 +97,7 @@ function LoadedRobot({ url }: { url: string }) {
     }
 
     return clone;
-  }, [fbx]);
-
-  useEffect(() => {
-    const onMove = (event: PointerEvent) => {
-      mouse.current.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mouse.current.y = -(event.clientY / window.innerHeight) * 2 + 1;
-    };
-
-    window.addEventListener("pointermove", onMove, { passive: true });
-    return () => window.removeEventListener("pointermove", onMove);
-  }, []);
+  }, [scene]);
 
   useFrame(() => {
     const bone = lookBoneRef.current;
@@ -129,7 +128,7 @@ function LoadedRobot({ url }: { url: string }) {
   );
 }
 
-export function ClubRobotModel({ modelPath }: { modelPath?: string }) {
+export function ClubRobotModel({ modelPath = CLUB_ROBOT_MODEL_PATH }: { modelPath?: string }) {
   if (!modelPath) {
     return <PlaceholderBust />;
   }
@@ -140,3 +139,5 @@ export function ClubRobotModel({ modelPath }: { modelPath?: string }) {
     </Suspense>
   );
 }
+
+useGLTF.preload(CLUB_ROBOT_MODEL_PATH);

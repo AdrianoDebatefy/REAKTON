@@ -54,8 +54,9 @@ if ($listeners) {
   $listeners | ForEach-Object {
     $proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
     if ($proc -and $proc.ProcessName -match "node") {
-      Write-Host "  Beende $($proc.ProcessName) (PID $($proc.Id))" -ForegroundColor DarkGray
-      Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+      $procId = $proc.Id
+      Write-Host ('  Beende ' + $proc.ProcessName + ' (Id ' + $procId + ')') -ForegroundColor DarkGray
+      Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
     }
   }
   Start-Sleep -Seconds 1

@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Link } from "@/i18n/routing";
+import Link from "next/link";
 import { CLUB_ROBOT_BG } from "@/lib/club-robot";
 
 const ClubRobotCanvas = dynamic(

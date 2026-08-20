@@ -50,9 +50,17 @@ function fixRedirectScheme(response: NextResponse, request: NextRequest): NextRe
 }
 
 export default function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  if (pathname === "/dev" || pathname.startsWith("/dev/")) {
+    const response = NextResponse.next();
+    response.headers.set("x-reakton-locale", routing.defaultLocale);
+    return response;
+  }
+
   const proxyRequest = sanitizeProxyHeaders(request);
   const response = intlMiddleware(proxyRequest);
-  response.headers.set("x-reakton-locale", detectLocale(request.nextUrl.pathname));
+  response.headers.set("x-reakton-locale", detectLocale(pathname));
   return fixRedirectScheme(response, request);
 }
 
@@ -60,6 +68,6 @@ export const config = {
   matcher: [
     "/",
     "/(de|en|ja)/:path*",
-    "/((?!api|admin|_next|_vercel|.*\\..*).*)",
+    "/((?!api|admin|dev|_next|_vercel|.*\\..*).*)",
   ],
 };

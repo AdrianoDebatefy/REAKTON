@@ -1,11 +1,6 @@
-import { notFound } from "next/navigation";
-import { ClubRobotDevClient } from "@/components/worlds/club/ClubRobotDevClient";
+import { redirect } from "next/navigation";
 
-const allowDevPage =
-  process.env.NODE_ENV !== "production" ||
-  process.env.NEXT_PUBLIC_CLUB_ROBOT_PREVIEW === "true";
-
-export default function ClubRobotDevPage() {
-  if (!allowDevPage) notFound();
-  return <ClubRobotDevClient />;
+/** Legacy locale-prefixed URL → canonical /dev/club-robot */
+export default function ClubRobotDevLocaleRedirect() {
+  redirect("/dev/club-robot");
 }

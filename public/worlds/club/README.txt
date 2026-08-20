@@ -35,7 +35,6 @@ Windows — Schritt für Schritt (PowerShell)
 5. Im Browser öffnen:
 
    http://localhost:3000/dev/club-robot
-   (oder http://localhost:3000/de/dev/club-robot)
 
 Lockfile-Warnung
 ----------------

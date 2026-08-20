@@ -48,9 +48,35 @@ Schritt 6 — Cache löschen & installieren
 Schritt 7 — Dev-Server (aus REAKTON-Ordner!)
   npm run dev
 
+  Oder alles in einem (empfohlen unter Windows):
+  .\scripts\start-club-robot-dev.ps1
+
+  WICHTIG: Das Terminal muss offen bleiben. Ohne laufenden Server
+  ist localhost nicht erreichbar.
+
 Schritt 8 — Browser
   http://localhost:3000/dev/club-robot
   Hard-Reload: Strg+Shift+R
+
+  Im Terminal steht nach dem Start z.B.:
+    Local: http://localhost:3000
+  Diese URL im Browser öffnen (nicht reakton.de).
+
+Website nicht erreichbar? (Troubleshooting)
+---------------------------------------------
+1. Läuft npm run dev noch? Terminal offen? Kein "error" / "EADDRINUSE"?
+2. Richtige URL? → http://localhost:3000 (oder Port aus Terminal-Ausgabe)
+3. Port 3000 belegt?
+     Get-NetTCPConnection -LocalPort 3000 -State Listen
+   Alten Node-Prozess beenden oder Script nutzen:
+     .\scripts\start-club-robot-dev.ps1
+4. Aus richtigem Ordner gestartet?
+     pwd  → muss C:\Users\adria\REAKTON sein
+5. Firewall: Node.js bei erster Abfrage „Zulassen“
+6. Nach Fehlermeldung im Terminal:
+     Remove-Item -Recurse -Force .next
+     npm install
+     npm run dev
 
 Schritt 9 — Slider finden
   Rechts am Bildschirmrand: Panel „Roboter Tuning"

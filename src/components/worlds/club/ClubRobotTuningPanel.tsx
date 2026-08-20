@@ -86,15 +86,15 @@ export function ClubRobotTuningPanel({
       <button
         type="button"
         onClick={onToggle}
-        className="absolute right-4 top-20 z-20 rounded border border-white/25 bg-black/50 px-3 py-2 text-xs uppercase tracking-widest text-white/80 backdrop-blur-sm"
+        className="absolute right-0 top-1/2 z-[200] -translate-y-1/2 rounded-l-md border border-r-0 border-white/35 bg-black/80 px-3 py-4 text-xs font-medium uppercase tracking-[0.2em] text-white shadow-lg backdrop-blur-sm"
       >
-        Tuning
+        ◀ Tuning
       </button>
     );
   }
 
   return (
-    <aside className="absolute right-0 top-16 z-20 flex max-h-[calc(100%-5rem)] w-72 flex-col border-l border-white/15 bg-black/75 backdrop-blur-md">
+    <aside className="absolute right-0 top-16 z-[200] flex max-h-[calc(100%-5rem)] w-72 flex-col border-l border-white/25 bg-black/85 shadow-2xl backdrop-blur-md">
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <p className="text-xs uppercase tracking-[0.25em] text-white/50">Roboter Tuning</p>
         <button

@@ -1,66 +1,65 @@
 Clip:Clap:Club — 3D Roboter (Desktop Preview)
 =============================================
 
-Lokaler Test — nicht auf den Live-Server deployen, bis Ray freigibt.
+WICHTIG: Slider nur auf der Dev-Testseite
+-----------------------------------------
 
-Windows — Schritt für Schritt (PowerShell)
-------------------------------------------
+Der Roboter erscheint an zwei Stellen:
 
-1. Branch holen (im Projektordner REAKTON):
+1. Startseite → Clip:Clap:Club öffnen  → Roboter JA, Slider NEIN
+2. http://localhost:3000/dev/club-robot → Roboter JA, Slider JA (rechts)
 
-   cd C:\Users\adria\REAKTON
-   git remote -v
-   git fetch origin
-   git checkout -b cursor/club-robot-scene-d206 origin/cursor/club-robot-scene-d206
+Windows — Installation prüfen (Schritt für Schritt)
+---------------------------------------------------
 
-   Falls "couldn't find remote ref":
-   - Remote muss auf github.com/AdrianoDebatefy/debatyfyOnlinebetaFour zeigen
-   - Oder: git fetch origin --prune && git branch -r
+Schritt 1 — Projektordner
+  cd C:\Users\adria\REAKTON
 
-2. .env.local anlegen (NICHT in der Konsole tippen — Datei erstellen):
+Schritt 2 — Branch prüfen
+  git branch
+  → muss * cursor/club-robot-scene-d206 zeigen
 
-   Set-Content -Path .env.local -Value "NEXT_PUBLIC_CLUB_ROBOT_PREVIEW=true"
+  Falls nicht:
+  git fetch beta
+  git checkout cursor/club-robot-scene-d206
+  git pull beta cursor/club-robot-scene-d206
 
-   Oder manuell: Datei .env.local im Projektroot mit genau dieser Zeile.
+Schritt 3 — Neuesten Stand prüfen (Slider-Commit)
+  git log --oneline -1
+  → sollte enthalten: "Add dev tuning sliders" (ab5f60e oder neuer)
 
-3. GLB (exakter Dateiname):
+Schritt 4 — Dateien prüfen
+  Test-Path src\components\worlds\club\ClubRobotTuningPanel.tsx
+  Test-Path src\app\dev\club-robot\page.tsx
+  Test-Path public\worlds\reakton_hires_Robot_Modell.glb
+  → alle drei müssen True sein
 
-   public\worlds\reakton_hires_Robot_Modell.glb
+Schritt 5 — .env.local
+  Get-Content .env.local
+  → muss enthalten: NEXT_PUBLIC_CLUB_ROBOT_PREVIEW=true
 
-4. Abhängigkeiten + Dev-Server:
+  Falls Datei fehlt:
+  Set-Content -Path .env.local -Value "NEXT_PUBLIC_CLUB_ROBOT_PREVIEW=true"
 
-   Remove-Item -Recurse -Force node_modules,.next -ErrorAction SilentlyContinue
-   npm install
-   npm run dev
+Schritt 6 — Cache löschen & installieren
+  Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue
+  npm install
 
-5. Im Browser öffnen:
+Schritt 7 — Dev-Server (aus REAKTON-Ordner!)
+  npm run dev
 
-   http://localhost:3000/dev/club-robot
+Schritt 8 — Browser
+  http://localhost:3000/dev/club-robot
+  Hard-Reload: Strg+Shift+R
 
-Lockfile-Warnung
-----------------
+Schritt 9 — Slider finden
+  Rechts am Bildschirmrand: Panel „Roboter Tuning"
+  Falls zu: Button „◀ Tuning" am rechten Rand anklicken
 
-Wenn Next.js C:\Users\adria\package-lock.json statt REAKTON nutzt:
-- Im Ordner REAKTON starten (nicht darüber)
-- Optional übergeordnete package-lock.json entfernen, falls nicht gebraucht
+Schritt 10 — Werte übernehmen
+  Slider justieren → „Config“ klicken → Code in club-robot.ts einfügen
 
-Bone-Namen
-----------
-
-Maus-Look dreht die Modell-Gruppe (kein Bone-Edit). Feintuning in src/lib/club-robot.ts.
-
-Ohne Modell
------------
-
-Placeholder-Büste mit Maus-Tracking, bis die GLB-Datei liegt.
-
-Modell-Export (Blender)
------------------------
-
-GLB ist ideal. Falls der Mesh kaputt aussieht, neu exportieren mit:
-
-- Format: glTF Binary (.glb)
-- +Y Up
-- „Apply Transform“ / Applied Modifiers
-- Keine laufende Animation im Export (Rest Pose / T-Pose)
-- Optional: nur Oberkörper (ab Hüfte) für besseres Framing
+Remote beta hinzufügen (einmalig)
+---------------------------------
+  git remote add beta https://github.com/AdrianoDebatefy/debatyfyOnlinebetaFour.git
+  git fetch beta

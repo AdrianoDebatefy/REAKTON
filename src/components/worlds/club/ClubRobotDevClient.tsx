@@ -26,7 +26,10 @@ export function ClubRobotDevClient() {
       <header className="relative z-10 flex items-center justify-between gap-4 border-b border-white/15 px-6 py-4 text-white/80">
         <div>
           <p className="text-xs uppercase tracking-[0.35em] text-white/45">Lokaler Test</p>
-          <h1 className="text-lg font-light tracking-wide">Clip:Clap:Club — 3D Roboter</h1>
+          <h1 className="mt-1 text-lg font-light tracking-wide">Clip:Clap:Club — 3D Roboter</h1>
+          <p className="mt-1 text-[11px] text-white/45">
+            Slider nur hier: <span className="text-white/70">/dev/club-robot</span>
+          </p>
         </div>
         <Link
           href="/"

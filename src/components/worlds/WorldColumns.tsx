@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,9 +13,20 @@ import { getInitialWorldUiState, writeWorldSession } from "@/lib/world-session";
 import { getLocalized } from "@/lib/locale";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import {
+  CLUB_ROBOT_BG,
+  CLUB_ROBOT_ENABLED,
+  CLUB_ROBOT_IMAGE_FADE_S,
+} from "@/lib/club-robot";
+import {
   MOBILE_COLUMN_SLIDE_S,
   MOBILE_RETURN_REVEAL_MS,
 } from "@/lib/mobile-world-timing";
+
+const ClubRobotCanvas = dynamic(
+  () =>
+    import("@/components/worlds/club/ClubRobotCanvas").then((mod) => mod.ClubRobotCanvas),
+  { ssr: false }
+);
 
 interface WorldColumnsProps {
   worlds: World[];
@@ -250,6 +262,8 @@ function WorldBgLayer({
   className,
   inWorld,
   onError,
+  robotEnabled = false,
+  robotReveal = false,
 }: {
   desktopSrc: string;
   expanded: boolean;
@@ -267,6 +281,8 @@ function WorldBgLayer({
   className: string;
   inWorld?: boolean;
   onError?: () => void;
+  robotEnabled?: boolean;
+  robotReveal?: boolean;
 }) {
   const clipPath = columnClipPath(columnIndex, columnWidth, expanded);
   const panLeft = columnPanLeft(columnIndex, columnWidth, expanded);
@@ -299,6 +315,11 @@ function WorldBgLayer({
         x: animateSlide ? columnSlideTransition(slideDelay) : { duration: 0 },
       }}
     >
+      {robotEnabled ? (
+        <div className="absolute inset-0 z-0" style={{ background: CLUB_ROBOT_BG }}>
+          {robotReveal ? <ClubRobotCanvas className="absolute inset-0" /> : null}
+        </div>
+      ) : null}
       <motion.div
         className="landing-earth-pan"
         initial={false}
@@ -308,11 +329,18 @@ function WorldBgLayer({
           x: { duration: 0 },
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <motion.img
           src={desktopSrc}
           alt=""
           className="column-bg-image--full-bleed"
+          initial={false}
+          animate={{ opacity: robotEnabled && robotReveal ? 0 : 1 }}
+          transition={{
+            opacity: {
+              duration: robotEnabled ? CLUB_ROBOT_IMAGE_FADE_S : 0,
+              ease: EARTH_TRANSITION.ease,
+            },
+          }}
           onError={onError}
         />
       </motion.div>
@@ -726,6 +754,8 @@ export function WorldColumns({ worlds }: WorldColumnsProps) {
             atmosphere="club"
             className="landing-earth landing-club"
             inWorld={showWorld && activeWorld?.atmosphere === "club"}
+            robotEnabled={CLUB_ROBOT_ENABLED}
+            robotReveal={CLUB_ROBOT_ENABLED && showWorld && activeWorld?.atmosphere === "club"}
             onError={handleClubError}
           />
         )}

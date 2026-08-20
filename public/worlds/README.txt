@@ -28,6 +28,9 @@ Welt 3 — Club:
 Desktop:
   club-bg.jpg
 
+3D Roboter (lokaler Preview, siehe public/worlds/club/README.txt):
+  club/models/robot.fbx
+
 Anzeige: object-fit cover — füllt den Bildschirm ohne schwarze Streifen.
 
 Alternativ: Admin-Panel → Welt → Hintergrundbilder hochladen.

@@ -8,6 +8,9 @@ import {
   CLUB_ROBOT_MODEL_PATH,
 } from "@/lib/club-robot";
 import {
+  findHeadBone,
+  HeadLookRig,
+  placeCameraForBust,
   prepareGltfScene,
   refreshSkinnedMeshes,
   wrapAndFitModel,
@@ -17,12 +20,14 @@ function addPlaceholderBust(parent: THREE.Group) {
   const bust = new THREE.Group();
   bust.position.y = 0.55;
 
-  const head = new THREE.Mesh(
+  const head = new THREE.Group();
+  head.position.y = 0.55;
+  const headMesh = new THREE.Mesh(
     new THREE.SphereGeometry(0.42, 32, 32),
     new THREE.MeshStandardMaterial({ color: 0xc8c8c8, metalness: 0.7, roughness: 0.35 })
   );
-  head.position.y = 0.55;
-  head.castShadow = true;
+  headMesh.castShadow = true;
+  head.add(headMesh);
   bust.add(head);
 
   const torso = new THREE.Mesh(
@@ -34,6 +39,7 @@ function addPlaceholderBust(parent: THREE.Group) {
   bust.add(torso);
 
   parent.add(bust);
+  return head;
 }
 
 export function mountClubRobotScene(container: HTMLElement): () => void {
@@ -46,8 +52,12 @@ export function mountClubRobotScene(container: HTMLElement): () => void {
     0.1,
     50
   );
-  camera.position.set(...CLUB_ROBOT_CAMERA.position);
-  camera.lookAt(...CLUB_ROBOT_CAMERA.lookAt);
+  placeCameraForBust(
+    camera,
+    CLUB_ROBOT_CAMERA.position,
+    CLUB_ROBOT_CAMERA.lookAt,
+    CLUB_ROBOT_CAMERA.distanceMultiplier
+  );
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -70,8 +80,11 @@ export function mountClubRobotScene(container: HTMLElement): () => void {
   rim.position.set(0, 2.2, -1.5);
   scene.add(rim);
 
-  const lookPivot = new THREE.Group();
-  scene.add(lookPivot);
+  const modelRoot = new THREE.Group();
+  scene.add(modelRoot);
+
+  let headLook: HeadLookRig | null = null;
+  let placeholderHead: THREE.Group | null = null;
 
   const mouse = { x: 0, y: 0 };
   const onPointerMove = (event: PointerEvent) => {
@@ -93,13 +106,18 @@ export function mountClubRobotScene(container: HTMLElement): () => void {
         CLUB_ROBOT_MODEL.position,
         CLUB_ROBOT_MODEL.rotation
       );
-      lookPivot.add(wrapper);
+      modelRoot.add(wrapper);
       refreshSkinnedMeshes(wrapper, true);
+
+      const headBone = findHeadBone(gltf.scene);
+      if (headBone) {
+        headLook = new HeadLookRig(headBone, gltf.scene);
+      }
     },
     undefined,
     (error) => {
       console.warn("[club-robot] model load failed:", error);
-      addPlaceholderBust(lookPivot);
+      placeholderHead = addPlaceholderBust(modelRoot);
     }
   );
 
@@ -107,18 +125,23 @@ export function mountClubRobotScene(container: HTMLElement): () => void {
   const animate = () => {
     frameId = window.requestAnimationFrame(animate);
 
-    const targetYaw = mouse.x * CLUB_ROBOT_LOOK.maxYaw;
-    const targetPitch = mouse.y * CLUB_ROBOT_LOOK.maxPitch;
-    lookPivot.rotation.y = THREE.MathUtils.lerp(
-      lookPivot.rotation.y,
-      targetYaw,
-      CLUB_ROBOT_LOOK.smooth
-    );
-    lookPivot.rotation.x = THREE.MathUtils.lerp(
-      lookPivot.rotation.x,
-      targetPitch,
-      CLUB_ROBOT_LOOK.smooth
-    );
+    const yaw = mouse.x * CLUB_ROBOT_LOOK.maxYaw;
+    const pitch = mouse.y * CLUB_ROBOT_LOOK.maxPitch;
+
+    if (headLook) {
+      headLook.apply(yaw, pitch, CLUB_ROBOT_LOOK.smooth);
+    } else if (placeholderHead) {
+      placeholderHead.rotation.y = THREE.MathUtils.lerp(
+        placeholderHead.rotation.y,
+        yaw,
+        CLUB_ROBOT_LOOK.smooth
+      );
+      placeholderHead.rotation.x = THREE.MathUtils.lerp(
+        placeholderHead.rotation.x,
+        pitch,
+        CLUB_ROBOT_LOOK.smooth
+      );
+    }
 
     renderer.render(scene, camera);
   };

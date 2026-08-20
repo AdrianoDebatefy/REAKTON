@@ -15,6 +15,8 @@ export const CLUB_ROBOT_CAMERA = {
   position: [0, 1.52, 1.02] as const,
   fov: 30,
   lookAt: [0, 1.58, 0] as const,
+  /** Pull camera away from lookAt (1.3 = 30% further back). */
+  distanceMultiplier: 1.3,
 };
 
 /** Full model is scaled, then shifted down so legs sit below the frame. */
@@ -25,9 +27,20 @@ export const CLUB_ROBOT_MODEL = {
   targetHeight: 2.1,
 };
 
-/** Mouse look via safe wrapper rotation (no bone edits — avoids head stretch). */
+/** Head-only look (upper body stays fixed). */
 export const CLUB_ROBOT_LOOK = {
-  maxYaw: 0.22,
-  maxPitch: 0.07,
-  smooth: 0.1,
+  maxYaw: 0.38,
+  maxPitch: 0.16,
+  smooth: 0.12,
 };
+
+/** Head bone name patterns — most specific first. */
+export const CLUB_ROBOT_HEAD_BONE_PATTERNS = [
+  /^mixamorighead$/i,
+  /^mixamorig:head$/i,
+  /head$/i,
+  /^head_/i,
+  /_head$/i,
+];
+
+export const CLUB_ROBOT_HEAD_BONE_EXCLUDE = /neck|spine|chest|humanoid|hips|root|arm|hand|leg|foot|shoulder/i;

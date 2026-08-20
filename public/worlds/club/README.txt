@@ -47,13 +47,7 @@ Wenn Next.js C:\Users\adria\package-lock.json statt REAKTON nutzt:
 Bone-Namen
 ----------
 
-Der Kopf sucht Bones mit Namen wie Head, Neck, mixamorigHead.
-Falls der Blick nicht reagiert: src/lib/club-robot.ts → CLUB_ROBOT_HEAD_BONE_HINTS
-
-Feintuning
-----------
-
-src/lib/club-robot.ts — Kamera, Modell-Scale, Blick-Winkel, Fade-Dauer.
+Maus-Look dreht die Modell-Gruppe (kein Bone-Edit). Feintuning in src/lib/club-robot.ts.
 
 Ohne Modell
 -----------

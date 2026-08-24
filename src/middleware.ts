@@ -23,12 +23,13 @@ function requestUsesHttps(request: NextRequest): boolean {
   return request.nextUrl.protocol === "https:";
 }
 
-function publicHost(request: NextRequest): string {
-  return (
+function publicHostname(request: NextRequest): string {
+  const raw =
     request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ||
     request.headers.get("host") ||
-    request.nextUrl.host
-  );
+    request.nextUrl.hostname;
+  // Never expose the internal Node port (3010) in public redirects.
+  return raw.split(":")[0];
 }
 
 /** Nginx proxies to localhost — rewrite target must stay internal. */
@@ -41,11 +42,13 @@ function toInternalRewriteUrl(rewriteUrl: string): string {
   return url.toString();
 }
 
-/** Locale redirects must keep the public HTTPS URL (not downgrade to http). */
+/** Locale redirects must keep the public HTTPS URL (no internal port). */
 function toPublicRedirectUrl(request: NextRequest, location: string): string {
   const url = new URL(location, request.url);
-  url.protocol = requestUsesHttps(request) ? "https:" : "http:";
-  url.host = publicHost(request);
+  const https = requestUsesHttps(request);
+  url.protocol = https ? "https:" : "http:";
+  url.hostname = publicHostname(request);
+  url.port = "";
   return url.toString();
 }
 

@@ -20,7 +20,7 @@ export function WorldLinkButtonOverlay({
   if (!url || !label) return null;
 
   const className =
-    "pointer-events-auto absolute z-40 flex items-center justify-center border border-white/25 px-4 text-center text-sm font-medium uppercase tracking-[0.2em] text-black/85 shadow-lg transition hover:brightness-110 md:text-base";
+    "pointer-events-auto absolute z-40 flex items-center justify-center overflow-hidden border border-white/25 px-4 text-center text-[3.5rem] font-medium uppercase leading-none tracking-[0.12em] text-black/85 shadow-lg transition hover:brightness-110 md:text-[4rem]";
 
   const style = worldLinkButtonStyle(config);
   const isInternal = url.startsWith("/") && !url.startsWith("//");

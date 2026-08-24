@@ -1,11 +1,18 @@
+/** Pathname without locale prefix (e.g. `/press`). */
 import type { Locale } from "@/types/content";
 import { routing } from "@/i18n/routing";
 
-/** Pathname without locale prefix (e.g. `/press`). */
 export function buildLocalizedPath(pathname: string, locale: Locale): string {
   const normalized = pathname.startsWith("/") ? pathname : `/${pathname}`;
-  const usePrefix = locale !== routing.defaultLocale;
 
+  if (routing.localePrefix === "always") {
+    if (normalized === "/") {
+      return `/${locale}`;
+    }
+    return `/${locale}${normalized}`;
+  }
+
+  const usePrefix = locale !== routing.defaultLocale;
   if (!usePrefix) {
     return normalized;
   }

@@ -40,13 +40,28 @@ function detectLocale(pathname: string): string {
   return routing.defaultLocale;
 }
 
-function fixRedirectScheme(response: NextResponse, request: NextRequest): NextResponse {
-  const location = response.headers.get("location");
-  const proto = firstHeaderValue(request.headers.get("x-forwarded-proto"))?.toLowerCase();
-  if (location && proto === "https" && location.startsWith("http://")) {
-    response.headers.set("location", location.replace(/^http:/, "https:"));
+function requestUsesHttps(request: NextRequest): boolean {
+  const forwarded = firstHeaderValue(request.headers.get("x-forwarded-proto"));
+  if (forwarded) {
+    return forwarded === "https";
   }
-  return response;
+  return request.nextUrl.protocol === "https:";
+}
+
+function publicHostname(request: NextRequest): string {
+  const raw =
+    firstHeaderValue(request.headers.get("x-forwarded-host")) ||
+    firstHeaderValue(request.headers.get("host")) ||
+    request.nextUrl.hostname;
+  return raw.split(":")[0];
+}
+
+function toPublicRedirectUrl(request: NextRequest, location: string): string {
+  const url = new URL(location, request.url);
+  url.protocol = requestUsesHttps(request) ? "https:" : "http:";
+  url.hostname = publicHostname(request);
+  url.port = "";
+  return url.toString();
 }
 
 export default function middleware(request: NextRequest) {
@@ -60,8 +75,23 @@ export default function middleware(request: NextRequest) {
 
   const proxyRequest = sanitizeProxyHeaders(request);
   const response = intlMiddleware(proxyRequest);
+  const location = response.headers.get("location");
+
+  if (location) {
+    const redirected = NextResponse.redirect(
+      toPublicRedirectUrl(request, location),
+      response.status,
+    );
+    const cookie = response.headers.get("set-cookie");
+    if (cookie) {
+      redirected.headers.set("set-cookie", cookie);
+    }
+    redirected.headers.set("x-reakton-locale", detectLocale(pathname));
+    return redirected;
+  }
+
   response.headers.set("x-reakton-locale", detectLocale(pathname));
-  return fixRedirectScheme(response, request);
+  return response;
 }
 
 export const config = {

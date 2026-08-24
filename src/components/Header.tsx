@@ -3,7 +3,6 @@
 import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/routing";
 import type { SiteLinks } from "@/types/content";
-import { useClientIntl } from "@/components/ClientIntlShell";
 import { localeSwitchLabel, nextLocale } from "@/lib/locale";
 import type { Locale } from "@/types/content";
 
@@ -107,14 +106,9 @@ export function Header({ logoUrl, siteLinks, onHomeClick }: HeaderProps) {
   const locale = useLocale();
   const pathname = usePathname();
   const router = useRouter();
-  const { switchLocaleClient } = useClientIntl();
 
   const switchLocale = () => {
     const next = nextLocale(locale) as Locale;
-    if (pathname === "/" || pathname === "") {
-      void switchLocaleClient(next);
-      return;
-    }
     router.replace(pathname, { locale: next });
   };
 

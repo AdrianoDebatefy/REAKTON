@@ -7,6 +7,7 @@ import { CONTENT_LOCALES, LOCALE_LABELS, emptyLocalized } from "@/lib/locale";
 import { PasswordChangeForm } from "@/components/admin/PasswordChangeForm";
 import { ContactMessagesSection } from "@/components/admin/ContactMessagesSection";
 import { ClubRobotAdminEditor, ensureClubRobotConfig } from "@/components/admin/ClubRobotAdminEditor";
+import { WorldLinkButtonEditor } from "@/components/admin/WorldLinkButtonEditor";
 import { SITE_BUILD_LABEL } from "@/lib/site-build";
 import { resolvePublicAssetUrl } from "@/lib/asset-url";
 
@@ -391,6 +392,12 @@ function WorldMetaEditor({
           inputClassName={`min-w-0 flex-1 border px-2 py-1.5 text-xs ${theme.inputBg}`}
         />
       </div>
+
+      <WorldLinkButtonEditor
+        value={world.linkButton}
+        onChange={(linkButton) => onChange({ ...world, linkButton })}
+        inputClassName={`mt-1 w-full border px-2 py-1.5 text-sm ${theme.inputBg}`}
+      />
     </div>
   );
 }

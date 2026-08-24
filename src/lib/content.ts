@@ -3,6 +3,7 @@ import path from "path";
 import type { SiteContent, SiteLinks, World } from "@/types/content";
 import { resolveSongVideoUrl } from "@/lib/youtube-url";
 import { defaultClubRobotConfig } from "@/lib/club-robot";
+import { normalizeWorldLinkButton } from "@/lib/world-link-button";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DATA_PATH = path.join(DATA_DIR, "site-content.json");
@@ -31,6 +32,7 @@ function normalizeSiteContent(raw: Record<string, unknown>): SiteContent {
         ...song,
         videoUrl: resolveSongVideoUrl(song.videoUrl),
       })),
+      linkButton: normalizeWorldLinkButton(rest.linkButton),
     };
   });
 

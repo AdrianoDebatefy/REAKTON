@@ -10,7 +10,7 @@ import {
 } from "react";
 import { NextIntlClientProvider, type AbstractIntlMessages } from "next-intl";
 import type { Locale } from "@/types/content";
-import { buildLocalizedPath, setLocaleCookie } from "@/lib/locale-path";
+import { buildLocalizedPath, setLocaleCookie, stripLocaleFromPathname } from "@/lib/locale-path";
 
 type ClientIntlContextValue = {
   switchLocaleClient: (locale: Locale) => Promise<void>;
@@ -47,16 +47,7 @@ export function ClientIntlShell({
     setLocaleCookie(next);
     document.documentElement.lang = next;
 
-    const pathname = window.location.pathname;
-    const segments = pathname.split("/").filter(Boolean);
-    const maybeLocale = segments[0];
-    const hasLocalePrefix =
-      maybeLocale === "en" || maybeLocale === "ja" || maybeLocale === "de";
-    const pathWithoutLocale = hasLocalePrefix
-      ? `/${segments.slice(1).join("/")}`.replace(/\/$/, "") || "/"
-      : pathname;
-
-    const localizedPath = buildLocalizedPath(pathWithoutLocale, next);
+    const localizedPath = buildLocalizedPath(window.location.pathname, next);
     window.history.replaceState(window.history.state, "", localizedPath);
   }, [locale]);
 

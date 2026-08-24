@@ -5,6 +5,7 @@ import { Link, usePathname, useRouter } from "@/i18n/routing";
 import type { SiteLinks } from "@/types/content";
 import { useClientIntl } from "@/components/ClientIntlShell";
 import { localeSwitchLabel, nextLocale } from "@/lib/locale";
+import { stripLocaleFromPathname } from "@/lib/locale-path";
 import type { Locale } from "@/types/content";
 
 interface HeaderProps {
@@ -111,12 +112,13 @@ export function Header({ logoUrl, siteLinks, onHomeClick }: HeaderProps) {
 
   const switchLocale = () => {
     const next = nextLocale(locale) as Locale;
+    const barePath = stripLocaleFromPathname(pathname);
     // Landing + worlds: switch messages/URL without remounting animations.
-    if (pathname === "/" || pathname === "") {
+    if (barePath === "/") {
       void switchLocaleClient(next);
       return;
     }
-    router.replace(pathname, { locale: next });
+    router.replace(barePath, { locale: next });
   };
 
   const merchHref = siteLinks.merchandise.trim() || "/merch";

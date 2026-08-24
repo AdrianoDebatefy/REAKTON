@@ -1,9 +1,26 @@
-/** Pathname without locale prefix (e.g. `/press`). */
 import type { Locale } from "@/types/content";
 import { routing } from "@/i18n/routing";
 
-export function buildLocalizedPath(pathname: string, locale: Locale): string {
+function isLocaleSegment(segment: string): segment is Locale {
+  return (routing.locales as readonly string[]).includes(segment);
+}
+
+/** Strip leading locale segment (`/de/press` → `/press`, `/de` → `/`). */
+export function stripLocaleFromPathname(pathname: string): string {
   const normalized = pathname.startsWith("/") ? pathname : `/${pathname}`;
+  const segments = normalized.split("/").filter(Boolean);
+
+  if (segments.length > 0 && isLocaleSegment(segments[0])) {
+    const rest = segments.slice(1).join("/");
+    return rest ? `/${rest}` : "/";
+  }
+
+  return normalized || "/";
+}
+
+/** Build a public URL path for the given locale (input may include a locale prefix). */
+export function buildLocalizedPath(pathname: string, locale: Locale): string {
+  const normalized = stripLocaleFromPathname(pathname);
 
   if (routing.localePrefix === "always") {
     if (normalized === "/") {

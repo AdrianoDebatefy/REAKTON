@@ -23,6 +23,19 @@ export interface Song {
 
 export type WorldAtmosphere = "cosmos" | "nano" | "club";
 
+export interface WorldLinkButton {
+  /** Show link button in this world (desktop). */
+  enabled: boolean;
+  label: LocalizedString;
+  /** Target URL — internal (/press) or external (https://…). */
+  url: string;
+  backgroundColor: string;
+  /** Top-left X on 1920×1080 design canvas (px). */
+  x: number;
+  /** Top-left Y on 1920×1080 design canvas (px). */
+  y: number;
+}
+
 export interface World {
   id: string;
   slug: string;
@@ -42,6 +55,8 @@ export interface World {
   songs: Song[];
   /** Max. Anzahl Cover-Slots in dieser Welt */
   slotCount?: number;
+  /** Optional rectangle link button (desktop world view). */
+  linkButton?: WorldLinkButton;
 }
 
 export interface PressEntry {

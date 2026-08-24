@@ -7,6 +7,7 @@ import type { World } from "@/types/content";
 import { AlbumSlotScene } from "./AlbumSlotScene";
 import { MobileAlbumSlotScene } from "./MobileAlbumSlotScene";
 import { WorldAmbientAudio } from "./WorldAmbientAudio";
+import { WorldLinkButtonOverlay } from "./WorldLinkButtonOverlay";
 import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import type { Locale } from "@/types/content";
 import { getLocalized } from "@/lib/locale";
@@ -154,35 +155,38 @@ export function WorldView({ world, onBack }: WorldViewProps) {
         )}
       </motion.div>
 
-      {useSlotScene && world.songs.length > 0 ? (
-        isMobile ? (
-          <div className="relative z-20 isolate">
-            <MobileAlbumSlotScene
-            songs={world.songs}
-            maxSlots={world.slotCount ?? (world.atmosphere === "cosmos" ? 12 : world.atmosphere === "nano" ? 13 : 14)}
-            borderClass={borderClass}
-            exiting={exiting}
-            onExitComplete={handleExitComplete}
-            locale={locale}
-          />
-          </div>
+      <div className="relative">
+        {useSlotScene && world.songs.length > 0 ? (
+          isMobile ? (
+            <div className="relative z-20 isolate">
+              <MobileAlbumSlotScene
+                songs={world.songs}
+                maxSlots={world.slotCount ?? (world.atmosphere === "cosmos" ? 12 : world.atmosphere === "nano" ? 13 : 14)}
+                borderClass={borderClass}
+                exiting={exiting}
+                onExitComplete={handleExitComplete}
+                locale={locale}
+              />
+            </div>
+          ) : (
+            <AlbumSlotScene
+              songs={world.songs}
+              positions={layout}
+              backgroundImage={useGlobalBackground ? undefined : world.backgroundImage}
+              hideEarthLayer={useGlobalBackground}
+              variant={world.atmosphere}
+              maxSlots={world.slotCount ?? (world.atmosphere === "cosmos" ? 12 : world.atmosphere === "nano" ? 13 : 14)}
+              borderClass={borderClass}
+              exiting={exiting}
+              onExitComplete={handleExitComplete}
+              locale={locale}
+            />
+          )
         ) : (
-          <AlbumSlotScene
-            songs={world.songs}
-            positions={layout}
-            backgroundImage={useGlobalBackground ? undefined : world.backgroundImage}
-            hideEarthLayer={useGlobalBackground}
-            variant={world.atmosphere}
-            maxSlots={world.slotCount ?? (world.atmosphere === "cosmos" ? 12 : world.atmosphere === "nano" ? 13 : 14)}
-            borderClass={borderClass}
-            exiting={exiting}
-            onExitComplete={handleExitComplete}
-            locale={locale}
-          />
-        )
-      ) : (
-        <p className="relative z-10 mx-auto max-w-6xl px-4 text-sm text-white/40">—</p>
-      )}
+          <p className="relative z-10 mx-auto max-w-6xl px-4 text-sm text-white/40">—</p>
+        )}
+        {!isMobile && <WorldLinkButtonOverlay linkButton={world.linkButton} locale={locale} />}
+      </div>
     </div>
   );
 }

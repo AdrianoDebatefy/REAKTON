@@ -6,8 +6,7 @@ import type { Locale } from "@/types/content";
 import { CookieProvider } from "@/context/CookieContext";
 import { CookieBanner } from "@/components/CookieBanner";
 import { ClientIntlShell } from "@/components/ClientIntlShell";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import { SiteChrome } from "@/components/SiteChrome";
 import { PageViewTracker } from "@/components/PageViewTracker";
 import { LocaleDocument } from "@/components/LocaleDocument";
 import { SiteJsonLd } from "@/components/seo/SiteJsonLd";
@@ -63,9 +62,9 @@ export default async function LocaleLayout({
       <LocaleDocument />
       <SiteJsonLd />
       <CookieProvider>
-        <Header logoUrl={content.brandLogo} siteLinks={content.siteLinks} />
-        <main>{children}</main>
-        <Footer />
+        <SiteChrome logoUrl={content.brandLogo} siteLinks={content.siteLinks}>
+          {children}
+        </SiteChrome>
         <CookieBanner />
         <PageViewTracker />
       </CookieProvider>

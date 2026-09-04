@@ -7,6 +7,7 @@ import { useClientIntl } from "@/components/ClientIntlShell";
 import { localeSwitchLabel, nextLocale } from "@/lib/locale";
 import { stripLocaleFromPathname } from "@/lib/locale-path";
 import type { Locale } from "@/types/content";
+import { NfcHeaderCodeInput } from "@/components/nfc/NfcHeaderCodeInput";
 
 interface HeaderProps {
   logoUrl?: string;
@@ -168,18 +169,21 @@ export function Header({ logoUrl, siteLinks, onHomeClick }: HeaderProps) {
           />
         </Link>
 
-        <nav className="hidden flex-1 items-stretch justify-center lg:flex" aria-label="Main">
-          {navItems.map((item) => (
-            <NavHref
-              key={item.chip}
-              href={item.href}
-              external={item.external}
-              className={navChipClass(item.chip)}
-            >
-              {item.label}
-            </NavHref>
-          ))}
-        </nav>
+        <div className="hidden flex-1 items-stretch justify-center lg:flex">
+          <nav className="flex items-stretch" aria-label="Main">
+            {navItems.map((item) => (
+              <NavHref
+                key={item.chip}
+                href={item.href}
+                external={item.external}
+                className={navChipClass(item.chip)}
+              >
+                {item.label}
+              </NavHref>
+            ))}
+          </nav>
+          <NfcHeaderCodeInput />
+        </div>
 
         <div className="flex items-center gap-1.5 py-3 max-md:gap-1 max-md:pr-1">
           <div className="hidden items-center gap-2 sm:flex">

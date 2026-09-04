@@ -13,11 +13,8 @@ import type { Locale } from "@/types/content";
 import { getLocalized } from "@/lib/locale";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useLiveWorld } from "@/hooks/useLiveWorld";
-import {
-  NfcClubCodeEntry,
-  NfcClubSessionBadge,
-  useNfcClubSession,
-} from "@/components/nfc/NfcClubDesktop";
+import { useNfcClub } from "@/context/NfcClubContext";
+import { NfcClubSessionBadge } from "@/components/nfc/NfcClubDesktop";
 import {
   MOBILE_BACK_TEXT_MS,
 } from "@/lib/mobile-world-timing";
@@ -44,15 +41,24 @@ export function WorldView({ world: initialWorld, onBack }: WorldViewProps) {
   const isMobile = useIsMobile();
   const t = useTranslations("world");
   const tNav = useTranslations("nav");
-  const tNfc = useTranslations("nfcAlbum");
   const [exiting, setExiting] = useState(false);
   const [headerDecodeMode, setHeaderDecodeMode] = useState<DecodeMode>("in");
-  const [pairBusy, setPairBusy] = useState(false);
-  const [pairError, setPairError] = useState<string | null>(null);
-  const [codeEntryFading, setCodeEntryFading] = useState(false);
 
   const isClubDesktop = world.atmosphere === "club" && !isMobile;
-  const nfcClub = useNfcClubSession(isClubDesktop);
+  const {
+    setClubDesktopActive,
+    authenticated,
+    remainingMs,
+    tracks,
+    activeTrackIndex,
+    playing,
+    togglePlayAtIndex,
+  } = useNfcClub();
+
+  useEffect(() => {
+    setClubDesktopActive(isClubDesktop);
+    return () => setClubDesktopActive(false);
+  }, [isClubDesktop, setClubDesktopActive]);
 
   const useSlotScene =
     world.atmosphere === "cosmos" || world.atmosphere === "nano" || world.atmosphere === "club";
@@ -116,47 +122,10 @@ export function WorldView({ world: initialWorld, onBack }: WorldViewProps) {
 
   const backLabel = `← ${tNav("back")}`;
 
-  const handlePairCode = useCallback(
-    async (code: string) => {
-      setPairBusy(true);
-      setPairError(null);
-      const ok = await nfcClub.pairCode(code);
-      if (ok) {
-        setCodeEntryFading(true);
-      } else {
-        setPairError(tNfc("pairFailed"));
-      }
-      setPairBusy(false);
-      return ok;
-    },
-    [nfcClub, tNfc]
-  );
-
-  const showCodeEntry =
-    isClubDesktop &&
-    (nfcClub.entryVisible || codeEntryFading) &&
-    (!nfcClub.authenticated || codeEntryFading);
-
-  useEffect(() => {
-    if (!isClubDesktop) {
-      setCodeEntryFading(false);
-      setPairError(null);
-    }
-  }, [isClubDesktop, world.id]);
-
   return (
     <div
       className={`relative min-h-[100dvh] bg-transparent pt-[calc(5.5rem+env(safe-area-inset-top))] md:min-h-screen md:pt-24 ${atmosphereClass[world.atmosphere]}`}
     >
-      {showCodeEntry ? (
-        <NfcClubCodeEntry
-          onSubmit={handlePairCode}
-          busy={pairBusy}
-          error={pairError}
-          fadingOut={codeEntryFading}
-          onFadeComplete={() => setCodeEntryFading(false)}
-        />
-      ) : null}
       <WorldAmbientAudio src={world.backgroundAudio} />
       {!useGlobalBackground && (
         <>
@@ -235,20 +204,19 @@ export function WorldView({ world: initialWorld, onBack }: WorldViewProps) {
                 onExitComplete={handleExitComplete}
                 locale={locale}
                 nfcQueue={
-                  nfcClub.authenticated && nfcClub.tracks.length > 0
+                  authenticated && tracks.length > 0
                     ? {
-                        trackCount: nfcClub.tracks.length,
-                        activeIndex: nfcClub.activeTrackIndex,
-                        playing: nfcClub.playing,
-                        onSelectIndex: nfcClub.togglePlayAtIndex,
+                        trackCount: tracks.length,
+                        activeIndex: activeTrackIndex,
+                        playing,
+                        onSelectIndex: togglePlayAtIndex,
                       }
                     : undefined
                 }
               />
-              {isClubDesktop && nfcClub.authenticated ? (
-                <NfcClubSessionBadge remainingMs={nfcClub.remainingMs} />
+              {isClubDesktop && authenticated ? (
+                <NfcClubSessionBadge remainingMs={remainingMs} />
               ) : null}
-              <audio ref={nfcClub.audioRef} preload="auto" className="hidden" />
             </div>
           )
         ) : (

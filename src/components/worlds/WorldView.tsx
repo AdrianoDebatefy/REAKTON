@@ -133,14 +133,16 @@ export function WorldView({ world: initialWorld, onBack }: WorldViewProps) {
   );
 
   const showCodeEntry =
-    isClubDesktop && (!nfcClub.authenticated || codeEntryFading);
+    isClubDesktop &&
+    (nfcClub.entryVisible || codeEntryFading) &&
+    (!nfcClub.authenticated || codeEntryFading);
 
   useEffect(() => {
     if (!isClubDesktop) {
       setCodeEntryFading(false);
       setPairError(null);
     }
-  }, [isClubDesktop]);
+  }, [isClubDesktop, world.id]);
 
   return (
     <div

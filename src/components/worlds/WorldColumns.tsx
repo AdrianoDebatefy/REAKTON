@@ -786,7 +786,7 @@ export function WorldColumns({ worlds, clubRobot }: WorldColumnsProps) {
       <AnimatePresence>
         {showWorld && activeWorld && (
           <motion.div
-            key="world-view"
+            key={`world-view-${activeWorld.id}`}
             initial={{ opacity: 1 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: isMobile ? 1 : 0 }}

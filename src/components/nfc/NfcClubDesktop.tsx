@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
+import { useSiteHeaderBottom } from "@/hooks/useSiteHeaderBottom";
 
 interface NfcTrack {
   id: string;
@@ -20,6 +22,8 @@ export function useNfcClubSession(enabled: boolean) {
   const [activeTrackIndex, setActiveTrackIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const [pairingAvailable, setPairingAvailable] = useState(false);
+  const [entryVisible, setEntryVisible] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const tracksRef = useRef(tracks);
@@ -28,8 +32,17 @@ export function useNfcClubSession(enabled: boolean) {
   tracksRef.current = tracks;
   activeTrackIndexRef.current = activeTrackIndex;
 
+  const checkPairingStatus = useCallback(async () => {
+    const res = await fetch("/api/nfc/pairing-status", { cache: "no-store" });
+    if (!res.ok) return false;
+    const data = (await res.json()) as { available: boolean };
+    setPairingAvailable(data.available);
+    if (data.available) setEntryVisible(true);
+    return data.available;
+  }, []);
+
   const refreshSession = useCallback(async () => {
-    const res = await fetch("/api/nfc/session");
+    const res = await fetch("/api/nfc/session", { cache: "no-store" });
     if (!res.ok) return null;
     const data = (await res.json()) as {
       authenticated: boolean;
@@ -39,6 +52,9 @@ export function useNfcClubSession(enabled: boolean) {
     const isDesktop = data.authenticated && data.role === "desktop";
     setAuthenticated(isDesktop);
     setRemainingMs(data.remainingMs ?? 0);
+    if (isDesktop) {
+      setEntryVisible(false);
+    }
     if (!isDesktop) {
       setTracks([]);
       setPlaying(false);
@@ -59,11 +75,40 @@ export function useNfcClubSession(enabled: boolean) {
   }, []);
 
   useEffect(() => {
-    if (!enabled) return;
-    void refreshSession().then((session) => {
-      if (session?.authenticated && session.role === "desktop") void loadTracks();
+    if (!enabled) {
+      setEntryVisible(false);
+      setPairingAvailable(false);
+      return;
+    }
+
+    const run = async () => {
+      const session = await refreshSession();
+      await checkPairingStatus();
+      if (session?.authenticated && session.role === "desktop") {
+        await loadTracks();
+      }
+    };
+
+    void run();
+
+    const interval = window.setInterval(() => {
+      void run();
+    }, 2500);
+
+    const onWake = () => {
+      void run();
+    };
+
+    window.addEventListener("focus", onWake);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") onWake();
     });
-  }, [enabled, loadTracks, refreshSession]);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onWake);
+    };
+  }, [checkPairingStatus, enabled, loadTracks, refreshSession]);
 
   useEffect(() => {
     if (!enabled || !authenticated || remainingMs <= 0) return;
@@ -172,6 +217,9 @@ export function useNfcClubSession(enabled: boolean) {
     pairCode,
     togglePlayAtIndex,
     refreshSession,
+    pairingAvailable,
+    entryVisible,
+    revealEntry: () => setEntryVisible(true),
   };
 }
 
@@ -190,6 +238,12 @@ export function NfcClubCodeEntry({
 }) {
   const t = useTranslations("nfcAlbum");
   const [code, setCode] = useState("");
+  const [mounted, setMounted] = useState(false);
+  const headerBottom = useSiteHeaderBottom(80);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -197,21 +251,22 @@ export function NfcClubCodeEntry({
     await onSubmit(code.trim());
   };
 
-  return (
+  const panel = (
     <motion.div
       data-player-ui
-      className="pointer-events-auto fixed inset-x-0 top-[3.5rem] z-[55] px-4"
-      initial={{ opacity: 0, y: -10 }}
+      className="pointer-events-auto fixed inset-x-0 z-[51] px-4"
+      style={{ top: headerBottom }}
+      initial={{ opacity: 0, y: -8 }}
       animate={{
         opacity: fadingOut ? 0 : 1,
-        y: fadingOut ? -12 : 0,
+        y: fadingOut ? -10 : 0,
       }}
-      transition={{ duration: fadingOut ? 0.45 : 0.3, ease: "easeOut" }}
+      transition={{ duration: fadingOut ? 0.45 : 0.28, ease: "easeOut" }}
       onAnimationComplete={() => {
         if (fadingOut) onFadeComplete?.();
       }}
     >
-      <div className="mx-auto w-full max-w-2xl rounded border border-red-400/30 bg-black/80 px-4 py-3 shadow-lg shadow-black/40 backdrop-blur-md">
+      <div className="mx-auto w-full max-w-2xl rounded border border-red-400/30 bg-black/85 px-4 py-3 shadow-lg shadow-black/50 backdrop-blur-md">
         <p className="text-[10px] uppercase tracking-[0.35em] text-red-300/80">{t("clubCodeTitle")}</p>
         <p className="mt-1 text-xs text-white/50">{t("clubCodeHint")}</p>
         <form onSubmit={(e) => void handleSubmit(e)} className="mt-3 flex gap-2">
@@ -237,6 +292,9 @@ export function NfcClubCodeEntry({
       </div>
     </motion.div>
   );
+
+  if (!mounted) return null;
+  return createPortal(panel, document.body);
 }
 
 export function NfcClubSessionBadge({ remainingMs }: { remainingMs: number }) {

@@ -179,3 +179,14 @@ export function pairNfcSessionByCode(code: string): NfcSessionRecord | null {
 export function sessionRemainingMs(session: NfcSessionRecord, now = Date.now()): number {
   return Math.max(0, session.expiresAt - now);
 }
+
+/** Latest active NFC tap session waiting for desktop pairing. */
+export function getActivePairingSession(): NfcSessionRecord | null {
+  const data = readSessionsFile();
+  purgeExpiredSessions(data);
+  const now = Date.now();
+  const sessions = Object.values(data.sessions).filter((session) => session.expiresAt > now);
+  writeSessionsFile(data);
+  if (sessions.length === 0) return null;
+  return sessions.sort((a, b) => b.createdAt - a.createdAt)[0] ?? null;
+}

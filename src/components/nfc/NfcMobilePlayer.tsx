@@ -4,6 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { PressEqWaves } from "@/components/press/PressEqWaves";
 import { formatTimeExtended, ProgressBar } from "@/components/press/press-player-controls";
 import { NFC_BAR_TRANSITION_MS, NFC_PLAYER_ASSETS } from "@/lib/nfc-player-assets";
+import {
+  NFC_BAR,
+  NFC_DESIGN_HEIGHT,
+  NFC_DESIGN_WIDTH,
+  nfcBarTop,
+  nfcEqBox,
+} from "@/lib/nfc-player-layout";
 
 export interface NfcPlayerTrack {
   id: string;
@@ -42,7 +49,9 @@ export function NfcMobilePlayer({
   const [autoplayDone, setAutoplayDone] = useState(false);
   const [analyserReady, setAnalyserReady] = useState(false);
   const [switching, setSwitching] = useState(false);
+  const [stageScale, setStageScale] = useState(1);
 
+  const viewportRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -53,6 +62,23 @@ export function NfcMobilePlayer({
 
   tracksRef.current = tracks;
   expandedIdRef.current = expandedId;
+
+  const eqBox = nfcEqBox();
+
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return undefined;
+
+    const updateScale = () => {
+      const { width, height } = el.getBoundingClientRect();
+      setStageScale(Math.max(width / NFC_DESIGN_WIDTH, height / NFC_DESIGN_HEIGHT));
+    };
+
+    updateScale();
+    const ro = new ResizeObserver(updateScale);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const ensureAudioGraph = useCallback(async () => {
     const audio = audioRef.current;
@@ -169,7 +195,7 @@ export function NfcMobilePlayer({
 
       await expandAndPlay(trackId);
     },
-    [collapseExpanded, expandAndPlay, loadAndPlay, playing]
+    [collapseExpanded, expandAndPlay, loadAndPlay]
   );
 
   const stepTrack = useCallback(
@@ -229,32 +255,65 @@ export function NfcMobilePlayer({
     setProgress(audio.currentTime);
   }, [duration]);
 
+  const firstBarTop = tracks.length > 0 ? nfcBarTop(0, tracks.length) : 0;
+  const lastBarTop =
+    tracks.length > 0 ? nfcBarTop(tracks.length - 1, tracks.length) : 0;
+  const arrowColumnCenterY = (firstBarTop + lastBarTop + NFC_BAR.height) / 2;
+
   return (
     <div
+      ref={viewportRef}
       className="fixed inset-0 z-[100] overflow-hidden bg-black text-white"
       style={{
         paddingTop: "env(safe-area-inset-top)",
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={NFC_PLAYER_ASSETS.background}
-        alt=""
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-      />
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={{
+          width: NFC_DESIGN_WIDTH * stageScale,
+          height: NFC_DESIGN_HEIGHT * stageScale,
+          marginLeft: -(NFC_DESIGN_WIDTH * stageScale) / 2,
+          marginTop: -(NFC_DESIGN_HEIGHT * stageScale) / 2,
+        }}
+      >
+        <div
+          className="relative"
+          style={{
+            width: NFC_DESIGN_WIDTH,
+            height: NFC_DESIGN_HEIGHT,
+            transform: `scale(${stageScale})`,
+            transformOrigin: "top left",
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={NFC_PLAYER_ASSETS.background}
+            alt=""
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+            width={NFC_DESIGN_WIDTH}
+            height={NFC_DESIGN_HEIGHT}
+          />
 
-      <div className="relative z-10 flex h-full flex-col px-[4.5%] pb-[5%] pt-[3%]">
-        {pcCode ? (
-          <p className="shrink-0 text-center font-mono text-[clamp(0.65rem,2.8vw,0.85rem)] uppercase tracking-[0.2em] text-white/55">
-            PC: <span className="text-white/85">{pcCode}</span>
-          </p>
-        ) : (
-          <div className="h-[1.2rem] shrink-0" aria-hidden />
-        )}
+          {pcCode ? (
+            <p
+              className="absolute left-0 right-0 text-center font-mono text-[34px] uppercase tracking-[0.2em] text-white/55"
+              style={{ top: 120 }}
+            >
+              PC: <span className="text-white/85">{pcCode}</span>
+            </p>
+          ) : null}
 
-        <div className="relative mx-auto mt-[2%] w-[88%] shrink-0">
-          <div className="relative aspect-[16/7] w-full overflow-hidden rounded-sm bg-black/35">
+          <div
+            className="absolute overflow-hidden bg-black/35"
+            style={{
+              left: eqBox.left,
+              top: eqBox.top,
+              width: eqBox.width,
+              height: eqBox.height,
+            }}
+          >
             <PressEqWaves
               atmosphere="club"
               analyser={analyserReady ? analyserRef.current : null}
@@ -264,97 +323,144 @@ export function NfcMobilePlayer({
               renderBoost={1.4}
             />
           </div>
-        </div>
 
-        <p className="mt-[2%] shrink-0 text-center font-mono text-[clamp(0.85rem,3.6vw,1.05rem)] tracking-[0.12em] text-white/55">
-          {formatTimeExtended(progress)}
-        </p>
+          <p
+            className="absolute left-0 right-0 text-center font-mono text-[44px] tracking-[0.12em] text-white/55"
+            style={{ top: eqBox.top + eqBox.height + 72 }}
+          >
+            {formatTimeExtended(progress)}
+          </p>
 
-        <div className="mx-auto mt-[1.5%] w-[84%] shrink-0">
-          <ProgressBar
-            value={progressRatio}
-            accent={accent}
-            disabled={!duration}
-            onChange={handleSeek}
-            touch
-          />
-        </div>
-
-        <div
-          className="mx-auto mt-[3%] h-px w-[92%] shrink-0 bg-[#3de8f6] shadow-[0_0_8px_rgba(61,232,246,0.65)]"
-          aria-hidden
-        />
-
-        <div className="mt-[3%] flex min-h-0 flex-1 gap-[3%]">
-          <div className="flex w-[14%] shrink-0 flex-col items-center justify-center gap-[8%]">
-            <button
-              type="button"
-              onClick={() => stepTrack(-1)}
-              disabled={switching || tracks.length < 2}
-              className="flex h-[12%] min-h-[2.5rem] w-full items-center justify-center opacity-90 transition active:scale-95 disabled:opacity-30"
-              aria-label="Previous track"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={NFC_PLAYER_ASSETS.arrowUp} alt="" className="max-h-full max-w-full object-contain" />
-            </button>
-            <button
-              type="button"
-              onClick={() => stepTrack(1)}
-              disabled={switching || tracks.length < 2}
-              className="flex h-[12%] min-h-[2.5rem] w-full items-center justify-center opacity-90 transition active:scale-95 disabled:opacity-30"
-              aria-label="Next track"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={NFC_PLAYER_ASSETS.arrowUp}
-                alt=""
-                className="max-h-full max-w-full rotate-180 object-contain"
-              />
-            </button>
+          <div
+            className="absolute"
+            style={{
+              left: eqBox.left + 40,
+              top: eqBox.top + eqBox.height + 148,
+              width: eqBox.width - 80,
+            }}
+          >
+            <ProgressBar
+              value={progressRatio}
+              accent={accent}
+              disabled={!duration}
+              onChange={handleSeek}
+              touch
+            />
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col justify-center gap-[2.2%] overflow-y-auto py-[1%]">
-            {tracks.map((track) => {
-              const isExpanded = expandedId === track.id;
-              return (
-                <button
-                  key={track.id}
-                  type="button"
-                  disabled={switching}
-                  onClick={() => void switchToTrack(track.id)}
-                  className="relative flex h-[clamp(2.4rem,7.2vw,3.35rem)] items-center overflow-hidden bg-transparent bg-no-repeat transition-[width,margin] duration-1000 ease-in-out disabled:pointer-events-none"
+          <div
+            className="absolute h-px bg-[#3de8f6] shadow-[0_0_8px_rgba(61,232,246,0.65)]"
+            style={{
+              left: 96,
+              top: eqBox.top + eqBox.height + 248,
+              width: NFC_DESIGN_WIDTH - 192,
+            }}
+            aria-hidden
+          />
+
+          <button
+            type="button"
+            onClick={() => stepTrack(-1)}
+            disabled={switching || tracks.length < 2}
+            className="absolute flex items-center justify-center opacity-90 transition active:scale-95 disabled:opacity-30"
+            style={{
+              left: 120,
+              top: arrowColumnCenterY - 180,
+              width: 280,
+              height: 254,
+            }}
+            aria-label="Previous track"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={NFC_PLAYER_ASSETS.arrowUp}
+              alt=""
+              width={280}
+              height={254}
+              className="h-full w-full object-contain"
+            />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => stepTrack(1)}
+            disabled={switching || tracks.length < 2}
+            className="absolute flex items-center justify-center opacity-90 transition active:scale-95 disabled:opacity-30"
+            style={{
+              left: 120,
+              top: arrowColumnCenterY + 40,
+              width: 280,
+              height: 254,
+            }}
+            aria-label="Next track"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={NFC_PLAYER_ASSETS.arrowUp}
+              alt=""
+              width={280}
+              height={254}
+              className="h-full w-full rotate-180 object-contain"
+            />
+          </button>
+
+          {tracks.map((track, index) => {
+            const isExpanded = expandedId === track.id;
+            return (
+              <button
+                key={track.id}
+                type="button"
+                disabled={switching}
+                onClick={() => void switchToTrack(track.id)}
+                className="absolute overflow-hidden bg-transparent disabled:pointer-events-none"
+                style={{
+                  left: isExpanded ? NFC_BAR.xExpanded : NFC_BAR.xCollapsed,
+                  top: nfcBarTop(index, tracks.length),
+                  width: NFC_BAR.width,
+                  height: NFC_BAR.height,
+                  transition: `left ${NFC_BAR_TRANSITION_MS}ms ease-in-out`,
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={isExpanded ? NFC_PLAYER_ASSETS.activeBar : NFC_PLAYER_ASSETS.inactiveBar}
+                  alt=""
+                  width={NFC_BAR.width}
+                  height={NFC_BAR.height}
+                  className="pointer-events-none absolute inset-0 h-full w-full"
+                  draggable={false}
+                />
+                <span
+                  className={`absolute bottom-0 top-0 flex items-center truncate text-right uppercase tracking-[0.14em] ${
+                    isExpanded ? "text-[54px] text-white" : "text-[42px] text-white/75"
+                  }`}
                   style={{
-                    width: isExpanded ? "96%" : "62%",
-                    marginLeft: isExpanded ? "0%" : "auto",
-                    marginRight: isExpanded ? "auto" : "0%",
-                    backgroundImage: `url(${isExpanded ? NFC_PLAYER_ASSETS.activeBar : NFC_PLAYER_ASSETS.inactiveBar})`,
-                    backgroundSize: "100% 100%",
+                    right: NFC_BAR.textPaddingRight,
+                    left: 120,
                   }}
                 >
-                  <span
-                    className={`w-full truncate px-[8%] text-left uppercase tracking-[0.14em] ${
-                      isExpanded
-                        ? "text-[clamp(0.95rem,4.2vw,1.35rem)] text-white"
-                        : "text-[clamp(0.75rem,3.4vw,1.05rem)] text-white/75"
-                    }`}
-                  >
-                    {track.title}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+                  {track.title}
+                </span>
+              </button>
+            );
+          })}
 
-        <p className="pointer-events-none absolute right-[4%] top-[2%] font-mono text-[10px] uppercase tracking-widest text-white/35">
-          {formatSessionRemaining(sessionRemainingMs)}
-        </p>
-
-        {playbackError ? (
-          <p className="pointer-events-none absolute bottom-[2%] left-[4%] right-[4%] text-center text-xs text-red-300/90">
-            {playbackError}
+          <p
+            className="pointer-events-none absolute font-mono text-[28px] uppercase tracking-widest text-white/35"
+            style={{ right: 96, top: 96 }}
+          >
+            {formatSessionRemaining(sessionRemainingMs)}
           </p>
-        ) : null}
+
+          {playbackError ? (
+            <p
+              className="pointer-events-none absolute left-[96px] right-[96px] text-center text-[32px] text-red-300/90"
+              style={{ bottom: 96 }}
+            >
+              {playbackError}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <audio ref={audioRef} preload="auto" playsInline className="hidden" />

@@ -49,6 +49,7 @@ export function WorldView({ world: initialWorld, onBack }: WorldViewProps) {
   const [headerDecodeMode, setHeaderDecodeMode] = useState<DecodeMode>("in");
   const [pairBusy, setPairBusy] = useState(false);
   const [pairError, setPairError] = useState<string | null>(null);
+  const [codeEntryFading, setCodeEntryFading] = useState(false);
 
   const isClubDesktop = world.atmosphere === "club" && !isMobile;
   const nfcClub = useNfcClubSession(isClubDesktop);
@@ -120,17 +121,40 @@ export function WorldView({ world: initialWorld, onBack }: WorldViewProps) {
       setPairBusy(true);
       setPairError(null);
       const ok = await nfcClub.pairCode(code);
-      if (!ok) setPairError(tNfc("pairFailed"));
+      if (ok) {
+        setCodeEntryFading(true);
+      } else {
+        setPairError(tNfc("pairFailed"));
+      }
       setPairBusy(false);
       return ok;
     },
     [nfcClub, tNfc]
   );
 
+  const showCodeEntry =
+    isClubDesktop && (!nfcClub.authenticated || codeEntryFading);
+
+  useEffect(() => {
+    if (!isClubDesktop) {
+      setCodeEntryFading(false);
+      setPairError(null);
+    }
+  }, [isClubDesktop]);
+
   return (
     <div
       className={`relative min-h-[100dvh] bg-transparent pt-[calc(5.5rem+env(safe-area-inset-top))] md:min-h-screen md:pt-24 ${atmosphereClass[world.atmosphere]}`}
     >
+      {showCodeEntry ? (
+        <NfcClubCodeEntry
+          onSubmit={handlePairCode}
+          busy={pairBusy}
+          error={pairError}
+          fadingOut={codeEntryFading}
+          onFadeComplete={() => setCodeEntryFading(false)}
+        />
+      ) : null}
       <WorldAmbientAudio src={world.backgroundAudio} />
       {!useGlobalBackground && (
         <>
@@ -219,9 +243,6 @@ export function WorldView({ world: initialWorld, onBack }: WorldViewProps) {
                     : undefined
                 }
               />
-              {isClubDesktop && !nfcClub.authenticated ? (
-                <NfcClubCodeEntry onSubmit={handlePairCode} busy={pairBusy} error={pairError} />
-              ) : null}
               {isClubDesktop && nfcClub.authenticated ? (
                 <NfcClubSessionBadge remainingMs={nfcClub.remainingMs} />
               ) : null}

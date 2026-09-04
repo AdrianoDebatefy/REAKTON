@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 
 interface NfcTrack {
@@ -178,47 +179,63 @@ export function NfcClubCodeEntry({
   onSubmit,
   busy,
   error,
+  fadingOut = false,
+  onFadeComplete,
 }: {
   onSubmit: (code: string) => Promise<boolean>;
   busy: boolean;
   error: string | null;
+  fadingOut?: boolean;
+  onFadeComplete?: () => void;
 }) {
   const t = useTranslations("nfcAlbum");
   const [code, setCode] = useState("");
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!code.trim() || busy) return;
+    if (!code.trim() || busy || fadingOut) return;
     await onSubmit(code.trim());
   };
 
   return (
-    <div
+    <motion.div
       data-player-ui
-      className="pointer-events-auto absolute bottom-6 left-1/2 z-[60] w-[min(92vw,28rem)] -translate-x-1/2 rounded border border-red-400/30 bg-black/75 px-4 py-4 backdrop-blur-sm"
+      className="pointer-events-auto fixed inset-x-0 top-[3.5rem] z-[55] px-4"
+      initial={{ opacity: 0, y: -10 }}
+      animate={{
+        opacity: fadingOut ? 0 : 1,
+        y: fadingOut ? -12 : 0,
+      }}
+      transition={{ duration: fadingOut ? 0.45 : 0.3, ease: "easeOut" }}
+      onAnimationComplete={() => {
+        if (fadingOut) onFadeComplete?.();
+      }}
     >
-      <p className="text-[10px] uppercase tracking-[0.35em] text-red-300/80">{t("clubCodeTitle")}</p>
-      <p className="mt-1 text-xs text-white/50">{t("clubCodeHint")}</p>
-      <form onSubmit={(e) => void handleSubmit(e)} className="mt-3 flex gap-2">
-        <input
-          type="text"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder={t("clubCodePlaceholder")}
-          className="min-w-0 flex-1 border border-white/15 bg-black/50 px-3 py-2 font-mono text-sm text-white"
-          autoComplete="off"
-          spellCheck={false}
-        />
-        <button
-          type="submit"
-          disabled={busy || !code.trim()}
-          className="shrink-0 rounded border border-white/25 px-4 py-2 text-[10px] uppercase tracking-widest text-white/85 disabled:opacity-40"
-        >
-          {busy ? t("pairing") : t("pair")}
-        </button>
-      </form>
-      {error ? <p className="mt-2 text-xs text-red-300">{error}</p> : null}
-    </div>
+      <div className="mx-auto w-full max-w-2xl rounded border border-red-400/30 bg-black/80 px-4 py-3 shadow-lg shadow-black/40 backdrop-blur-md">
+        <p className="text-[10px] uppercase tracking-[0.35em] text-red-300/80">{t("clubCodeTitle")}</p>
+        <p className="mt-1 text-xs text-white/50">{t("clubCodeHint")}</p>
+        <form onSubmit={(e) => void handleSubmit(e)} className="mt-3 flex gap-2">
+          <input
+            type="text"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder={t("clubCodePlaceholder")}
+            className="min-w-0 flex-1 border border-white/15 bg-black/50 px-3 py-2 font-mono text-sm text-white"
+            autoComplete="off"
+            spellCheck={false}
+            disabled={fadingOut}
+          />
+          <button
+            type="submit"
+            disabled={busy || fadingOut || !code.trim()}
+            className="shrink-0 rounded border border-white/25 px-4 py-2 text-[10px] uppercase tracking-widest text-white/85 disabled:opacity-40"
+          >
+            {busy ? t("pairing") : t("pair")}
+          </button>
+        </form>
+        {error ? <p className="mt-2 text-xs text-red-300">{error}</p> : null}
+      </div>
+    </motion.div>
   );
 }
 

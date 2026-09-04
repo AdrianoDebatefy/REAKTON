@@ -27,6 +27,12 @@ interface AlbumSlotSceneProps {
   onExitComplete?: () => void;
   skipIntro?: boolean;
   locale?: Locale;
+  nfcQueue?: {
+    trackCount: number;
+    activeIndex: number | null;
+    playing: boolean;
+    onSelectIndex: (index: number) => void;
+  };
 }
 
 const POLE = { x: 50, y: 26 };
@@ -206,6 +212,7 @@ export function AlbumSlotScene({
   onExitComplete,
   skipIntro = false,
   locale = "de",
+  nfcQueue,
 }: AlbumSlotSceneProps) {
   const t = useTranslations("world");
   const items = songs.slice(0, maxSlots);
@@ -521,7 +528,7 @@ export function AlbumSlotScene({
   );
 
   const handleCoverPointerUp = useCallback(
-    (song: Song, e: React.PointerEvent) => {
+    (song: Song, index: number, e: React.PointerEvent) => {
       if (isPlayerUiTarget(e.target)) {
         dragRef.current = null;
         return;
@@ -546,6 +553,8 @@ export function AlbumSlotScene({
         if (activeIndex === drag.index) {
           setActiveUsesLayout(true);
         }
+      } else if (nfcQueue && index < nfcQueue.trackCount) {
+        nfcQueue.onSelectIndex(index);
       } else {
         handleSelect(song);
       }
@@ -559,6 +568,7 @@ export function AlbumSlotScene({
       commitLayoutPositions,
       handleSelect,
       items,
+      nfcQueue,
       persistLayout,
       pointToPercent,
     ]
@@ -771,8 +781,8 @@ export function AlbumSlotScene({
             aria-disabled={!introDone || exiting}
             onPointerDown={(e) => handleCoverPointerDown(i, e)}
             onPointerMove={handleCoverPointerMove}
-            onPointerUp={(e) => handleCoverPointerUp(song, e)}
-            onPointerCancel={(e) => handleCoverPointerUp(song, e)}
+            onPointerUp={(e) => handleCoverPointerUp(song, i, e)}
+            onPointerCancel={(e) => handleCoverPointerUp(song, i, e)}
             className={`album-cover-slot absolute overflow-hidden rounded-sm border focus:outline-none focus:ring-2 focus:ring-white/40 ${borderClass} ${
               isActive ? "border-white/40 shadow-lg" : "shadow-md shadow-black/50"
             } ${introDone && !exiting ? "cursor-grab touch-none active:cursor-grabbing" : ""} ${
@@ -830,6 +840,25 @@ export function AlbumSlotScene({
               {!isActive && (
                 <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 py-0.5 text-[10px] uppercase tracking-wider text-white/85">
                   {song.title}
+                </span>
+              )}
+
+              {nfcQueue && i < nfcQueue.trackCount && (
+                <span
+                  data-player-ui
+                  className={`pointer-events-none absolute inset-0 flex items-center justify-center ${
+                    nfcQueue.activeIndex === i ? "bg-black/25" : "bg-black/10"
+                  }`}
+                >
+                  <span
+                    className={`flex h-12 w-12 items-center justify-center rounded-full border text-lg ${
+                      nfcQueue.activeIndex === i && nfcQueue.playing
+                        ? "border-red-300/80 bg-red-500/25 text-red-100"
+                        : "border-white/50 bg-black/45 text-white/90"
+                    }`}
+                  >
+                    {nfcQueue.activeIndex === i && nfcQueue.playing ? "❚❚" : "▶"}
+                  </span>
                 </span>
               )}
 

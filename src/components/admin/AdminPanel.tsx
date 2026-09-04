@@ -7,7 +7,9 @@ import { CONTENT_LOCALES, LOCALE_LABELS, emptyLocalized } from "@/lib/locale";
 import { PasswordChangeForm } from "@/components/admin/PasswordChangeForm";
 import { ContactMessagesSection } from "@/components/admin/ContactMessagesSection";
 import { ClubRobotAdminEditor, ensureClubRobotConfig } from "@/components/admin/ClubRobotAdminEditor";
+import { NfcAlbumEditor } from "@/components/admin/NfcAlbumEditor";
 import { WorldLinkButtonEditor } from "@/components/admin/WorldLinkButtonEditor";
+import { defaultNfcAlbumConfig } from "@/lib/nfc-album-config";
 import { SITE_BUILD_LABEL } from "@/lib/site-build";
 import { resolvePublicAssetUrl } from "@/lib/asset-url";
 
@@ -20,7 +22,7 @@ async function uploadFile(file: File): Promise<string> {
   return data.url;
 }
 
-type SectionTab = "content" | "club3d" | "header" | "live" | "press" | "kontakt" | "analytics" | "account";
+type SectionTab = "content" | "club3d" | "header" | "live" | "press" | "nfc" | "kontakt" | "analytics" | "account";
 
 const WORLD_THEME: Record<
   World["atmosphere"],
@@ -1217,6 +1219,17 @@ export function AdminPanel({
         </button>
         <button
           type="button"
+          onClick={() => setSectionTab("nfc")}
+          className={`pb-2 text-sm uppercase tracking-[0.35em] transition ${
+            sectionTab === "nfc"
+              ? "border-b-2 border-white text-white"
+              : "text-white/40 hover:text-white/70"
+          }`}
+        >
+          NFC
+        </button>
+        <button
+          type="button"
           onClick={() => setSectionTab("kontakt")}
           className={`pb-2 text-sm uppercase tracking-[0.35em] transition ${
             sectionTab === "kontakt"
@@ -1283,6 +1296,14 @@ export function AdminPanel({
             onChange={(pressPreview) => setData((prev) => ({ ...prev, pressPreview }))}
           />
         </>
+      )}
+
+      {sectionTab === "nfc" && (
+        <NfcAlbumEditor
+          config={data.nfcAlbum ?? defaultNfcAlbumConfig()}
+          onChange={(nfcAlbum) => setData((prev) => ({ ...prev, nfcAlbum }))}
+          onUpload={uploadFile}
+        />
       )}
 
       {sectionTab === "kontakt" && <ContactMessagesSection />}

@@ -81,5 +81,6 @@ export function mergeSiteContent(server: SiteContent, client: SiteContent): Site
         songs: mergeSongs(serverWorld.songs, clientWorld.songs),
       };
     }),
+    nfcAlbum: client.nfcAlbum ?? server.nfcAlbum,
   };
 }

@@ -87,6 +87,30 @@ export interface PressPreviewConfig {
   tracks: PressPreviewTrack[];
 }
 
+export interface NfcAlbumTrack {
+  id: string;
+  title: string;
+  artist?: string;
+  audioUrl: string;
+  coverImage?: string;
+  order: number;
+}
+
+export interface NfcCard {
+  /** Card id in tap URL query (?card=…) */
+  id: string;
+  label?: string;
+  role?: "fan" | "dj";
+  enabled: boolean;
+}
+
+export interface NfcAlbumConfig {
+  /** Session length after NFC tap (minutes). */
+  sessionMinutes: number;
+  tracks: NfcAlbumTrack[];
+  cards: NfcCard[];
+}
+
 export interface LiveVideo {
   id: string;
   youtubeUrl: string;
@@ -142,4 +166,5 @@ export interface SiteContent {
   datenschutz: LocalizedString;
   pressPreview?: PressPreviewConfig;
   clubRobot?: ClubRobotConfig;
+  nfcAlbum?: NfcAlbumConfig;
 }

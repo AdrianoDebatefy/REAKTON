@@ -14,6 +14,11 @@ import { getLocalized } from "@/lib/locale";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useLiveWorld } from "@/hooks/useLiveWorld";
 import {
+  NfcClubCodeEntry,
+  NfcClubSessionBadge,
+  useNfcClubSession,
+} from "@/components/nfc/NfcClubDesktop";
+import {
   MOBILE_BACK_TEXT_MS,
 } from "@/lib/mobile-world-timing";
 import cosmosLayout from "@/data/cosmos-layout.json";
@@ -39,8 +44,14 @@ export function WorldView({ world: initialWorld, onBack }: WorldViewProps) {
   const isMobile = useIsMobile();
   const t = useTranslations("world");
   const tNav = useTranslations("nav");
+  const tNfc = useTranslations("nfcAlbum");
   const [exiting, setExiting] = useState(false);
   const [headerDecodeMode, setHeaderDecodeMode] = useState<DecodeMode>("in");
+  const [pairBusy, setPairBusy] = useState(false);
+  const [pairError, setPairError] = useState<string | null>(null);
+
+  const isClubDesktop = world.atmosphere === "club" && !isMobile;
+  const nfcClub = useNfcClubSession(isClubDesktop);
 
   const useSlotScene =
     world.atmosphere === "cosmos" || world.atmosphere === "nano" || world.atmosphere === "club";
@@ -103,6 +114,18 @@ export function WorldView({ world: initialWorld, onBack }: WorldViewProps) {
         : "border-red-400/30";
 
   const backLabel = `← ${tNav("back")}`;
+
+  const handlePairCode = useCallback(
+    async (code: string) => {
+      setPairBusy(true);
+      setPairError(null);
+      const ok = await nfcClub.pairCode(code);
+      if (!ok) setPairError(tNfc("pairFailed"));
+      setPairBusy(false);
+      return ok;
+    },
+    [nfcClub, tNfc]
+  );
 
   return (
     <div
@@ -172,19 +195,38 @@ export function WorldView({ world: initialWorld, onBack }: WorldViewProps) {
               />
             </div>
           ) : (
-            <AlbumSlotScene
-              key={`${world.id}-${world.songs.map((s) => `${s.id}:${s.coverImage}`).join("|")}`}
-              songs={world.songs}
-              positions={layout}
-              backgroundImage={useGlobalBackground ? undefined : world.backgroundImage}
-              hideEarthLayer={useGlobalBackground}
-              variant={world.atmosphere}
-              maxSlots={world.slotCount ?? (world.atmosphere === "cosmos" ? 12 : world.atmosphere === "nano" ? 13 : 14)}
-              borderClass={borderClass}
-              exiting={exiting}
-              onExitComplete={handleExitComplete}
-              locale={locale}
-            />
+            <div className="relative">
+              <AlbumSlotScene
+                key={`${world.id}-${world.songs.map((s) => `${s.id}:${s.coverImage}`).join("|")}`}
+                songs={world.songs}
+                positions={layout}
+                backgroundImage={useGlobalBackground ? undefined : world.backgroundImage}
+                hideEarthLayer={useGlobalBackground}
+                variant={world.atmosphere}
+                maxSlots={world.slotCount ?? (world.atmosphere === "cosmos" ? 12 : world.atmosphere === "nano" ? 13 : 14)}
+                borderClass={borderClass}
+                exiting={exiting}
+                onExitComplete={handleExitComplete}
+                locale={locale}
+                nfcQueue={
+                  nfcClub.authenticated && nfcClub.tracks.length > 0
+                    ? {
+                        trackCount: nfcClub.tracks.length,
+                        activeIndex: nfcClub.activeTrackIndex,
+                        playing: nfcClub.playing,
+                        onSelectIndex: nfcClub.togglePlayAtIndex,
+                      }
+                    : undefined
+                }
+              />
+              {isClubDesktop && !nfcClub.authenticated ? (
+                <NfcClubCodeEntry onSubmit={handlePairCode} busy={pairBusy} error={pairError} />
+              ) : null}
+              {isClubDesktop && nfcClub.authenticated ? (
+                <NfcClubSessionBadge remainingMs={nfcClub.remainingMs} />
+              ) : null}
+              <audio ref={nfcClub.audioRef} preload="auto" className="hidden" />
+            </div>
           )
         ) : (
           <p className="relative z-10 mx-auto max-w-6xl px-4 text-sm text-white/40">—</p>

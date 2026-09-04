@@ -3,6 +3,7 @@ import path from "path";
 import type { SiteContent, SiteLinks, World } from "@/types/content";
 import { resolveSongVideoUrl } from "@/lib/youtube-url";
 import { defaultClubRobotConfig } from "@/lib/club-robot";
+import { defaultNfcAlbumConfig, normalizeNfcAlbumConfig } from "@/lib/nfc-album-config";
 import { normalizeWorldLinkButton } from "@/lib/world-link-button";
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -52,6 +53,7 @@ function normalizeSiteContent(raw: Record<string, unknown>): SiteContent {
         ...base.clubRobot?.tuning,
       },
     },
+    nfcAlbum: normalizeNfcAlbumConfig(base.nfcAlbum ?? defaultNfcAlbumConfig()),
   };
 
   if (withPressPreview.siteLinks) {

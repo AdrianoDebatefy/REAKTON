@@ -1,14 +1,19 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/routing";
+import { Link, usePathname } from "@/i18n/routing";
 import { useCookieConsent } from "@/context/CookieContext";
+
+function isNfcImmersivePath(pathname: string): boolean {
+  return pathname === "/nfc/play" || pathname.endsWith("/nfc/play");
+}
 
 export function CookieBanner() {
   const t = useTranslations("cookie");
+  const pathname = usePathname();
   const { hasChosen, acceptAll, acceptEssential } = useCookieConsent();
 
-  if (hasChosen) return null;
+  if (hasChosen || isNfcImmersivePath(pathname)) return null;
 
   return (
     <div

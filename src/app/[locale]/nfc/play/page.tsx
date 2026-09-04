@@ -1,9 +1,16 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { getTranslations } from "next-intl/server";
 import { NfcPlayPageClient } from "@/components/nfc/NfcPlayPageClient";
 import { buildPageMetadata } from "@/lib/seo";
 import { routing } from "@/i18n/routing";
 import type { Locale } from "@/types/content";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#050508",
+};
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));

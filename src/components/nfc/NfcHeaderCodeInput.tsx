@@ -49,7 +49,7 @@ export function NfcHeaderCodeInput() {
         value={code}
         onChange={(e) => setCode(e.target.value)}
         disabled={busy || nfc.fadingOut}
-        className="w-[min(14vw,11rem)] min-w-[8rem] border-0 border-b border-red-100/35 bg-transparent font-mono text-[30px] uppercase leading-none tracking-widest text-red-50 outline-none placeholder:text-red-100/35 md:text-[21px]"
+        className="w-[min(28vw,18rem)] min-w-[14rem] border-0 border-b border-red-100/35 bg-transparent font-mono text-[30px] uppercase leading-none tracking-widest text-red-50 outline-none placeholder:text-red-100/35 md:text-[21px]"
         autoComplete="off"
         spellCheck={false}
         aria-label="NFC code"

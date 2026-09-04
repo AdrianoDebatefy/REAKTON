@@ -7,6 +7,7 @@ Lege die Dateien mit exakt diesen Namen hier ab:
     activeplay.webp          — Track-Balken aktiv / ausgefahren
     nonactiveplay.webp       — Track-Balken inaktiv / eingefahren
     arrow_up.webp            — Pfeil hoch (Pfeil runter per CSS scaleY(-1) aus gleichem Bild)
+    knob.webp                — Knopf für Trackpositionsregler
 
 Deploy:
   - Mit Git: Dateien committen und deployen

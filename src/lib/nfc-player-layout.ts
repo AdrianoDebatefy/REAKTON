@@ -2,33 +2,48 @@
 export const NFC_DESIGN_WIDTH = 2160;
 export const NFC_DESIGN_HEIGHT = 3840;
 
+/** Tracks must not cross above this line; bars slide right instead. */
+export const NFC_BAR_BOUNDARY_Y = 1200;
+
 export const NFC_EQ = {
-  /** Horizontal center on design canvas. */
   centerX: 1080,
   top: 630,
   width: 1450,
   height: 380,
 } as const;
 
+export const NFC_PC_CODE = {
+  top: 370,
+  scale: 3,
+  fontSize: 34,
+} as const;
+
+export const NFC_TIME = {
+  top: 1050,
+  fontSize: 72,
+} as const;
+
+export const NFC_SEEK = {
+  top: 1140,
+  width: 1320,
+  knobSize: 56,
+} as const;
+
 export const NFC_BAR = {
   width: 2000,
   height: 217,
-  /** Collapsed / pause — bar slides in from the right. */
+  /** Collapsed / pause — bar center X. */
   xCollapsed: 1880,
-  /** Expanded / play — bar slides out to the left. */
+  /** Expanded / play — bar center X. */
   xExpanded: 1620,
   textPaddingRight: 100,
-  gap: 48,
-  /** Bottom edge of the stacked track bars. */
-  stackBottom: 3600,
+  textFontSize: 100,
+  gap: 52,
+  listTop: 1320,
+  desiredFocusCenterY: 1700,
+  /** Extra slide-out when a bar crosses above the boundary. */
+  boundarySlideOut: 360,
 } as const;
-
-export function nfcBarTop(index: number, trackCount: number): number {
-  const stackHeight =
-    trackCount * NFC_BAR.height + Math.max(0, trackCount - 1) * NFC_BAR.gap;
-  const stackTop = NFC_BAR.stackBottom - stackHeight;
-  return stackTop + index * (NFC_BAR.height + NFC_BAR.gap);
-}
 
 export function nfcEqBox() {
   return {
@@ -37,4 +52,43 @@ export function nfcEqBox() {
     width: NFC_EQ.width,
     height: NFC_EQ.height,
   };
+}
+
+export function nfcBarStride(): number {
+  return NFC_BAR.height + NFC_BAR.gap;
+}
+
+export function nfcBarDisplayTop(index: number, scrollOffset: number): number {
+  return NFC_BAR.listTop + index * nfcBarStride() - scrollOffset;
+}
+
+export function nfcScrollOffset(focusIndex: number, trackCount: number): number {
+  if (trackCount <= 0 || focusIndex < 0) return 0;
+
+  const stride = nfcBarStride();
+  const desiredTop = NFC_BAR.desiredFocusCenterY - NFC_BAR.height / 2;
+  const raw = NFC_BAR.listTop + focusIndex * stride - desiredTop;
+  const maxScroll = Math.max(
+    0,
+    NFC_BAR.listTop + (trackCount - 1) * stride + NFC_BAR.height - (NFC_DESIGN_HEIGHT - 240)
+  );
+
+  return Math.max(0, Math.min(raw, maxScroll));
+}
+
+/** Bar center X — slides right when the bar would cross above the boundary. */
+export function nfcBarCenterX(displayTop: number, isExpanded: boolean): number {
+  const base = isExpanded ? NFC_BAR.xExpanded : NFC_BAR.xCollapsed;
+
+  if (displayTop >= NFC_BAR_BOUNDARY_Y) {
+    return base;
+  }
+
+  const overlap = NFC_BAR_BOUNDARY_Y - displayTop;
+  const slideFactor = Math.min(1, overlap / NFC_BAR.height);
+  return NFC_BAR.xCollapsed + slideFactor * NFC_BAR.boundarySlideOut;
+}
+
+export function nfcBarLeft(centerX: number): number {
+  return centerX - NFC_BAR.width / 2;
 }

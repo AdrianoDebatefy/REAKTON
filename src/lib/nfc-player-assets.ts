@@ -3,6 +3,7 @@ export const NFC_PLAYER_ASSETS = {
   activeBar: "/nfc/player/activeplay.webp",
   inactiveBar: "/nfc/player/nonactiveplay.webp",
   arrowUp: "/nfc/player/arrow_up.webp",
+  knob: "/nfc/player/knob.webp",
 } as const;
 
 export const NFC_BAR_TRANSITION_MS = 1000;

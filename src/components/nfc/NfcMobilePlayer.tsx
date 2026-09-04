@@ -2,14 +2,22 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PressEqWaves } from "@/components/press/PressEqWaves";
-import { formatTimeExtended, ProgressBar } from "@/components/press/press-player-controls";
+import { formatTimeExtended } from "@/components/press/press-player-controls";
+import { NfcSeekBar } from "@/components/nfc/NfcSeekBar";
 import { NFC_BAR_TRANSITION_MS, NFC_PLAYER_ASSETS } from "@/lib/nfc-player-assets";
 import {
   NFC_BAR,
+  NFC_BAR_BOUNDARY_Y,
   NFC_DESIGN_HEIGHT,
   NFC_DESIGN_WIDTH,
-  nfcBarTop,
+  NFC_PC_CODE,
+  NFC_SEEK,
+  NFC_TIME,
+  nfcBarCenterX,
+  nfcBarDisplayTop,
+  nfcBarLeft,
   nfcEqBox,
+  nfcScrollOffset,
 } from "@/lib/nfc-player-layout";
 
 export interface NfcPlayerTrack {
@@ -64,6 +72,11 @@ export function NfcMobilePlayer({
   expandedIdRef.current = expandedId;
 
   const eqBox = nfcEqBox();
+  const focusIndex = Math.max(
+    0,
+    tracks.findIndex((track) => track.id === (expandedId ?? activeTrackId))
+  );
+  const scrollOffset = nfcScrollOffset(focusIndex, tracks.length);
 
   useEffect(() => {
     const el = viewportRef.current;
@@ -246,7 +259,6 @@ export function NfcMobilePlayer({
   }, [switchToTrack]);
 
   const progressRatio = duration > 0 ? progress / duration : 0;
-  const accent = "#e85c5c";
 
   const handleSeek = useCallback((ratio: number) => {
     const audio = audioRef.current;
@@ -255,10 +267,11 @@ export function NfcMobilePlayer({
     setProgress(audio.currentTime);
   }, [duration]);
 
-  const firstBarTop = tracks.length > 0 ? nfcBarTop(0, tracks.length) : 0;
-  const lastBarTop =
-    tracks.length > 0 ? nfcBarTop(tracks.length - 1, tracks.length) : 0;
-  const arrowColumnCenterY = (firstBarTop + lastBarTop + NFC_BAR.height) / 2;
+  const visibleBarTops = tracks.map((_, index) => nfcBarDisplayTop(index, scrollOffset));
+  const firstVisibleTop = visibleBarTops[0] ?? NFC_BAR.listTop;
+  const lastVisibleTop = visibleBarTops[visibleBarTops.length - 1] ?? NFC_BAR.listTop;
+  const arrowColumnCenterY = (firstVisibleTop + lastVisibleTop + NFC_BAR.height) / 2;
+  const seekLeft = eqBox.left + (eqBox.width - NFC_SEEK.width) / 2;
 
   return (
     <div
@@ -297,12 +310,21 @@ export function NfcMobilePlayer({
           />
 
           {pcCode ? (
-            <p
-              className="absolute left-0 right-0 text-center font-mono text-[34px] uppercase tracking-[0.2em] text-white/55"
-              style={{ top: 120 }}
+            <div
+              className="absolute left-0 right-0 flex justify-center"
+              style={{
+                top: NFC_PC_CODE.top,
+                transform: `scale(${NFC_PC_CODE.scale})`,
+                transformOrigin: "top center",
+              }}
             >
-              PC: <span className="text-white/85">{pcCode}</span>
-            </p>
+              <p
+                className="whitespace-nowrap text-center font-[family-name:var(--font-rajdhani)] font-light uppercase tracking-[0.2em] text-white/55"
+                style={{ fontSize: NFC_PC_CODE.fontSize }}
+              >
+                PC: <span className="text-white/85">{pcCode}</span>
+              </p>
+            </div>
           ) : null}
 
           <div
@@ -325,34 +347,27 @@ export function NfcMobilePlayer({
           </div>
 
           <p
-            className="absolute left-0 right-0 text-center font-mono text-[44px] tracking-[0.12em] text-white/55"
-            style={{ top: eqBox.top + eqBox.height + 72 }}
+            className="absolute left-0 right-0 text-center font-[family-name:var(--font-rajdhani)] font-light tracking-[0.12em] text-white/55"
+            style={{ top: NFC_TIME.top, fontSize: NFC_TIME.fontSize }}
           >
             {formatTimeExtended(progress)}
           </p>
 
-          <div
-            className="absolute"
-            style={{
-              left: eqBox.left + 40,
-              top: eqBox.top + eqBox.height + 148,
-              width: eqBox.width - 80,
-            }}
-          >
-            <ProgressBar
-              value={progressRatio}
-              accent={accent}
-              disabled={!duration}
-              onChange={handleSeek}
-              touch
-            />
-          </div>
+          <NfcSeekBar
+            value={progressRatio}
+            disabled={!duration}
+            left={seekLeft}
+            top={NFC_SEEK.top}
+            width={NFC_SEEK.width}
+            knobSize={NFC_SEEK.knobSize}
+            onChange={handleSeek}
+          />
 
           <div
             className="absolute h-px bg-[#3de8f6] shadow-[0_0_8px_rgba(61,232,246,0.65)]"
             style={{
               left: 96,
-              top: eqBox.top + eqBox.height + 248,
+              top: NFC_BAR_BOUNDARY_Y,
               width: NFC_DESIGN_WIDTH - 192,
             }}
             aria-hidden
@@ -406,6 +421,10 @@ export function NfcMobilePlayer({
 
           {tracks.map((track, index) => {
             const isExpanded = expandedId === track.id;
+            const displayTop = nfcBarDisplayTop(index, scrollOffset);
+            const centerX = nfcBarCenterX(displayTop, isExpanded);
+            const left = nfcBarLeft(centerX);
+
             return (
               <button
                 key={track.id}
@@ -414,11 +433,11 @@ export function NfcMobilePlayer({
                 onClick={() => void switchToTrack(track.id)}
                 className="absolute overflow-hidden bg-transparent disabled:pointer-events-none"
                 style={{
-                  left: isExpanded ? NFC_BAR.xExpanded : NFC_BAR.xCollapsed,
-                  top: nfcBarTop(index, tracks.length),
+                  left,
+                  top: displayTop,
                   width: NFC_BAR.width,
                   height: NFC_BAR.height,
-                  transition: `left ${NFC_BAR_TRANSITION_MS}ms ease-in-out`,
+                  transition: `left ${NFC_BAR_TRANSITION_MS}ms ease-in-out, top ${NFC_BAR_TRANSITION_MS}ms ease-in-out`,
                 }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -431,12 +450,13 @@ export function NfcMobilePlayer({
                   draggable={false}
                 />
                 <span
-                  className={`absolute bottom-0 top-0 flex items-center truncate text-right uppercase tracking-[0.14em] ${
-                    isExpanded ? "text-[54px] text-white" : "text-[42px] text-white/75"
+                  className={`absolute bottom-0 top-0 flex items-center truncate text-right font-[family-name:var(--font-rajdhani)] font-light uppercase tracking-[0.08em] ${
+                    isExpanded ? "text-white" : "text-white/75"
                   }`}
                   style={{
                     right: NFC_BAR.textPaddingRight,
                     left: 120,
+                    fontSize: NFC_BAR.textFontSize,
                   }}
                 >
                   {track.title}

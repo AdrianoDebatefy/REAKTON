@@ -6,8 +6,8 @@ import { formatTimeExtended } from "@/components/press/press-player-controls";
 import { NfcSeekBar } from "@/components/nfc/NfcSeekBar";
 import { NFC_BAR_TRANSITION_MS, NFC_PLAYER_ASSETS } from "@/lib/nfc-player-assets";
 import {
+  NFC_ARROWS,
   NFC_BAR,
-  NFC_BAR_BOUNDARY_Y,
   NFC_DESIGN_HEIGHT,
   NFC_DESIGN_WIDTH,
   NFC_PC_CODE,
@@ -267,11 +267,8 @@ export function NfcMobilePlayer({
     setProgress(audio.currentTime);
   }, [duration]);
 
-  const visibleBarTops = tracks.map((_, index) => nfcBarDisplayTop(index, scrollOffset));
-  const firstVisibleTop = visibleBarTops[0] ?? NFC_BAR.listTop;
-  const lastVisibleTop = visibleBarTops[visibleBarTops.length - 1] ?? NFC_BAR.listTop;
-  const arrowColumnCenterY = (firstVisibleTop + lastVisibleTop + NFC_BAR.height) / 2;
   const seekLeft = eqBox.left + (eqBox.width - NFC_SEEK.width) / 2;
+  const arrowTop = (centerY: number) => centerY - NFC_ARROWS.height / 2;
 
   return (
     <div
@@ -359,18 +356,9 @@ export function NfcMobilePlayer({
             left={seekLeft}
             top={NFC_SEEK.top}
             width={NFC_SEEK.width}
-            knobSize={NFC_SEEK.knobSize}
+            knobWidth={NFC_SEEK.knobWidth}
+            knobHeight={NFC_SEEK.knobHeight}
             onChange={handleSeek}
-          />
-
-          <div
-            className="absolute h-px bg-[#3de8f6] shadow-[0_0_8px_rgba(61,232,246,0.65)]"
-            style={{
-              left: 96,
-              top: NFC_BAR_BOUNDARY_Y,
-              width: NFC_DESIGN_WIDTH - 192,
-            }}
-            aria-hidden
           />
 
           <button
@@ -379,10 +367,10 @@ export function NfcMobilePlayer({
             disabled={switching || tracks.length < 2}
             className="absolute flex items-center justify-center opacity-90 transition active:scale-95 disabled:opacity-30"
             style={{
-              left: 120,
-              top: arrowColumnCenterY - 180,
-              width: 280,
-              height: 254,
+              left: NFC_ARROWS.left,
+              top: arrowTop(NFC_ARROWS.upCenterY),
+              width: NFC_ARROWS.width,
+              height: NFC_ARROWS.height,
             }}
             aria-label="Previous track"
           >
@@ -390,8 +378,8 @@ export function NfcMobilePlayer({
             <img
               src={NFC_PLAYER_ASSETS.arrowUp}
               alt=""
-              width={280}
-              height={254}
+              width={NFC_ARROWS.width}
+              height={NFC_ARROWS.height}
               className="h-full w-full object-contain"
             />
           </button>
@@ -402,10 +390,10 @@ export function NfcMobilePlayer({
             disabled={switching || tracks.length < 2}
             className="absolute flex items-center justify-center opacity-90 transition active:scale-95 disabled:opacity-30"
             style={{
-              left: 120,
-              top: arrowColumnCenterY + 40,
-              width: 280,
-              height: 254,
+              left: NFC_ARROWS.left,
+              top: arrowTop(NFC_ARROWS.downCenterY),
+              width: NFC_ARROWS.width,
+              height: NFC_ARROWS.height,
             }}
             aria-label="Next track"
           >
@@ -413,8 +401,8 @@ export function NfcMobilePlayer({
             <img
               src={NFC_PLAYER_ASSETS.arrowUp}
               alt=""
-              width={280}
-              height={254}
+              width={NFC_ARROWS.width}
+              height={NFC_ARROWS.height}
               className="h-full w-full rotate-180 object-contain"
             />
           </button>

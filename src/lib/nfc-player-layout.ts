@@ -13,7 +13,7 @@ export const NFC_EQ = {
 } as const;
 
 export const NFC_PC_CODE = {
-  top: 370,
+  top: 270,
   scale: 3,
   fontSize: 34,
 } as const;
@@ -24,9 +24,20 @@ export const NFC_TIME = {
 } as const;
 
 export const NFC_SEEK = {
-  top: 1140,
+  top: 1120,
   width: 1320,
-  knobSize: 56,
+  /** Native knob.webp size — do not scale down. */
+  knobWidth: 140,
+  knobHeight: 140,
+} as const;
+
+/** Navigation arrows — positions from 2160×3840 mockup. */
+export const NFC_ARROWS = {
+  left: 154,
+  upCenterY: 1380,
+  downCenterY: 1880,
+  width: 280,
+  height: 254,
 } as const;
 
 export const NFC_BAR = {
@@ -36,13 +47,13 @@ export const NFC_BAR = {
   xCollapsed: 1880,
   /** Expanded / play — bar center X. */
   xExpanded: 1620,
+  /** Off-screen when a bar crosses above the boundary. */
+  xOffScreen: 3333,
   textPaddingRight: 100,
   textFontSize: 100,
   gap: 52,
   listTop: 1320,
   desiredFocusCenterY: 1700,
-  /** Extra slide-out when a bar crosses above the boundary. */
-  boundarySlideOut: 360,
 } as const;
 
 export function nfcEqBox() {
@@ -76,17 +87,13 @@ export function nfcScrollOffset(focusIndex: number, trackCount: number): number 
   return Math.max(0, Math.min(raw, maxScroll));
 }
 
-/** Bar center X — slides right when the bar would cross above the boundary. */
+/** Bar center X — fully off-screen when the bar would cross above the boundary. */
 export function nfcBarCenterX(displayTop: number, isExpanded: boolean): number {
-  const base = isExpanded ? NFC_BAR.xExpanded : NFC_BAR.xCollapsed;
-
-  if (displayTop >= NFC_BAR_BOUNDARY_Y) {
-    return base;
+  if (displayTop < NFC_BAR_BOUNDARY_Y) {
+    return NFC_BAR.xOffScreen;
   }
 
-  const overlap = NFC_BAR_BOUNDARY_Y - displayTop;
-  const slideFactor = Math.min(1, overlap / NFC_BAR.height);
-  return NFC_BAR.xCollapsed + slideFactor * NFC_BAR.boundarySlideOut;
+  return isExpanded ? NFC_BAR.xExpanded : NFC_BAR.xCollapsed;
 }
 
 export function nfcBarLeft(centerX: number): number {

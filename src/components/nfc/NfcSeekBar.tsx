@@ -8,7 +8,8 @@ interface NfcSeekBarProps {
   left: number;
   top: number;
   width: number;
-  knobSize: number;
+  knobWidth: number;
+  knobHeight: number;
   onChange: (ratio: number) => void;
 }
 
@@ -18,10 +19,11 @@ export function NfcSeekBar({
   left,
   top,
   width,
-  knobSize,
+  knobWidth,
+  knobHeight,
   onChange,
 }: NfcSeekBarProps) {
-  const thumbLeft = `calc(${value * 100}% - ${knobSize / 2}px)`;
+  const thumbLeft = `calc(${value * 100}% - ${knobWidth / 2}px)`;
 
   return (
     <div
@@ -30,7 +32,7 @@ export function NfcSeekBar({
         left,
         top,
         width,
-        height: knobSize,
+        height: knobHeight,
       }}
     >
       <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white/35" />
@@ -38,10 +40,10 @@ export function NfcSeekBar({
       <img
         src={NFC_PLAYER_ASSETS.knob}
         alt=""
-        width={knobSize}
-        height={knobSize}
+        width={knobWidth}
+        height={knobHeight}
         className="pointer-events-none absolute top-1/2 -translate-y-1/2"
-        style={{ left: thumbLeft }}
+        style={{ left: thumbLeft, width: knobWidth, height: knobHeight }}
         draggable={false}
       />
       <input

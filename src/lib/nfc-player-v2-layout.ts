@@ -2,6 +2,9 @@
 export const NFC_V2_WIDTH = 430;
 export const NFC_V2_HEIGHT = 932;
 
+/** Gestell sits at Y=-24; allow this much bleed above the artboard. */
+export const NFC_V2_GESTELL_BLEED_TOP = 24;
+
 export const NFC_V2_TEXT_ROTATION_DEG = -38;
 
 export const NFC_V2_SLIDER = {

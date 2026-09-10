@@ -10,6 +10,7 @@ import {
   NFC_SKIP_FLASH_MS,
 } from "@/lib/nfc-player-v2-assets";
 import {
+  NFC_V2_GESTELL_BLEED_TOP,
   NFC_V2_HEIGHT,
   NFC_V2_RECTS,
   NFC_V2_SLIDER,
@@ -50,11 +51,13 @@ function LayerImage({
   rect,
   className = "",
   style,
+  objectFit = "fill",
 }: {
   src: string;
   rect: { left: number; top: number; width: number; height: number };
   className?: string;
   style?: React.CSSProperties;
+  objectFit?: "fill" | "contain" | "cover" | "none";
 }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -62,7 +65,7 @@ function LayerImage({
       src={src}
       alt=""
       className={`pointer-events-none absolute ${className}`}
-      style={{ ...nfcV2RectStyle(rect), ...style }}
+      style={{ ...nfcV2RectStyle(rect), objectFit, ...style }}
       draggable={false}
     />
   );
@@ -279,7 +282,7 @@ export function NfcPlayerV2({
       const rect = stage.getBoundingClientRect();
       const scale = rect.width / NFC_V2_WIDTH;
       const x = (clientX - rect.left) / scale;
-      const y = (clientY - rect.top) / scale;
+      const y = (clientY - rect.top) / scale - NFC_V2_GESTELL_BLEED_TOP;
       const dx = NFC_V2_SLIDER.end.x - NFC_V2_SLIDER.start.x;
       const dy = NFC_V2_SLIDER.end.y - NFC_V2_SLIDER.start.y;
       const lenSq = dx * dx + dy * dy;
@@ -308,21 +311,28 @@ export function NfcPlayerV2({
         className="absolute left-1/2 top-1/2"
         style={{
           width: NFC_V2_WIDTH * stageScale,
-          height: NFC_V2_HEIGHT * stageScale,
+          height: (NFC_V2_HEIGHT + NFC_V2_GESTELL_BLEED_TOP) * stageScale,
           marginLeft: -(NFC_V2_WIDTH * stageScale) / 2,
-          marginTop: -(NFC_V2_HEIGHT * stageScale) / 2,
+          marginTop: -((NFC_V2_HEIGHT + NFC_V2_GESTELL_BLEED_TOP) * stageScale) / 2,
         }}
       >
         <div
           ref={stageRef}
-          className="relative overflow-hidden select-none"
+          className="relative select-none"
           style={{
             width: NFC_V2_WIDTH,
-            height: NFC_V2_HEIGHT,
+            height: NFC_V2_HEIGHT + NFC_V2_GESTELL_BLEED_TOP,
+            paddingTop: NFC_V2_GESTELL_BLEED_TOP,
+            boxSizing: "border-box",
+            overflow: "visible",
             transform: `scale(${stageScale})`,
             transformOrigin: "top left",
           }}
         >
+          <div
+            className="relative"
+            style={{ width: NFC_V2_WIDTH, height: NFC_V2_HEIGHT, overflow: "visible" }}
+          >
           <LayerImage src={NFC_PLAYER_V2_ASSETS.background} rect={NFC_V2_RECTS.background} />
 
           <div className="absolute overflow-hidden" style={nfcV2RectStyle(NFC_V2_RECTS.equalizerflaeche)}>
@@ -352,7 +362,7 @@ export function NfcPlayerV2({
             </div>
           </div>
 
-          <LayerImage src={NFC_PLAYER_V2_ASSETS.gestell} rect={NFC_V2_RECTS.gestell} />
+          <LayerImage src={NFC_PLAYER_V2_ASSETS.gestell} rect={NFC_V2_RECTS.gestell} objectFit="fill" />
           <LayerImage src={NFC_PLAYER_V2_ASSETS.cdLaufwerk} rect={NFC_V2_RECTS.cdLaufwerk} />
 
           <div className="absolute overflow-hidden" style={nfcV2RectStyle(NFC_V2_RECTS.realCd)}>
@@ -481,6 +491,7 @@ export function NfcPlayerV2({
               {playbackError}
             </p>
           ) : null}
+          </div>
         </div>
       </div>
 

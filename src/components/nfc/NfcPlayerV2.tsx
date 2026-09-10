@@ -80,7 +80,7 @@ export function NfcPlayerV2({
   const [trackIndex, setTrackIndex] = useState(0);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [gestellSrc, setGestellSrc] = useState(NFC_PLAYER_V2_ASSETS.gestell);
+  const [gestellSrc, setGestellSrc] = useState<string>(NFC_PLAYER_V2_ASSETS.gestell);
   const [knobDragRatio, setKnobDragRatio] = useState<number | null>(null);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -470,7 +470,6 @@ export function NfcPlayerV2({
           <button
             type="button"
             className="absolute bg-transparent p-0"
-            style={{ zIndex: NFC_V2_Z.controls }}
             style={{ ...nfcV2RectStyle(NFC_V2_RECTS.skipForward), zIndex: NFC_V2_Z.controls }}
             onClick={() => void goToTrack(trackIndex + 1, "fwd")}
             aria-label="Next track"

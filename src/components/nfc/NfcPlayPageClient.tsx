@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import { NfcMobilePlayer } from "@/components/nfc/NfcMobilePlayer";
+import { NfcPlayerV2 } from "@/components/nfc/NfcPlayerV2";
 
 interface NfcTrack {
   id: string;
@@ -141,10 +141,9 @@ export function NfcPlayPageClient() {
   }
 
   return (
-    <NfcMobilePlayer
+    <NfcPlayerV2
       tracks={tracks}
       pcCode={pcCode}
-      sessionRemainingMs={remainingMs}
       playbackError={playbackError}
       onPlaybackError={handlePlaybackError}
     />

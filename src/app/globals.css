@@ -585,3 +585,26 @@ html.site-public.site-press {
   opacity: 0.35;
   cursor: not-allowed;
 }
+
+@keyframes nfc-cd-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes nfc-marquee-title {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.nfc-marquee-title {
+  animation: nfc-marquee-title 12s linear infinite;
+  padding-right: 2rem;
+}

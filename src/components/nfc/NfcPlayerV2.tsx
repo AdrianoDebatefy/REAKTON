@@ -4,12 +4,14 @@ import { Doto } from "next/font/google";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PressEqWaves } from "@/components/press/PressEqWaves";
 import { NfcMarqueeTitle } from "@/components/nfc/NfcMarqueeTitle";
-import { NFC_PLAYER_V2_ASSETS, NFC_SKIP_FLASH_MS } from "@/lib/nfc-player-v2-assets";
+import { NFC_CD_RPM, NFC_PLAYER_V2_ASSETS, NFC_SKIP_FLASH_MS } from "@/lib/nfc-player-v2-assets";
 import {
   NFC_V2_GESTELL_BLEED_TOP,
   NFC_V2_HEIGHT,
   NFC_V2_RECTS,
   NFC_V2_SLIDER,
+  NFC_V2_TEXT_SONGTITLE,
+  NFC_V2_TEXT_TIME,
   NFC_V2_WIDTH,
   NFC_V2_Z,
   nfcV2RectStyle,
@@ -391,7 +393,10 @@ export function NfcPlayerV2({
             className="absolute overflow-hidden rounded-full"
             style={{ ...nfcV2RectStyle(NFC_V2_RECTS.realCd), zIndex: NFC_V2_Z.realCd }}
           >
-            <div className={isAudioPlaying ? "nfc-v2-cd-spin h-full w-full" : "h-full w-full"}>
+            <div
+              className={`nfc-v2-cd-spin h-full w-full ${isAudioPlaying ? "nfc-v2-cd-spin--running" : "nfc-v2-cd-spin--paused"}`}
+              style={{ ["--nfc-cd-spin-duration" as string]: `${60 / NFC_CD_RPM}s` }}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={NFC_PLAYER_V2_ASSETS.realCd}
@@ -491,7 +496,10 @@ export function NfcPlayerV2({
 
           <div
             className="absolute overflow-hidden"
-            style={{ ...nfcV2RotatedTextBox(NFC_V2_RECTS.textSongtitle), zIndex: NFC_V2_Z.textSongtitle }}
+            style={{
+              ...nfcV2RotatedTextBox(NFC_V2_RECTS.textSongtitle, NFC_V2_TEXT_SONGTITLE),
+              zIndex: NFC_V2_Z.textSongtitle,
+            }}
           >
             <NfcMarqueeTitle
               title={(activeTrack?.title ?? "").toUpperCase()}
@@ -503,7 +511,7 @@ export function NfcPlayerV2({
           <p
             className="absolute flex items-center font-bold text-white"
             style={{
-              ...nfcV2RotatedTextBox(NFC_V2_RECTS.textTime),
+              ...nfcV2RotatedTextBox(NFC_V2_RECTS.textTime, NFC_V2_TEXT_TIME),
               zIndex: NFC_V2_Z.textTime,
               fontSize: 18,
             }}

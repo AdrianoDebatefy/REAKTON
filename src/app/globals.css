@@ -610,7 +610,17 @@ html.site-public.site-press {
 }
 
 .nfc-v2-cd-spin {
-  animation: nfc-cd-spin 0.3s linear infinite;
+  animation: nfc-cd-spin var(--nfc-cd-spin-duration, 0.3s) linear infinite;
+  animation-play-state: paused;
   transform-origin: center center;
   will-change: transform;
+}
+
+.nfc-v2-cd-spin--running {
+  animation-play-state: running;
+}
+
+.nfc-v2-cd-spin--paused {
+  animation-play-state: paused;
+  transition: transform 0.45s ease-in;
 }

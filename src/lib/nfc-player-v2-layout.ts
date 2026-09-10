@@ -72,10 +72,36 @@ export function nfcV2SliderPosition(progressRatio: number) {
   };
 }
 
-export function nfcV2RotatedTextBox(rect: NfcV2Rect) {
+/** Visual tweaks on top of XD boxes (scale + offset as % of box size). */
+export const NFC_V2_TEXT_SONGTITLE = {
+  scale: 2,
+  offsetXPercent: 0,
+  offsetYPercent: 150,
+} as const;
+
+export const NFC_V2_TEXT_TIME = {
+  scale: 2.5,
+  offsetXPercent: 400,
+  offsetYPercent: 100,
+} as const;
+
+function nfcV2TextTransform(rect: NfcV2Rect, scale: number, offsetXPercent: number, offsetYPercent: number) {
+  const dx = (rect.width * offsetXPercent) / 100;
+  const dy = (rect.height * offsetYPercent) / 100;
+  return `translate(${dx}px, ${dy}px) rotate(${NFC_V2_TEXT_ROTATION_DEG}deg) scale(${scale})`;
+}
+
+export function nfcV2RotatedTextBox(
+  rect: NfcV2Rect,
+  tweak: { scale: number; offsetXPercent: number; offsetYPercent: number } = {
+    scale: 1,
+    offsetXPercent: 0,
+    offsetYPercent: 0,
+  }
+) {
   return {
     ...nfcV2RectStyle(rect),
-    transform: `rotate(${NFC_V2_TEXT_ROTATION_DEG}deg)`,
+    transform: nfcV2TextTransform(rect, tweak.scale, tweak.offsetXPercent, tweak.offsetYPercent),
     transformOrigin: "50% 50%",
   };
 }

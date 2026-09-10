@@ -30,7 +30,7 @@ export const NFC_V2_RECTS = {
   stopOn: { left: 364, top: 517, width: 42, height: 42 },
   skipBack: { left: 353, top: 586, width: 64, height: 70 },
   skipOnBack: { left: 364, top: 602, width: 42, height: 48 },
-  textSongtitle: { left: 35, top: 530, width: 328, height: 50 },
+  textSongtitle: { left: 350, top: 530, width: 328, height: 50 },
   textTime: { left: 130, top: 620, width: 186, height: 50 },
   textDesktopcode: { left: 39, top: 150, width: 370, height: 63 },
 } as const satisfies Record<string, NfcV2Rect>;

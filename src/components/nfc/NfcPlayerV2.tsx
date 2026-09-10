@@ -4,7 +4,7 @@ import { Doto } from "next/font/google";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PressEqWaves } from "@/components/press/PressEqWaves";
 import { NfcMarqueeTitle } from "@/components/nfc/NfcMarqueeTitle";
-import { useNfcCdRotation } from "@/hooks/useNfcCdRotation";
+import { nfcPrepareAudioPlayback, useNfcCdRotation } from "@/hooks/useNfcCdRotation";
 import { NFC_CD_RPM, NFC_PLAYER_V2_ASSETS, NFC_SKIP_FLASH_MS } from "@/lib/nfc-player-v2-assets";
 import {
   NFC_V2_GESTELL_BLEED_TOP,
@@ -102,6 +102,8 @@ export function NfcPlayerV2({
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const tracksRef = useRef(tracks);
   const trackIndexRef = useRef(trackIndex);
+  const trackLoadingRef = useRef(false);
+  const cdSpinRef = useRef<HTMLDivElement>(null);
 
   tracksRef.current = tracks;
   trackIndexRef.current = trackIndex;
@@ -110,8 +112,9 @@ export function NfcPlayerV2({
   const progressRatio = duration > 0 ? progress / duration : 0;
   const sliderRatio = knobDragRatio ?? progressRatio;
   const knobPos = nfcV2SliderPosition(sliderRatio);
-  const cdSpinActive = isAudioPlaying && !paused;
-  const cdAngleDeg = useNfcCdRotation(cdSpinActive, NFC_CD_RPM);
+  /** Spin whenever not paused (open = play intent); avoids missing first `play` event after `load()`. */
+  const cdSpinActive = !paused && tracks.length > 0;
+  useNfcCdRotation(cdSpinRef, cdSpinActive, NFC_CD_RPM);
 
   useEffect(() => {
     const el = viewportRef.current;
@@ -164,27 +167,35 @@ export function NfcPlayerV2({
       const audio = audioRef.current;
       if (!audio) return false;
 
+      trackLoadingRef.current = true;
+      if (autoPlay) {
+        setPaused(false);
+      }
+
       await ensureAudioGraph();
 
       const absoluteUrl = track.audioUrl.startsWith("http")
         ? track.audioUrl
         : new URL(track.audioUrl, window.location.origin).href;
 
-      if (audio.src !== absoluteUrl) {
-        audio.src = absoluteUrl;
-        audio.load();
-      }
-
-      if (!autoPlay) return true;
-
       try {
+        await nfcPrepareAudioPlayback(audio, absoluteUrl);
+
+        if (!autoPlay) {
+          trackLoadingRef.current = false;
+          return true;
+        }
+
         await audio.play();
         setIsAudioPlaying(true);
         setPaused(false);
+        trackLoadingRef.current = false;
         return true;
       } catch {
         onPlaybackError("playback_failed");
         setIsAudioPlaying(false);
+        setPaused(true);
+        trackLoadingRef.current = false;
         return false;
       }
     },
@@ -244,6 +255,7 @@ export function NfcPlayerV2({
     if (tracks.length === 0 || autoplayDone) return;
     setAutoplayDone(true);
     setTrackIndex(0);
+    setPaused(false);
     void loadTrack(0, true);
   }, [autoplayDone, loadTrack, tracks.length]);
 
@@ -263,20 +275,27 @@ export function NfcPlayerV2({
       setPaused(false);
     };
     const onPause = () => {
+      if (trackLoadingRef.current) return;
       setIsAudioPlaying(false);
       setPaused(true);
+    };
+    const onPlaying = () => {
+      setIsAudioPlaying(true);
+      setPaused(false);
     };
 
     audio.addEventListener("timeupdate", onTimeUpdate);
     audio.addEventListener("loadedmetadata", onLoaded);
     audio.addEventListener("ended", onEnded);
     audio.addEventListener("play", onPlay);
+    audio.addEventListener("playing", onPlaying);
     audio.addEventListener("pause", onPause);
     return () => {
       audio.removeEventListener("timeupdate", onTimeUpdate);
       audio.removeEventListener("loadedmetadata", onLoaded);
       audio.removeEventListener("ended", onEnded);
       audio.removeEventListener("play", onPlay);
+      audio.removeEventListener("playing", onPlaying);
       audio.removeEventListener("pause", onPause);
     };
   }, [goToTrack]);
@@ -398,9 +417,9 @@ export function NfcPlayerV2({
             style={{ ...nfcV2RectStyle(NFC_V2_RECTS.realCd), zIndex: NFC_V2_Z.realCd }}
           >
             <div
+              ref={cdSpinRef}
               className="h-full w-full"
               style={{
-                transform: `rotate(${cdAngleDeg}deg)`,
                 transformOrigin: "center center",
                 willChange: "transform",
               }}

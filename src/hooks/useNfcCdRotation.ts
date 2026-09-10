@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import type { RefObject } from "react";
+import { useEffect, useRef } from "react";
 
 /** 200 RPM → 1200° per second. */
 export function nfcCdDegreesPerSecond(rpm: number): number {
@@ -8,13 +9,16 @@ export function nfcCdDegreesPerSecond(rpm: number): number {
 }
 
 /**
- * CD rotation driven by rAF (reliable on mobile; CSS spin was flaky with scaled stage).
+ * CD rotation via rAF + direct DOM transform (no per-frame React re-renders).
  * When `spinActive` is false, angular velocity eases to zero.
  */
-export function useNfcCdRotation(spinActive: boolean, rpm: number): number {
+export function useNfcCdRotation(
+  targetRef: RefObject<HTMLElement | null>,
+  spinActive: boolean,
+  rpm: number
+): void {
   const angleRef = useRef(0);
   const velocityRef = useRef(0);
-  const [angleDeg, setAngleDeg] = useState(0);
 
   useEffect(() => {
     let raf = 0;
@@ -26,13 +30,37 @@ export function useNfcCdRotation(spinActive: boolean, rpm: number): number {
       const targetVel = spinActive ? nfcCdDegreesPerSecond(rpm) : 0;
       velocityRef.current += (targetVel - velocityRef.current) * Math.min(1, 5 * dt);
       angleRef.current += velocityRef.current * dt;
-      setAngleDeg(angleRef.current);
+      const el = targetRef.current;
+      if (el) {
+        el.style.transform = `rotate(${angleRef.current}deg)`;
+      }
       raf = requestAnimationFrame(tick);
     };
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [spinActive, rpm]);
+  }, [spinActive, rpm, targetRef]);
+}
 
-  return angleDeg;
+function waitForCanPlay(audio: HTMLAudioElement): Promise<void> {
+  if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    const done = () => {
+      audio.removeEventListener("canplay", done);
+      audio.removeEventListener("loadeddata", done);
+      resolve();
+    };
+    audio.addEventListener("canplay", done, { once: true });
+    audio.addEventListener("loadeddata", done, { once: true });
+  });
+}
+
+export async function nfcPrepareAudioPlayback(audio: HTMLAudioElement, absoluteUrl: string): Promise<void> {
+  if (audio.src !== absoluteUrl) {
+    audio.src = absoluteUrl;
+    audio.load();
+    await waitForCanPlay(audio);
+  }
 }

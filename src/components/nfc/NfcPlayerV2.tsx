@@ -11,9 +11,11 @@ import {
 } from "@/lib/nfc-player-v2-assets";
 import {
   NFC_V2_HEIGHT,
-  NFC_V2_LAYERS,
+  NFC_V2_RECTS,
   NFC_V2_SLIDER,
+  NFC_V2_TEXT_ROTATION_DEG,
   NFC_V2_WIDTH,
+  nfcV2RectStyle,
   nfcV2SliderPosition,
 } from "@/lib/nfc-player-v2-layout";
 
@@ -43,6 +45,29 @@ function formatPlayTime(seconds: number): string {
   return `${mins}:${String(secs).padStart(2, "0")}`;
 }
 
+function LayerImage({
+  src,
+  rect,
+  className = "",
+  style,
+}: {
+  src: string;
+  rect: { left: number; top: number; width: number; height: number };
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt=""
+      className={`pointer-events-none absolute ${className}`}
+      style={{ ...nfcV2RectStyle(rect), ...style }}
+      draggable={false}
+    />
+  );
+}
+
 export function NfcPlayerV2({
   tracks,
   pcCode,
@@ -61,6 +86,7 @@ export function NfcPlayerV2({
   const [stageScale, setStageScale] = useState(1);
 
   const viewportRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -75,6 +101,11 @@ export function NfcPlayerV2({
   const progressRatio = duration > 0 ? progress / duration : 0;
   const knobPos = nfcV2SliderPosition(progressRatio);
   const cdSpinning = playing && !paused;
+
+  const rotatedTextStyle = {
+    transform: `rotate(${NFC_V2_TEXT_ROTATION_DEG}deg)`,
+    transformOrigin: "top left",
+  };
 
   useEffect(() => {
     const el = viewportRef.current;
@@ -219,8 +250,7 @@ export function NfcPlayerV2({
     const onEnded = () => {
       const list = tracksRef.current;
       if (list.length === 0) return;
-      const next = (trackIndexRef.current + 1) % list.length;
-      void goToTrack(next);
+      void goToTrack(trackIndexRef.current + 1);
     };
     const onPlay = () => {
       setPlaying(true);
@@ -243,16 +273,20 @@ export function NfcPlayerV2({
   }, [goToTrack]);
 
   const seekFromKnob = useCallback(
-    (clientX: number, clientY: number, rect: DOMRect) => {
-      const list = tracksRef.current;
-      if (!duration || list.length === 0) return;
+    (clientX: number, clientY: number) => {
+      const stage = stageRef.current;
+      if (!stage || !duration) return;
+      const rect = stage.getBoundingClientRect();
       const scale = rect.width / NFC_V2_WIDTH;
       const x = (clientX - rect.left) / scale;
       const y = (clientY - rect.top) / scale;
       const dx = NFC_V2_SLIDER.end.x - NFC_V2_SLIDER.start.x;
       const dy = NFC_V2_SLIDER.end.y - NFC_V2_SLIDER.start.y;
       const lenSq = dx * dx + dy * dy;
-      const t = Math.min(1, Math.max(0, ((x - NFC_V2_SLIDER.start.x) * dx + (y - NFC_V2_SLIDER.start.y) * dy) / lenSq));
+      const t = Math.min(
+        1,
+        Math.max(0, ((x - NFC_V2_SLIDER.start.x) * dx + (y - NFC_V2_SLIDER.start.y) * dy) / lenSq)
+      );
       const audio = audioRef.current;
       if (!audio) return;
       audio.currentTime = t * duration;
@@ -280,7 +314,8 @@ export function NfcPlayerV2({
         }}
       >
         <div
-          className="relative select-none"
+          ref={stageRef}
+          className="relative overflow-hidden select-none"
           style={{
             width: NFC_V2_WIDTH,
             height: NFC_V2_HEIGHT,
@@ -288,26 +323,21 @@ export function NfcPlayerV2({
             transformOrigin: "top left",
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={NFC_PLAYER_V2_ASSETS.chassis}
-            alt=""
-            className="pointer-events-none absolute inset-0 h-full w-full"
-            width={NFC_V2_WIDTH}
-            height={NFC_V2_HEIGHT}
-            draggable={false}
-          />
+          <LayerImage src={NFC_PLAYER_V2_ASSETS.background} rect={NFC_V2_RECTS.background} />
 
-          <div
-            className="absolute overflow-hidden"
-            style={NFC_V2_LAYERS.equalizer}
-            aria-hidden
-          >
+          <div className="absolute overflow-hidden" style={nfcV2RectStyle(NFC_V2_RECTS.equalizerflaeche)}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={NFC_PLAYER_V2_ASSETS.equalizerflaeche}
+              alt=""
+              className="pointer-events-none absolute inset-0 h-full w-full object-fill"
+              draggable={false}
+            />
             <div
               className="absolute left-1/2 top-1/2"
               style={{
-                width: "150%",
-                height: "150%",
+                width: "140%",
+                height: "140%",
                 transform: "translate(-50%, -50%) rotate(90deg)",
               }}
             >
@@ -322,16 +352,17 @@ export function NfcPlayerV2({
             </div>
           </div>
 
-          <div
-            className="absolute overflow-hidden rounded-full"
-            style={NFC_V2_LAYERS.realCd}
-          >
+          <LayerImage src={NFC_PLAYER_V2_ASSETS.gestell} rect={NFC_V2_RECTS.gestell} />
+          <LayerImage src={NFC_PLAYER_V2_ASSETS.cdLaufwerk} rect={NFC_V2_RECTS.cdLaufwerk} />
+
+          <div className="absolute overflow-hidden" style={nfcV2RectStyle(NFC_V2_RECTS.realCd)}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={NFC_PLAYER_V2_ASSETS.realCd}
               alt=""
               className="h-full w-full object-cover"
               style={{
+                transformOrigin: "center center",
                 animation: `nfc-cd-spin ${60 / NFC_CD_RPM}s linear infinite`,
                 animationPlayState: cdSpinning ? "running" : "paused",
               }}
@@ -339,22 +370,29 @@ export function NfcPlayerV2({
             />
           </div>
 
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={NFC_PLAYER_V2_ASSETS.cdRing}
-            alt=""
-            className="pointer-events-none absolute"
-            style={NFC_V2_LAYERS.cdRing}
-            draggable={false}
-          />
+          <LayerImage src={NFC_PLAYER_V2_ASSETS.albumplayerDecker} rect={NFC_V2_RECTS.albumplayerDecker} />
 
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={NFC_PLAYER_V2_ASSETS.sliderArm}
-            alt=""
-            className="pointer-events-none absolute"
-            style={NFC_V2_LAYERS.sliderArm}
-            draggable={false}
+          <LayerImage
+            src={NFC_PLAYER_V2_ASSETS.skipForward}
+            rect={NFC_V2_RECTS.skipForward}
+            className="pointer-events-none"
+          />
+          <LayerImage
+            src={NFC_PLAYER_V2_ASSETS.skipOnFwd}
+            rect={NFC_V2_RECTS.skipOnFwd}
+            style={{ opacity: skipFwdFlash ? 1 : 0, transition: "opacity 150ms ease" }}
+          />
+          <LayerImage src={NFC_PLAYER_V2_ASSETS.stop} rect={NFC_V2_RECTS.stop} />
+          <LayerImage
+            src={NFC_PLAYER_V2_ASSETS.stopOn}
+            rect={NFC_V2_RECTS.stopOn}
+            style={{ opacity: paused ? 1 : 0, transition: "opacity 300ms ease" }}
+          />
+          <LayerImage src={NFC_PLAYER_V2_ASSETS.skipBack} rect={NFC_V2_RECTS.skipBack} />
+          <LayerImage
+            src={NFC_PLAYER_V2_ASSETS.skipOnBack}
+            rect={NFC_V2_RECTS.skipOnBack}
+            style={{ opacity: skipBackFlash ? 1 : 0, transition: "opacity 150ms ease" }}
           />
 
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -370,104 +408,76 @@ export function NfcPlayerV2({
             }}
             draggable={false}
             onPointerDown={(e) => {
-              const stage = e.currentTarget.parentElement;
-              if (!stage) return;
-              const rect = stage.getBoundingClientRect();
-              const move = (ev: PointerEvent) => seekFromKnob(ev.clientX, ev.clientY, rect);
+              const move = (ev: PointerEvent) => seekFromKnob(ev.clientX, ev.clientY);
               const up = () => {
                 window.removeEventListener("pointermove", move);
                 window.removeEventListener("pointerup", up);
               };
               window.addEventListener("pointermove", move);
               window.addEventListener("pointerup", up);
-              seekFromKnob(e.clientX, e.clientY, rect);
+              seekFromKnob(e.clientX, e.clientY);
             }}
           />
 
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={NFC_PLAYER_V2_ASSETS.skipOnBack}
-            alt=""
-            className="pointer-events-none absolute transition-opacity duration-150"
-            style={{ ...NFC_V2_LAYERS.skipOnBack, opacity: skipBackFlash ? 1 : 0 }}
-            draggable={false}
-          />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={NFC_PLAYER_V2_ASSETS.skipOnFwd}
-            alt=""
-            className="pointer-events-none absolute transition-opacity duration-150"
-            style={{ ...NFC_V2_LAYERS.skipOnFwd, opacity: skipFwdFlash ? 1 : 0 }}
-            draggable={false}
-          />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={NFC_PLAYER_V2_ASSETS.stopOn}
-            alt=""
-            className="pointer-events-none absolute transition-opacity duration-300"
-            style={{ ...NFC_V2_LAYERS.stopOn, opacity: paused ? 1 : 0 }}
-            draggable={false}
-          />
-
           <button
             type="button"
-            className="absolute bg-transparent p-0"
-            style={NFC_V2_LAYERS.skipBack}
-            onClick={() => void goToTrack(trackIndex - 1, "back")}
-            aria-label="Previous track"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={NFC_PLAYER_V2_ASSETS.skipBack} alt="" className="h-full w-full" />
-          </button>
-          <button
-            type="button"
-            className="absolute bg-transparent p-0"
-            style={NFC_V2_LAYERS.stop}
-            onClick={handleStop}
-            aria-label={paused ? "Resume" : "Pause"}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={NFC_PLAYER_V2_ASSETS.stop} alt="" className="h-full w-full" />
-          </button>
-          <button
-            type="button"
-            className="absolute bg-transparent p-0"
-            style={NFC_V2_LAYERS.skipForward}
+            className="absolute z-10 bg-transparent p-0"
+            style={nfcV2RectStyle(NFC_V2_RECTS.skipForward)}
             onClick={() => void goToTrack(trackIndex + 1, "fwd")}
             aria-label="Next track"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={NFC_PLAYER_V2_ASSETS.skipForward} alt="" className="h-full w-full" />
-          </button>
-
-          <div className="absolute" style={NFC_V2_LAYERS.textDesktopcode}>
-            <p className="text-[11px] font-bold leading-tight text-white/80">PC</p>
-            <p className="truncate text-[15px] font-bold text-white">{pcCode ?? "—"}</p>
-          </div>
-
-          <NfcMarqueeTitle
-            title={(activeTrack?.title ?? "").toUpperCase()}
-            className="absolute flex items-center"
-            style={{
-              ...NFC_V2_LAYERS.textSongtitle,
-              color: "#000",
-              fontSize: 18,
-              fontWeight: 700,
-            }}
+          />
+          <button
+            type="button"
+            className="absolute z-10 bg-transparent p-0"
+            style={nfcV2RectStyle(NFC_V2_RECTS.stop)}
+            onClick={handleStop}
+            aria-label={paused ? "Resume" : "Pause"}
+          />
+          <button
+            type="button"
+            className="absolute z-10 bg-transparent p-0"
+            style={nfcV2RectStyle(NFC_V2_RECTS.skipBack)}
+            onClick={() => void goToTrack(trackIndex - 1, "back")}
+            aria-label="Previous track"
           />
 
+          <div className="absolute" style={{ ...nfcV2RectStyle(NFC_V2_RECTS.textSongtitle), ...rotatedTextStyle }}>
+            <NfcMarqueeTitle
+              title={(activeTrack?.title ?? "").toUpperCase()}
+              className="flex h-full items-center"
+              style={{ color: "#000", fontSize: 20, fontWeight: 700, width: NFC_V2_RECTS.textSongtitle.width }}
+            />
+          </div>
+
           <p
-            className="absolute flex items-center justify-end text-right font-bold text-white"
+            className="absolute flex items-center font-bold text-white"
             style={{
-              ...NFC_V2_LAYERS.textTime,
-              fontSize: 16,
+              ...nfcV2RectStyle(NFC_V2_RECTS.textTime),
+              ...rotatedTextStyle,
+              fontSize: 18,
             }}
           >
             {formatPlayTime(progress)}
           </p>
 
+          <div className="absolute" style={nfcV2RectStyle(NFC_V2_RECTS.textDesktopcode)}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={NFC_PLAYER_V2_ASSETS.textDesktopcodeBg}
+              alt=""
+              className="pointer-events-none absolute inset-0 h-full w-full"
+              draggable={false}
+            />
+            <p
+              className="absolute inset-0 flex items-center justify-center truncate px-2 text-center font-bold text-black"
+              style={{ fontSize: 22 }}
+            >
+              {pcCode ?? "—"}
+            </p>
+          </div>
+
           {playbackError ? (
-            <p className="absolute bottom-2 left-2 right-2 text-center text-xs text-red-300">
+            <p className="absolute bottom-2 left-2 right-2 z-20 text-center text-xs text-red-300">
               {playbackError}
             </p>
           ) : null}

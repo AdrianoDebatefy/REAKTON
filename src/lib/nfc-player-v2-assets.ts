@@ -2,7 +2,9 @@
 export const NFC_PLAYER_V2_ASSETS = {
   background: "/nfc/player-v2/background.png",
   equalizerflaeche: "/nfc/player-v2/equalizerflaeche.png",
+  /** Prefer gestell.svg when present; PNG fallback stretched to 430×956. */
   gestell: "/nfc/player-v2/gestell.svg",
+  gestellFallback: "/nfc/player-v2/gestell.png",
   cdLaufwerk: "/nfc/player-v2/cd-laufwerk.png",
   realCd: "/nfc/player-v2/real-cd.png",
   albumplayerDecker: "/nfc/player-v2/albumplayer-decker.png",

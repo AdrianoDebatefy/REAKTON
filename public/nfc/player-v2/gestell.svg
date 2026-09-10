@@ -1,4 +1,3 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="430" height="956" viewBox="0 0 430 956" preserveAspectRatio="none">
-  <!-- Replace this file with the vector export from XD when ready. -->
-  <image xlink:href="/nfc/player-v2/gestell.png" width="430" height="956" preserveAspectRatio="none" />
+  <image xlink:href="gestell.png" href="gestell.png" width="430" height="956" preserveAspectRatio="none" />
 </svg>

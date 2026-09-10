@@ -35,11 +35,48 @@ export const NFC_V2_RECTS = {
   textDesktopcode: { left: 39, top: 150, width: 370, height: 63 },
 } as const satisfies Record<string, NfcV2Rect>;
 
+/** Back → front (matches XD layer list). */
+export const NFC_V2_Z = {
+  background: 1,
+  equalizerflaeche: 2,
+  gestell: 3,
+  cdLaufwerk: 4,
+  realCd: 5,
+  albumplayerDecker: 6,
+  skipForward: 7,
+  skipOnFwd: 8,
+  stop: 9,
+  stopOn: 10,
+  skipBack: 11,
+  skipOnBack: 12,
+  sliderKnob: 13,
+  textSongtitle: 14,
+  textTime: 15,
+  textDesktopcode: 16,
+  controls: 20,
+} as const;
+
+export function nfcV2SliderRatioFromPoint(x: number, y: number): number {
+  const dx = NFC_V2_SLIDER.end.x - NFC_V2_SLIDER.start.x;
+  const dy = NFC_V2_SLIDER.end.y - NFC_V2_SLIDER.start.y;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq <= 0) return 0;
+  return Math.min(1, Math.max(0, ((x - NFC_V2_SLIDER.start.x) * dx + (y - NFC_V2_SLIDER.start.y) * dy) / lenSq));
+}
+
 export function nfcV2SliderPosition(progressRatio: number) {
   const t = Math.min(1, Math.max(0, progressRatio));
   return {
     x: NFC_V2_SLIDER.start.x + (NFC_V2_SLIDER.end.x - NFC_V2_SLIDER.start.x) * t,
     y: NFC_V2_SLIDER.start.y + (NFC_V2_SLIDER.end.y - NFC_V2_SLIDER.start.y) * t,
+  };
+}
+
+export function nfcV2RotatedTextBox(rect: NfcV2Rect) {
+  return {
+    ...nfcV2RectStyle(rect),
+    transform: `rotate(${NFC_V2_TEXT_ROTATION_DEG}deg)`,
+    transformOrigin: "50% 50%",
   };
 }
 

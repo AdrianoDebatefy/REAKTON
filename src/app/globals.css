@@ -608,3 +608,9 @@ html.site-public.site-press {
   animation: nfc-marquee-title 12s linear infinite;
   padding-right: 2rem;
 }
+
+.nfc-v2-cd-spin {
+  animation: nfc-cd-spin 0.3s linear infinite;
+  transform-origin: center center;
+  will-change: transform;
+}

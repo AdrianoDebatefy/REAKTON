@@ -4,6 +4,7 @@ import { Doto } from "next/font/google";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PressEqWaves } from "@/components/press/PressEqWaves";
 import { NfcMarqueeTitle } from "@/components/nfc/NfcMarqueeTitle";
+import { useNfcCdRotation } from "@/hooks/useNfcCdRotation";
 import { NFC_CD_RPM, NFC_PLAYER_V2_ASSETS, NFC_SKIP_FLASH_MS } from "@/lib/nfc-player-v2-assets";
 import {
   NFC_V2_GESTELL_BLEED_TOP,
@@ -15,9 +16,10 @@ import {
   NFC_V2_WIDTH,
   NFC_V2_Z,
   nfcV2RectStyle,
-  nfcV2RotatedTextBox,
   nfcV2SliderPosition,
   nfcV2SliderRatioFromPoint,
+  nfcV2TextLayerInnerStyle,
+  nfcV2TextLayerOuterStyle,
 } from "@/lib/nfc-player-v2-layout";
 
 const doto = Doto({
@@ -108,6 +110,8 @@ export function NfcPlayerV2({
   const progressRatio = duration > 0 ? progress / duration : 0;
   const sliderRatio = knobDragRatio ?? progressRatio;
   const knobPos = nfcV2SliderPosition(sliderRatio);
+  const cdSpinActive = isAudioPlaying && !paused;
+  const cdAngleDeg = useNfcCdRotation(cdSpinActive, NFC_CD_RPM);
 
   useEffect(() => {
     const el = viewportRef.current;
@@ -394,8 +398,12 @@ export function NfcPlayerV2({
             style={{ ...nfcV2RectStyle(NFC_V2_RECTS.realCd), zIndex: NFC_V2_Z.realCd }}
           >
             <div
-              className={`nfc-v2-cd-spin h-full w-full ${isAudioPlaying ? "nfc-v2-cd-spin--running" : "nfc-v2-cd-spin--paused"}`}
-              style={{ ["--nfc-cd-spin-duration" as string]: `${60 / NFC_CD_RPM}s` }}
+              className="h-full w-full"
+              style={{
+                transform: `rotate(${cdAngleDeg}deg)`,
+                transformOrigin: "center center",
+                willChange: "transform",
+              }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -495,29 +503,35 @@ export function NfcPlayerV2({
           />
 
           <div
-            className="absolute overflow-hidden"
+            className="absolute overflow-visible"
             style={{
-              ...nfcV2RotatedTextBox(NFC_V2_RECTS.textSongtitle, NFC_V2_TEXT_SONGTITLE),
+              ...nfcV2TextLayerOuterStyle(NFC_V2_RECTS.textSongtitle, NFC_V2_TEXT_SONGTITLE),
               zIndex: NFC_V2_Z.textSongtitle,
             }}
           >
-            <NfcMarqueeTitle
-              title={(activeTrack?.title ?? "").toUpperCase()}
-              className="flex h-full w-full items-center"
-              style={{ color: "#000", fontSize: 20, fontWeight: 700 }}
-            />
+            <div className="overflow-hidden" style={nfcV2TextLayerInnerStyle(NFC_V2_TEXT_SONGTITLE)}>
+              <NfcMarqueeTitle
+                title={(activeTrack?.title ?? "").toUpperCase()}
+                className="flex h-full w-full items-center"
+                style={{ color: "#000", fontSize: 20, fontWeight: 700 }}
+              />
+            </div>
           </div>
 
-          <p
-            className="absolute flex items-center font-bold text-white"
+          <div
+            className="absolute overflow-visible"
             style={{
-              ...nfcV2RotatedTextBox(NFC_V2_RECTS.textTime, NFC_V2_TEXT_TIME),
+              ...nfcV2TextLayerOuterStyle(NFC_V2_RECTS.textTime, NFC_V2_TEXT_TIME),
               zIndex: NFC_V2_Z.textTime,
-              fontSize: 18,
             }}
           >
-            {formatPlayTime(progress)}
-          </p>
+            <p
+              className="flex h-full w-full items-center font-bold text-white"
+              style={{ ...nfcV2TextLayerInnerStyle(NFC_V2_TEXT_TIME), fontSize: 18 }}
+            >
+              {formatPlayTime(progress)}
+            </p>
+          </div>
 
           <div
             className="absolute"

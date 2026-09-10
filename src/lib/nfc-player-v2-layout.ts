@@ -72,37 +72,45 @@ export function nfcV2SliderPosition(progressRatio: number) {
   };
 }
 
-/** Visual tweaks on top of XD boxes (scale + offset as % of box size). */
-export const NFC_V2_TEXT_SONGTITLE = {
+/**
+ * Text on top of XD boxes: position = rect + nudge (artboard px).
+ * Scale applies inside the box so XD left/top stay the anchor.
+ */
+export type NfcV2TextLayerTweak = {
+  scale: number;
+  nudgeX: number;
+  nudgeY: number;
+};
+
+export const NFC_V2_TEXT_SONGTITLE: NfcV2TextLayerTweak = {
   scale: 2,
-  offsetXPercent: 0,
-  offsetYPercent: 150,
-} as const;
+  nudgeX: 0,
+  nudgeY: 0,
+};
 
-export const NFC_V2_TEXT_TIME = {
+export const NFC_V2_TEXT_TIME: NfcV2TextLayerTweak = {
   scale: 2.5,
-  offsetXPercent: 400,
-  offsetYPercent: 100,
-} as const;
+  nudgeX: 0,
+  nudgeY: 0,
+};
 
-function nfcV2TextTransform(rect: NfcV2Rect, scale: number, offsetXPercent: number, offsetYPercent: number) {
-  const dx = (rect.width * offsetXPercent) / 100;
-  const dy = (rect.height * offsetYPercent) / 100;
-  return `translate(${dx}px, ${dy}px) rotate(${NFC_V2_TEXT_ROTATION_DEG}deg) scale(${scale})`;
+export function nfcV2TextLayerOuterStyle(rect: NfcV2Rect, tweak: NfcV2TextLayerTweak) {
+  return {
+    left: rect.left + tweak.nudgeX,
+    top: rect.top + tweak.nudgeY,
+    width: rect.width,
+    height: rect.height,
+    transform: `rotate(${NFC_V2_TEXT_ROTATION_DEG}deg)`,
+    transformOrigin: "50% 50%",
+  };
 }
 
-export function nfcV2RotatedTextBox(
-  rect: NfcV2Rect,
-  tweak: { scale: number; offsetXPercent: number; offsetYPercent: number } = {
-    scale: 1,
-    offsetXPercent: 0,
-    offsetYPercent: 0,
-  }
-) {
+export function nfcV2TextLayerInnerStyle(tweak: NfcV2TextLayerTweak) {
   return {
-    ...nfcV2RectStyle(rect),
-    transform: nfcV2TextTransform(rect, tweak.scale, tweak.offsetXPercent, tweak.offsetYPercent),
+    transform: `scale(${tweak.scale})`,
     transformOrigin: "50% 50%",
+    width: "100%",
+    height: "100%",
   };
 }
 

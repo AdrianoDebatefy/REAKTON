@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { getAnyNfcSession } from "@/lib/nfc-album-auth";
 import { getNfcSession, getNfcTracks } from "@/lib/nfc-album-sessions";
 
+function normalizeNfcAudioUrl(audioUrl: string): string {
+  const trimmed = audioUrl.trim();
+  const apiMatch = trimmed.match(/^\/api\/world-asset\/uploads\/(.+)$/);
+  if (apiMatch) return `/uploads/${decodeURIComponent(apiMatch[1])}`;
+  return trimmed;
+}
+
 export async function GET() {
   const auth = await getAnyNfcSession();
   if (!auth) {
@@ -17,7 +24,7 @@ export async function GET() {
     id: track.id,
     title: track.title,
     artist: track.artist ?? "",
-    audioUrl: track.audioUrl,
+    audioUrl: normalizeNfcAudioUrl(track.audioUrl),
     coverImage: track.coverImage ?? "",
     order: track.order,
   }));

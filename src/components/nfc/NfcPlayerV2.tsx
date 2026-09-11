@@ -10,6 +10,7 @@ import {
   nfcScheduleBuffersAfterPlay,
   nfcWaitReadyToPlay,
 } from "@/lib/nfc-audio-playback";
+import { NFC_AUDIO_ELEMENT_STYLE, nfcPreferNativeAudioPlayback } from "@/lib/nfc-audio-platform";
 import { useScreenWakeLock } from "@/hooks/useScreenWakeLock";
 import {
   NFC_CD_RPM,
@@ -211,9 +212,19 @@ export function NfcPlayerV2({
     const audio = audioRef.current;
     if (!audio) return;
     await audio.play();
-    await ensureAudioGraph();
     setIsAudioPlaying(true);
     setPaused(false);
+
+    if (nfcPreferNativeAudioPlayback()) {
+      window.setTimeout(() => {
+        if (audioRef.current && !audioRef.current.paused) {
+          void ensureAudioGraph();
+        }
+      }, 4_000);
+      return;
+    }
+
+    await ensureAudioGraph();
   }, [ensureAudioGraph]);
 
   const loadTrack = useCallback(
@@ -782,7 +793,13 @@ export function NfcPlayerV2({
         </div>
       </div>
 
-      <audio ref={audioRef} preload="auto" playsInline crossOrigin="anonymous" className="hidden" />
+      <audio
+        ref={audioRef}
+        preload="auto"
+        playsInline
+        style={NFC_AUDIO_ELEMENT_STYLE}
+        aria-hidden
+      />
     </div>
   );
 }

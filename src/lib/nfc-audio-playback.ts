@@ -1,3 +1,5 @@
+import { nfcPreferNativeAudioPlayback } from "@/lib/nfc-audio-platform";
+
 /**
  * NFC player v2 audio: direct /uploads URLs, optional background full-file cache
  * (one download at a time — does not compete with initial PNG load).
@@ -157,7 +159,8 @@ export async function nfcPrepareAudioPlayback(
 /** Prefetch only the *next* track — never fetch the URL that is currently streaming. */
 export function nfcScheduleBuffersAfterPlay(_currentUrl: string, nextUrl?: string | null): void {
   if (typeof window === "undefined" || !nextUrl?.trim()) return;
+  if (nfcPreferNativeAudioPlayback()) return;
   window.setTimeout(() => {
     nfcQueueBackgroundBuffer(nextUrl);
-  }, 5_000);
+  }, 12_000);
 }

@@ -2,7 +2,7 @@
 
 import { Doto } from "next/font/google";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PressEqWaves } from "@/components/press/PressEqWaves";
+import { NfcEqVisualizer } from "@/components/nfc/NfcEqVisualizer";
 import { NfcMarqueeTitle } from "@/components/nfc/NfcMarqueeTitle";
 import { nfcPrepareAudioPlayback, useNfcCdRotation } from "@/hooks/useNfcCdRotation";
 import { useScreenWakeLock } from "@/hooks/useScreenWakeLock";
@@ -465,23 +465,12 @@ export function NfcPlayerV2({
               className="pointer-events-none absolute inset-0 h-full w-full object-fill"
               draggable={false}
             />
-            <div
-              className="pointer-events-none absolute left-1/2 top-1/2"
-              style={{
-                width: "140%",
-                height: "140%",
-                transform: "translate(-50%, -50%) rotate(90deg)",
-              }}
-            >
-              <PressEqWaves
-                atmosphere="club"
-                analyser={analyserReady ? analyserRef.current : null}
-                visible
-                active={isAudioPlaying && !paused}
-                className="h-full w-full"
-                renderBoost={1.35}
-              />
-            </div>
+            <NfcEqVisualizer
+              analyser={analyserReady ? analyserRef.current : null}
+              visible
+              active={isAudioPlaying && !paused}
+              className="absolute inset-0 h-full w-full"
+            />
           </div>
 
           {/* eslint-disable-next-line @next/next/no-img-element */}

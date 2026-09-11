@@ -46,12 +46,18 @@ Stand nach Session-Ende (NFC Player v2, Gestell-Asset, Deploy-Flow).
 
 ---
 
-## Morgen (Backlog)
+## Update 11.09.2026 (Nachmittag)
 
-1. **Gestell.svg optimieren** (Ladezeit) — ohne Layout zu ändern.
-2. **Text-Position** ggf. mit `nudgeX`/`nudgeY` oder XD-Rects nach Screenshot-Feedback.
-3. **Feinschliff** Slider, Skip-Hitareas, Marquee-Titel, ggf. NFC-Tap → garantiertes `play()` wenn Browser Autoplay zickt.
-4. PR #16 reviewen / mergen nach `reakton-main`, Deploy-Branch auf VPS festlegen.
+- Player: Pause-on-open, Play, Slider (28,706)→(290,503) + travel pad, Stop/Play, Fullscreen-Grafik 272×282, Wake Lock im Fullscreen.
+- Audio: first-play `canplay`, Web Audio on user Play.
+- **EQ:** `NfcEqVisualizer.tsx` — Canvas, Mitte-Spine, asymmetrische Balken, Ribbon, 10× **Hz + Pegel** (Rajdhani 15), nur NFC (ersetzt `PressEqWaves` + 90°-Rotation).
+- Build-Label zuletzt: `nfc-player-v2-eq-spectrum-2026-09-11`.
+
+## Backlog
+
+1. **Gestell.svg optimieren** (Ladezeit).
+2. EQ-Feintuning (Farben, Balkendichte) nach Deploy-Feedback.
+3. PR #16 / Deploy-Branch `cursor/nfc-player-v2-d206` auf VPS.
 
 ---
 

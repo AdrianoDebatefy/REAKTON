@@ -159,47 +159,77 @@ export function NfcPlayerV2({
     return () => ro.disconnect();
   }, []);
 
+  const releaseCaptureStreamGraph = useCallback(() => {
+    try {
+      sourceRef.current?.disconnect();
+    } catch {
+      /* ignore */
+    }
+    try {
+      analyserRef.current?.disconnect();
+    } catch {
+      /* ignore */
+    }
+    if (captureStreamRef.current) {
+      for (const track of captureStreamRef.current.getTracks()) {
+        track.stop();
+      }
+      captureStreamRef.current = null;
+    }
+    sourceRef.current = null;
+    analyserRef.current = null;
+    if (audioCtxRef.current) {
+      void audioCtxRef.current.close();
+      audioCtxRef.current = null;
+    }
+  }, []);
+
   const ensureAudioGraph = useCallback(async () => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    if (!sourceRef.current) {
-      try {
-        const AudioContextClass =
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const captureStream = (
+      audio as HTMLAudioElement & { captureStream?: () => MediaStream }
+    ).captureStream?.bind(audio);
+
+    try {
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+
+      if (captureStream) {
+        // New src = new MediaStream; must re-capture after each track change (Android).
+        releaseCaptureStreamGraph();
         const ctx = new AudioContextClass();
         const analyser = ctx.createAnalyser();
         analyser.fftSize = 1024;
-
-        const captureStream = (
-          audio as HTMLAudioElement & { captureStream?: () => MediaStream }
-        ).captureStream?.bind(audio);
-
-        let source: MediaElementAudioSourceNode | MediaStreamAudioSourceNode;
-        if (captureStream) {
-          captureStreamRef.current = captureStream();
-          source = ctx.createMediaStreamSource(captureStreamRef.current);
-          source.connect(analyser);
-        } else {
-          source = ctx.createMediaElementSource(audio);
-          source.connect(analyser);
-          analyser.connect(ctx.destination);
-        }
-
+        captureStreamRef.current = captureStream();
+        const source = ctx.createMediaStreamSource(captureStreamRef.current);
+        source.connect(analyser);
         audioCtxRef.current = ctx;
         analyserRef.current = analyser;
         sourceRef.current = source;
         setAnalyserReady(true);
-      } catch {
-        /* audio without EQ */
+      } else if (!sourceRef.current) {
+        const ctx = new AudioContextClass();
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 1024;
+        const source = ctx.createMediaElementSource(audio);
+        source.connect(analyser);
+        analyser.connect(ctx.destination);
+        audioCtxRef.current = ctx;
+        analyserRef.current = analyser;
+        sourceRef.current = source;
+        setAnalyserReady(true);
       }
+    } catch {
+      /* audio without EQ */
     }
 
     if (audioCtxRef.current?.state === "suspended") {
       await audioCtxRef.current.resume();
     }
-  }, []);
+  }, [releaseCaptureStreamGraph]);
 
   const scheduleAndroidEq = useCallback(() => {
     if (!nfcPreferNativeAudioPlayback()) return;
@@ -246,6 +276,10 @@ export function NfcPlayerV2({
         window.clearTimeout(androidEqTimerRef.current);
         androidEqTimerRef.current = null;
       }
+      if (nfcPreferNativeAudioPlayback()) {
+        releaseCaptureStreamGraph();
+        setAnalyserReady(false);
+      }
       if (autoPlay) {
         setPaused(false);
       }
@@ -267,7 +301,7 @@ export function NfcPlayerV2({
         return false;
       }
     },
-    [onPlaybackError, playPreparedAudio]
+    [onPlaybackError, playPreparedAudio, releaseCaptureStreamGraph]
   );
 
   const playCurrent = useCallback(async () => {
@@ -355,8 +389,9 @@ export function NfcPlayerV2({
       if (androidEqTimerRef.current) {
         window.clearTimeout(androidEqTimerRef.current);
       }
+      releaseCaptureStreamGraph();
     },
-    []
+    [releaseCaptureStreamGraph]
   );
 
   useEffect(() => {

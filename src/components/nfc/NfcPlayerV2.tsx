@@ -504,30 +504,8 @@ export function NfcPlayerV2({
             }}
           />
 
-          <button
-            type="button"
-            className="absolute bg-transparent p-0"
-            style={{ ...nfcV2RectStyle(NFC_V2_RECTS.skipForward), zIndex: NFC_V2_Z.controls }}
-            onClick={() => void goToTrack(trackIndex + 1, "fwd")}
-            aria-label="Next track"
-          />
-          <button
-            type="button"
-            className="absolute bg-transparent p-0"
-            style={{ ...nfcV2RectStyle(NFC_V2_RECTS.stopRedplay), zIndex: NFC_V2_Z.controls }}
-            onClick={handleStop}
-            aria-label={paused ? "Play" : "Pause"}
-          />
-          <button
-            type="button"
-            className="absolute bg-transparent p-0"
-            style={{ ...nfcV2RectStyle(NFC_V2_RECTS.skipBack), zIndex: NFC_V2_Z.controls }}
-            onClick={() => void goToTrack(trackIndex - 1, "back")}
-            aria-label="Previous track"
-          />
-
           <div
-            className="absolute overflow-visible"
+            className="pointer-events-none absolute overflow-visible"
             style={{
               ...nfcV2TextLayerOuterStyle(NFC_V2_RECTS.textSongtitle, NFC_V2_TEXT_SONGTITLE),
               zIndex: NFC_V2_Z.textSongtitle,
@@ -543,14 +521,14 @@ export function NfcPlayerV2({
           </div>
 
           <div
-            className="absolute overflow-visible"
+            className="pointer-events-none absolute overflow-visible"
             style={{
               ...nfcV2TextLayerOuterStyle(NFC_V2_RECTS.textTime, NFC_V2_TEXT_TIME),
               zIndex: NFC_V2_Z.textTime,
             }}
           >
             <p
-              className="flex h-full w-full items-center font-bold text-white"
+              className="flex h-full w-full items-center justify-center text-center font-bold text-white"
               style={{ ...nfcV2TextLayerInnerStyle(NFC_V2_TEXT_TIME), fontSize: 20 }}
             >
               {formatPlayTime(progress)}
@@ -576,8 +554,42 @@ export function NfcPlayerV2({
             </p>
           </div>
 
+          <button
+            type="button"
+            className="absolute border-0 bg-transparent p-0"
+            style={{
+              ...nfcV2RectStyle(NFC_V2_RECTS.skipForward),
+              zIndex: NFC_V2_Z.controls,
+              touchAction: "manipulation",
+            }}
+            onClick={() => void goToTrack(trackIndex + 1, "fwd")}
+            aria-label="Next track"
+          />
+          <button
+            type="button"
+            className="absolute border-0 bg-transparent p-0"
+            style={{
+              ...nfcV2RectStyle(paused ? NFC_V2_RECTS.stopRedplay : NFC_V2_RECTS.stop),
+              zIndex: NFC_V2_Z.controls,
+              touchAction: "manipulation",
+            }}
+            onClick={() => void handleStop()}
+            aria-label={paused ? "Play" : "Pause"}
+          />
+          <button
+            type="button"
+            className="absolute border-0 bg-transparent p-0"
+            style={{
+              ...nfcV2RectStyle(NFC_V2_RECTS.skipBack),
+              zIndex: NFC_V2_Z.controls,
+              touchAction: "manipulation",
+            }}
+            onClick={() => void goToTrack(trackIndex - 1, "back")}
+            aria-label="Previous track"
+          />
+
           {playbackError ? (
-            <p className="absolute bottom-2 left-2 right-2 z-20 text-center text-xs text-red-300">
+            <p className="pointer-events-none absolute bottom-2 left-2 right-2 z-20 text-center text-xs text-red-300">
               {playbackError}
             </p>
           ) : null}

@@ -55,7 +55,7 @@ export const NFC_V2_Z = {
   textSongtitle: 14,
   textTime: 15,
   textDesktopcode: 16,
-  controls: 20,
+  controls: 30,
 } as const;
 
 export function nfcV2SliderRatioFromPoint(x: number, y: number): number {
@@ -88,13 +88,13 @@ export type NfcV2TextLayerTweak = {
 export const NFC_V2_TEXT_DEBUG_FRAMES = false;
 
 export const NFC_V2_TEXT_SONGTITLE: NfcV2TextLayerTweak = {
-  scale: 1,
+  scale: 1.25,
   nudgeX: 0,
   nudgeY: 0,
 };
 
 export const NFC_V2_TEXT_TIME: NfcV2TextLayerTweak = {
-  scale: 1,
+  scale: 1.5,
   nudgeX: 0,
   nudgeY: 0,
 };

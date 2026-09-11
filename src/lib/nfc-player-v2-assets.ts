@@ -11,7 +11,9 @@ export const NFC_PLAYER_V2_ASSETS = {
   skipForward: "/nfc/player-v2/skip-forward.png",
   skipOnFwd: "/nfc/player-v2/skip-on-fwd.png",
   stop: "/nfc/player-v2/stop.png",
+  /** Visible while paused — play (red) overlay at stop redplay. */
   stopOn: "/nfc/player-v2/stop-on.png",
+  stopRedplay: "/nfc/player-v2/stop-on.png",
   skipBack: "/nfc/player-v2/skip-back.png",
   skipOnBack: "/nfc/player-v2/skip-on-back.png",
   sliderKnob: "/nfc/player-v2/slider-knob.png",
@@ -19,4 +21,6 @@ export const NFC_PLAYER_V2_ASSETS = {
 } as const;
 
 export const NFC_CD_RPM = 200;
+/** Seconds to ease CD from standstill to full RPM after Play. */
+export const NFC_CD_SPIN_RAMP_SEC = 2.8;
 export const NFC_SKIP_FLASH_MS = 220;

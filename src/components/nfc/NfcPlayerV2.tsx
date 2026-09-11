@@ -5,7 +5,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { PressEqWaves } from "@/components/press/PressEqWaves";
 import { NfcMarqueeTitle } from "@/components/nfc/NfcMarqueeTitle";
 import { nfcPrepareAudioPlayback, useNfcCdRotation } from "@/hooks/useNfcCdRotation";
-import { NFC_CD_RPM, NFC_PLAYER_V2_ASSETS, NFC_SKIP_FLASH_MS } from "@/lib/nfc-player-v2-assets";
+import {
+  NFC_CD_RPM,
+  NFC_CD_SPIN_RAMP_SEC,
+  NFC_PLAYER_V2_ASSETS,
+  NFC_SKIP_FLASH_MS,
+} from "@/lib/nfc-player-v2-assets";
 import {
   NFC_V2_GESTELL_BLEED_TOP,
   NFC_V2_HEIGHT,
@@ -83,7 +88,7 @@ export function NfcPlayerV2({
 }: NfcPlayerV2Props) {
   const [trackIndex, setTrackIndex] = useState(0);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
-  const [paused, setPaused] = useState(false);
+  const [paused, setPaused] = useState(true);
   const [gestellSrc, setGestellSrc] = useState<string>(NFC_PLAYER_V2_ASSETS.gestell);
   const [knobDragRatio, setKnobDragRatio] = useState<number | null>(null);
   const [progress, setProgress] = useState(0);
@@ -112,9 +117,8 @@ export function NfcPlayerV2({
   const progressRatio = duration > 0 ? progress / duration : 0;
   const sliderRatio = knobDragRatio ?? progressRatio;
   const knobPos = nfcV2SliderPosition(sliderRatio);
-  /** Spin whenever not paused (open = play intent); avoids missing first `play` event after `load()`. */
-  const cdSpinActive = !paused && tracks.length > 0;
-  useNfcCdRotation(cdSpinRef, cdSpinActive, NFC_CD_RPM);
+  const cdSpinActive = !paused && isAudioPlaying;
+  useNfcCdRotation(cdSpinRef, cdSpinActive, NFC_CD_RPM, NFC_CD_SPIN_RAMP_SEC);
 
   useEffect(() => {
     const el = viewportRef.current;
@@ -255,8 +259,9 @@ export function NfcPlayerV2({
     if (tracks.length === 0 || autoplayDone) return;
     setAutoplayDone(true);
     setTrackIndex(0);
-    setPaused(false);
-    void loadTrack(0, true);
+    setPaused(true);
+    setIsAudioPlaying(false);
+    void loadTrack(0, false);
   }, [autoplayDone, loadTrack, tracks.length]);
 
   useEffect(() => {
@@ -390,7 +395,7 @@ export function NfcPlayerV2({
                 atmosphere="club"
                 analyser={analyserReady ? analyserRef.current : null}
                 visible
-                active={isAudioPlaying}
+                active={isAudioPlaying && !paused}
                 className="h-full w-full"
                 renderBoost={1.35}
               />
@@ -453,8 +458,8 @@ export function NfcPlayerV2({
           />
           <LayerImage src={NFC_PLAYER_V2_ASSETS.stop} rect={NFC_V2_RECTS.stop} zIndex={NFC_V2_Z.stop} />
           <LayerImage
-            src={NFC_PLAYER_V2_ASSETS.stopOn}
-            rect={NFC_V2_RECTS.stopOn}
+            src={NFC_PLAYER_V2_ASSETS.stopRedplay}
+            rect={NFC_V2_RECTS.stopRedplay}
             zIndex={NFC_V2_Z.stopOn}
             style={{ opacity: paused ? 1 : 0, transition: "opacity 300ms ease" }}
           />
@@ -509,9 +514,9 @@ export function NfcPlayerV2({
           <button
             type="button"
             className="absolute bg-transparent p-0"
-            style={{ ...nfcV2RectStyle(NFC_V2_RECTS.stop), zIndex: NFC_V2_Z.controls }}
+            style={{ ...nfcV2RectStyle(NFC_V2_RECTS.stopRedplay), zIndex: NFC_V2_Z.controls }}
             onClick={handleStop}
-            aria-label={paused ? "Resume" : "Pause"}
+            aria-label={paused ? "Play" : "Pause"}
           />
           <button
             type="button"
@@ -532,7 +537,7 @@ export function NfcPlayerV2({
               <NfcMarqueeTitle
                 title={(activeTrack?.title ?? "").toUpperCase()}
                 className="flex h-full w-full items-center"
-                style={{ color: "#000", fontSize: 20, fontWeight: 700 }}
+                style={{ color: "#000", fontSize: 22, fontWeight: 700 }}
               />
             </div>
           </div>
@@ -546,7 +551,7 @@ export function NfcPlayerV2({
           >
             <p
               className="flex h-full w-full items-center font-bold text-white"
-              style={{ ...nfcV2TextLayerInnerStyle(NFC_V2_TEXT_TIME), fontSize: 18 }}
+              style={{ ...nfcV2TextLayerInnerStyle(NFC_V2_TEXT_TIME), fontSize: 20 }}
             >
               {formatPlayTime(progress)}
             </p>

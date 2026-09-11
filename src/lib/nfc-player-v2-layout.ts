@@ -27,11 +27,13 @@ export const NFC_V2_RECTS = {
   skipForward: { left: 352, top: 418, width: 66, height: 72 },
   skipOnFwd: { left: 362, top: 424, width: 46, height: 51 },
   stop: { left: 353, top: 514, width: 64, height: 64 },
+  /** Pause state overlay — play symbol (stop redplay). */
+  stopRedplay: { left: 364, top: 517, width: 42, height: 42 },
   stopOn: { left: 364, top: 517, width: 42, height: 42 },
   skipBack: { left: 353, top: 586, width: 64, height: 70 },
   skipOnBack: { left: 364, top: 602, width: 42, height: 48 },
-  textSongtitle: { left: 350, top: 530, width: 328, height: 50 },
-  textTime: { left: 130, top: 620, width: 186, height: 50 },
+  textSongtitle: { left: 48, top: 509, width: 269, height: 260 },
+  textTime: { left: 82, top: 584, width: 235, height: 190 },
   textDesktopcode: { left: 39, top: 150, width: 370, height: 63 },
 } as const satisfies Record<string, NfcV2Rect>;
 
@@ -82,14 +84,17 @@ export type NfcV2TextLayerTweak = {
   nudgeY: number;
 };
 
+/** Set true only to show XD marker frames (#FF0000) while tuning. */
+export const NFC_V2_TEXT_DEBUG_FRAMES = false;
+
 export const NFC_V2_TEXT_SONGTITLE: NfcV2TextLayerTweak = {
-  scale: 2,
+  scale: 1,
   nudgeX: 0,
   nudgeY: 0,
 };
 
 export const NFC_V2_TEXT_TIME: NfcV2TextLayerTweak = {
-  scale: 2.5,
+  scale: 1,
   nudgeX: 0,
   nudgeY: 0,
 };
@@ -102,6 +107,9 @@ export function nfcV2TextLayerOuterStyle(rect: NfcV2Rect, tweak: NfcV2TextLayerT
     height: rect.height,
     transform: `rotate(${NFC_V2_TEXT_ROTATION_DEG}deg)`,
     transformOrigin: "50% 50%",
+    ...(NFC_V2_TEXT_DEBUG_FRAMES
+      ? { outline: "2px solid #FF0000", outlineOffset: -1 }
+      : {}),
   };
 }
 

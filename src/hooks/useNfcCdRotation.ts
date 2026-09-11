@@ -15,7 +15,8 @@ export function nfcCdDegreesPerSecond(rpm: number): number {
 export function useNfcCdRotation(
   targetRef: RefObject<HTMLElement | null>,
   spinActive: boolean,
-  rpm: number
+  rpm: number,
+  rampSec = 2.8
 ): void {
   const angleRef = useRef(0);
   const velocityRef = useRef(0);
@@ -28,7 +29,9 @@ export function useNfcCdRotation(
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       const targetVel = spinActive ? nfcCdDegreesPerSecond(rpm) : 0;
-      velocityRef.current += (targetVel - velocityRef.current) * Math.min(1, 5 * dt);
+      const rampUp = rampSec > 0 ? 3 / rampSec : 5;
+      const blend = spinActive ? rampUp : 6;
+      velocityRef.current += (targetVel - velocityRef.current) * Math.min(1, blend * dt);
       angleRef.current += velocityRef.current * dt;
       const el = targetRef.current;
       if (el) {
@@ -39,7 +42,7 @@ export function useNfcCdRotation(
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [spinActive, rpm, targetRef]);
+  }, [spinActive, rampSec, rpm, targetRef]);
 }
 
 function waitForCanPlay(audio: HTMLAudioElement): Promise<void> {

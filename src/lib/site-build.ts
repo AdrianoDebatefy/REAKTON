@@ -1,2 +1,2 @@
 /** Shown in Admin footer — verify you run the expected build after git pull. */
-export const SITE_BUILD_LABEL = "nfc-player-v2-autoplay-cd-2026-09-10";
+export const SITE_BUILD_LABEL = "nfc-player-v2-pause-play-text-2026-09-11";

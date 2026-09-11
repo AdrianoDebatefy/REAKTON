@@ -25,6 +25,18 @@ ls -lh /tmp/reakton-mp3-test.mp3
 
 **Schlecht:** lange Wartezeit, kein `Accept-Ranges`, oder Traffic fühlt sich wie „hängender“ Download an.
 
+## NFC-Scan 404 nach Static-Snippet
+
+Wenn `location /nfc/` auf `public/nfc/` zeigt, fängt Nginx **`/nfc/tap`** ab (NFC-URL der Karte) — Next.js kommt nie dran → **404**.
+
+**Fix:** Im Snippet nur **`/nfc/player-v2/`** statisch ausliefern (siehe `reakton-static-locations.conf`). Danach:
+
+```bash
+sudo cp /var/www/reakton/deploy/netcup/reakton-static-locations.conf /etc/nginx/snippets/reakton-static.conf
+sudo nginx -t && sudo systemctl reload nginx
+curl -sI "https://reakton.de/nfc/tap?card=test" | head -3   # 400 oder 302, nicht 404
+```
+
 ## Häufiger Fehler: `duplicate location "/uploads/"`
 
 Pro `server { }` Block **entweder** `include …reakton-static.conf` **oder** manuelle `location /uploads/` — **nicht beides**.

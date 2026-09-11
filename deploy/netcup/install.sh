@@ -46,9 +46,19 @@ else
 fi
 
 if [[ -f deploy/netcup/reakton-static-locations.conf ]] && [[ -d /etc/nginx/snippets ]]; then
-  cp deploy/netcup/reakton-static-locations.conf /etc/nginx/snippets/reakton-static.conf
-  echo "==> Nginx snippet: /etc/nginx/snippets/reakton-static.conf"
-  echo "    SSL-Block (443) muss 'include /etc/nginx/snippets/reakton-static.conf;' haben — siehe deploy/netcup/README-NGINX-SSL-UPLOADS.md"
+  SNIPPET_DEST="/etc/nginx/snippets/reakton-static.conf"
+  if cp deploy/netcup/reakton-static-locations.conf "$SNIPPET_DEST" 2>/dev/null; then
+    echo "==> Nginx snippet: $SNIPPET_DEST"
+  elif sudo cp deploy/netcup/reakton-static-locations.conf "$SNIPPET_DEST" 2>/dev/null; then
+    echo "==> Nginx snippet (sudo): $SNIPPET_DEST"
+  else
+    echo "==> Nginx snippet NICHT installiert (keine Rechte). Einmalig als root:"
+    echo "    sudo cp ${APP_DIR}/deploy/netcup/reakton-static-locations.conf ${SNIPPET_DEST}"
+    echo "    Dann in /etc/nginx/sites-available/reakton.de im server { listen 443 ... } Block:"
+    echo "      include /etc/nginx/snippets/reakton-static.conf;"
+    echo "    sudo nginx -t && sudo systemctl reload nginx"
+    echo "    Details: deploy/netcup/README-NGINX-SSL-UPLOADS.md"
+  fi
 fi
 
 echo ""

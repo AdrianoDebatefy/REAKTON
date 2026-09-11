@@ -80,6 +80,8 @@ function LayerImage({
     <img
       src={src}
       alt=""
+      decoding="async"
+      loading="eager"
       className={`pointer-events-none absolute ${className}`}
       style={{ ...nfcV2RectStyle(rect), objectFit, zIndex, ...style }}
       draggable={false}
@@ -168,19 +170,27 @@ export function NfcPlayerV2({
     }
   }, []);
 
-  const prefetchAroundIndex = useCallback((index: number) => {
-    const list = tracksRef.current;
-    if (list.length === 0) return;
-    const neighbors = new Set<number>([
-      index,
-      (index + 1) % list.length,
-      (index - 1 + list.length) % list.length,
-    ]);
-    for (const i of neighbors) {
-      const url = list[i]?.audioUrl?.trim();
-      if (url) nfcPrefetchAudio(url);
+  const prefetchTimerRef = useRef<number | null>(null);
+
+  const schedulePrefetchNextTrack = useCallback((index: number) => {
+    if (prefetchTimerRef.current) {
+      window.clearTimeout(prefetchTimerRef.current);
     }
+    prefetchTimerRef.current = window.setTimeout(() => {
+      prefetchTimerRef.current = null;
+      const list = tracksRef.current;
+      if (list.length < 2) return;
+      const nextUrl = list[(index + 1) % list.length]?.audioUrl?.trim();
+      if (nextUrl) nfcPrefetchAudio(nextUrl);
+    }, 3000);
   }, []);
+
+  useEffect(
+    () => () => {
+      if (prefetchTimerRef.current) window.clearTimeout(prefetchTimerRef.current);
+    },
+    []
+  );
 
   const playPreparedAudio = useCallback(async () => {
     const audio = audioRef.current;
@@ -213,10 +223,8 @@ export function NfcPlayerV2({
       }
 
       try {
-        await nfcPrepareAudioPlayback(audio, track.audioUrl, {
-          preferFullBuffer: autoPlay,
-        });
-        prefetchAroundIndex(index);
+        await nfcPrepareAudioPlayback(audio, track.audioUrl);
+        schedulePrefetchNextTrack(index);
 
         if (!autoPlay) {
           trackLoadingRef.current = false;
@@ -234,7 +242,7 @@ export function NfcPlayerV2({
         return false;
       }
     },
-    [onPlaybackError, playPreparedAudio, prefetchAroundIndex]
+    [onPlaybackError, playPreparedAudio, schedulePrefetchNextTrack]
   );
 
   const playCurrent = useCallback(async () => {
@@ -246,15 +254,20 @@ export function NfcPlayerV2({
       return;
     }
 
+    trackLoadingRef.current = true;
     try {
-      await nfcPrepareAudioPlayback(audio, track.audioUrl, { preferFullBuffer: true });
-      prefetchAroundIndex(trackIndexRef.current);
+      await nfcPrepareAudioPlayback(audio, track.audioUrl);
+      schedulePrefetchNextTrack(trackIndexRef.current);
       await playPreparedAudio();
       onPlaybackError(null);
     } catch {
       onPlaybackError("playback_failed");
+      setIsAudioPlaying(false);
+      setPaused(true);
+    } finally {
+      trackLoadingRef.current = false;
     }
-  }, [onPlaybackError, playPreparedAudio, prefetchAroundIndex]);
+  }, [onPlaybackError, playPreparedAudio, schedulePrefetchNextTrack]);
 
   const pauseCurrent = useCallback(() => {
     const audio = audioRef.current;
@@ -371,11 +384,6 @@ export function NfcPlayerV2({
       audio.removeEventListener("canplay", onCanPlayAfterWait);
     };
   }, [goToTrack]);
-
-  useEffect(() => {
-    if (tracks.length === 0) return;
-    prefetchAroundIndex(0);
-  }, [tracks, prefetchAroundIndex]);
 
   const pointerToArtboard = useCallback((clientX: number, clientY: number) => {
     const artboard = artboardRef.current;

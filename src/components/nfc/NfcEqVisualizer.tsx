@@ -14,7 +14,7 @@ const MIN_HZ = 50;
 const MAX_HZ = 14_000;
 const DEFAULT_SAMPLE_RATE = 44_100;
 const IDLE = 0.06;
-const LABEL_COLUMN = 80;
+const LABEL_TEXT_PAD = 6;
 
 const DYNAMICS = {
   SESSION_PEAK_DECAY: 0.996,
@@ -66,6 +66,42 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
+function barLengths(
+  e: number,
+  t: number,
+  maxLeft: number,
+  maxRight: number
+): { leftLen: number; rightLen: number } {
+  const taper = 0.55 + 0.45 * Math.sin(t * Math.PI);
+  return {
+    leftLen: e * maxLeft * taper * (0.92 + 0.08 * (1 - t)),
+    rightLen: e * maxRight * taper * (0.88 + 0.12 * t),
+  };
+}
+
+function strokeBarFade(
+  ctx: CanvasRenderingContext2D,
+  xStart: number,
+  xEnd: number,
+  y: number,
+  r: number,
+  g: number,
+  b: number,
+  peakAlpha: number
+) {
+  const grad = ctx.createLinearGradient(xStart, y, xEnd, y);
+  grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${peakAlpha})`);
+  grad.addColorStop(0.45, `rgba(${r}, ${g}, ${b}, ${peakAlpha * 0.75})`);
+  grad.addColorStop(0.82, `rgba(${Math.round(r * 0.35)}, ${Math.round(g * 0.35)}, ${Math.round(b * 0.35)}, ${peakAlpha * 0.25})`);
+  grad.addColorStop(1, "rgba(0, 0, 0, 0.02)");
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(xStart, y);
+  ctx.lineTo(xEnd, y);
+  ctx.stroke();
+}
+
 function drawRibbon(
   ctx: CanvasRenderingContext2D,
   centerX: number,
@@ -99,6 +135,32 @@ function drawRibbon(
   }
 
   ctx.restore();
+}
+
+function drawMeterLabel(
+  ctx: CanvasRenderingContext2D,
+  label: string,
+  dotX: number,
+  y: number,
+  side: "left" | "right",
+  dotRgb: [number, number, number]
+) {
+  ctx.fillStyle = `rgba(${dotRgb[0]}, ${dotRgb[1]}, ${dotRgb[2]}, 0.95)`;
+  ctx.beginPath();
+  ctx.arc(dotX, y, 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.shadowColor = "rgba(0,0,0,0.9)";
+  ctx.shadowBlur = 4;
+  ctx.fillStyle = "rgba(255, 255, 255, 0.98)";
+  if (side === "right") {
+    ctx.textAlign = "left";
+    ctx.fillText(label, dotX + LABEL_TEXT_PAD, y);
+  } else {
+    ctx.textAlign = "right";
+    ctx.fillText(label, dotX - LABEL_TEXT_PAD, y);
+  }
+  ctx.shadowBlur = 0;
 }
 
 export function NfcEqVisualizer({
@@ -163,8 +225,8 @@ export function NfcEqVisualizer({
 
       const centerX = width / 2;
       const time = performance.now() / 1000;
-      const maxLeft = Math.max(24, centerX - 8);
-      const maxRight = Math.max(24, width - centerX - LABEL_COLUMN);
+      const maxLeft = Math.max(20, centerX - 6);
+      const maxRight = Math.max(20, width - centerX - 6);
 
       ctx.clearRect(0, 0, width, height);
 
@@ -243,24 +305,18 @@ export function NfcEqVisualizer({
         const t = row / (BAR_ROWS - 1);
         const y = t * height;
         const e = smooth[row]!;
-        const taper = 0.55 + 0.45 * Math.sin(t * Math.PI);
-        const leftLen = e * maxLeft * taper * (0.92 + 0.08 * (1 - t));
-        const rightLen = e * maxRight * taper * (0.88 + 0.12 * t);
+        const { leftLen, rightLen } = barLengths(e, t, maxLeft, maxRight);
 
+        const lr = Math.round(lerp(40, 120, t));
+        const lg = Math.round(lerp(160, 220, t));
         const leftAlpha = 0.25 + e * 0.75;
-        ctx.strokeStyle = `rgba(${Math.round(lerp(40, 120, t))}, ${Math.round(lerp(160, 220, t))}, 255, ${leftAlpha})`;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(centerX, y);
-        ctx.lineTo(centerX - leftLen, y);
-        ctx.stroke();
+        strokeBarFade(ctx, centerX, centerX - leftLen, y, lr, lg, 255, leftAlpha);
 
+        const rr = 255;
+        const rg = Math.round(lerp(90, 200, t));
+        const rb = Math.round(lerp(50, 80, 1 - t));
         const rightAlpha = 0.25 + e * 0.8;
-        ctx.strokeStyle = `rgba(255, ${Math.round(lerp(90, 200, t))}, ${Math.round(lerp(50, 80, 1 - t))}, ${rightAlpha})`;
-        ctx.beginPath();
-        ctx.moveTo(centerX, y);
-        ctx.lineTo(centerX + rightLen, y);
-        ctx.stroke();
+        strokeBarFade(ctx, centerX, centerX + rightLen, y, rr, rg, rb, rightAlpha);
       }
 
       ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
@@ -272,8 +328,6 @@ export function NfcEqVisualizer({
 
       ctx.font = `600 15px ${labelFontFamily()}, sans-serif`;
       ctx.textBaseline = "middle";
-      ctx.textAlign = "right";
-      const labelX = width - 6;
 
       for (let i = 0; i < LABEL_COUNT; i += 1) {
         const t = (i + 0.5) / LABEL_COUNT;
@@ -283,19 +337,27 @@ export function NfcEqVisualizer({
         const e = smooth[row]!;
         const pegel = Math.min(99, Math.max(1, Math.round(e * 99)));
         const label = `${formatHz(hz)} ${pegel}`;
-        const textW = ctx.measureText(label).width;
-        const dotX = labelX - textW - 10;
+        const { leftLen, rightLen } = barLengths(e, t, maxLeft, maxRight);
 
-        ctx.fillStyle = `rgba(255, ${140 + Math.round(60 * t)}, 80, 0.95)`;
-        ctx.beginPath();
-        ctx.arc(dotX, y, 3, 0, Math.PI * 2);
-        ctx.fill();
+        const rightDotX = centerX + rightLen;
+        drawMeterLabel(
+          ctx,
+          label,
+          rightDotX,
+          y,
+          "right",
+          [255, 140 + Math.round(60 * t), 80]
+        );
 
-        ctx.shadowColor = "rgba(0,0,0,0.85)";
-        ctx.shadowBlur = 4;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.98)";
-        ctx.fillText(label, labelX, y);
-        ctx.shadowBlur = 0;
+        const leftDotX = centerX - leftLen;
+        drawMeterLabel(
+          ctx,
+          label,
+          leftDotX,
+          y,
+          "left",
+          [80, 180 + Math.round(40 * t), 255]
+        );
       }
     };
 

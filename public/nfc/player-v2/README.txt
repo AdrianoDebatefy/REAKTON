@@ -7,5 +7,4 @@ Slider: 0%/100% = knob center at (28,706) → (290,503). Tune line: NFC_V2_SLIDE
 Fullscreen: 272×282 154×70 → full-screen.png
 Replace .png with .svg using the same filenames when exported from XD.
 
-Gestell: use gestell.svg at X:0 Y:-24 (430×956). SVG may extend above the artboard — 24px bleed is allowed at the top.
-Replace gestell.svg with your XD vector export (overwrites the temporary PNG-embed stub).
+Gestell: gestell.png at X:0 Y:-24 (430×956). Primary asset (PNG); gestell.svg kept for optional revert.

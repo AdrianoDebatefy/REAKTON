@@ -15,9 +15,9 @@ const MAX_HZ = 14_000;
 const DEFAULT_SAMPLE_RATE = 44_100;
 const IDLE = 0.06;
 const LABEL_TEXT_PAD = 6;
-/** Max bar + label reach vs. half-width (15 % inward so Hz labels stay inside). */
-const METER_REACH = 0.85;
-/** Center ribbon half-width (was 14px → +50 %). */
+/** Max bar + label reach vs. half-width (inset so Hz labels stay inside). */
+const METER_REACH = 0.85 * 0.8;
+/** Center wave-monitor ribbon base half-width. */
 const RIBBON_HALF_BASE = 21;
 
 const DYNAMICS = {
@@ -27,6 +27,8 @@ const DYNAMICS = {
   LOUDNESS_EXPONENT: 0.55,
   POINT_ATTACK: 0.38,
   POINT_RELEASE: 0.72,
+  RIBBON_ATTACK: 0.48,
+  RIBBON_RELEASE: 0.76,
 } as const;
 
 function labelFontFamily(): string {
@@ -106,43 +108,114 @@ function strokeBarFade(
   ctx.stroke();
 }
 
-function drawRibbon(
+function waveSampleAtY(
+  y: number,
+  height: number,
+  timeDomain: Uint8Array,
+  scroll: number
+): number {
+  const n = timeDomain.length;
+  if (n < 2) return 0;
+  const span = n * 0.92;
+  const pos = scroll + (y / height) * span;
+  const idx = Math.floor(pos) % n;
+  const next = (idx + 1) % n;
+  const frac = pos - Math.floor(pos);
+  const v = timeDomain[idx]! * (1 - frac) + timeDomain[next]! * frac;
+  return (v - 128) / 128;
+}
+
+function drawRibbonWaveMonitor(
   ctx: CanvasRenderingContext2D,
   centerX: number,
   height: number,
   energies: number[],
+  ribbonHalf: number[],
+  timeDomain: Uint8Array | null,
   time: number,
-  active: boolean,
-  musicLevel: number
+  active: boolean
 ) {
+  const step = Math.max(2, Math.floor(height / 120));
+  const scroll = active && timeDomain ? time * 42 : 0;
+
+  for (let row = 0; row < BAR_ROWS; row += 1) {
+    const e = energies[row] ?? IDLE;
+    let wave = 0;
+    if (active && timeDomain) {
+      const yMid = ((row + 0.5) / BAR_ROWS) * height;
+      wave = waveSampleAtY(yMid, height, timeDomain, scroll);
+    } else {
+      wave = 0.04 * Math.sin(time * 2.4 + row * 0.11);
+    }
+
+    const specDrive = active ? Math.min(1.35, e * 1.6) : IDLE;
+    const waveDrive = Math.min(1.2, Math.abs(wave) * 1.85);
+    const target =
+      RIBBON_HALF_BASE * (0.48 + specDrive * 0.55 + waveDrive * 0.95) +
+      Math.abs(wave) * RIBBON_HALF_BASE * 0.55;
+    const rate =
+      target > ribbonHalf[row]! ? DYNAMICS.RIBBON_ATTACK : DYNAMICS.RIBBON_RELEASE;
+    ribbonHalf[row] = ribbonHalf[row]! * rate + target * (1 - rate);
+  }
+
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
 
-  for (let y = 0; y < height; y += 2) {
+  const leftEdge: { x: number; y: number }[] = [];
+  const rightEdge: { x: number; y: number }[] = [];
+
+  for (let y = 0; y <= height; y += step) {
     const row = Math.min(BAR_ROWS - 1, Math.floor((y / height) * BAR_ROWS));
-    const e = energies[row] ?? IDLE;
-    const pulse = active
-      ? Math.min(1.2, e * 1.45 + musicLevel * 0.35)
-      : IDLE + 0.02 * Math.sin(time * 1.2 + y * 0.05);
-    const ribbonHalf =
-      RIBBON_HALF_BASE * (0.72 + pulse * 0.42 + musicLevel * 0.28);
-    const wobbleScale = 1 + musicLevel * 0.9 + pulse * 0.35;
-    const wobble =
-      (Math.sin(y * 0.045 + time * 2.1) * 4.5 +
-        Math.sin(y * 0.028 - time * 1.4) * 3.75) *
-      wobbleScale;
-    const alpha = 0.1 + pulse * 0.92 + musicLevel * 0.22;
-
-    const g = ctx.createLinearGradient(centerX - ribbonHalf, y, centerX + ribbonHalf, y);
-    g.addColorStop(0, `rgba(80, 200, 255, ${alpha * 0.35})`);
-    g.addColorStop(0.35, `rgba(255, 200, 120, ${alpha * 0.85})`);
-    g.addColorStop(0.5, `rgba(255, 255, 240, ${Math.min(1, alpha * 1.1)})`);
-    g.addColorStop(0.65, `rgba(255, 140, 60, ${alpha * 0.8})`);
-    g.addColorStop(1, `rgba(255, 70, 90, ${alpha * 0.4})`);
-
-    ctx.fillStyle = g;
-    ctx.fillRect(centerX - ribbonHalf + wobble, y, ribbonHalf * 2, 2);
+    const half = ribbonHalf[row] ?? RIBBON_HALF_BASE * 0.5;
+    let wave = 0;
+    if (active && timeDomain) {
+      wave = waveSampleAtY(y, height, timeDomain, scroll);
+    }
+    const skew = wave * half * 0.62;
+    leftEdge.push({ x: centerX - half + skew, y });
+    rightEdge.push({ x: centerX + half + skew, y });
   }
+
+  if (leftEdge.length < 2) {
+    ctx.restore();
+    return;
+  }
+
+  ctx.beginPath();
+  ctx.moveTo(leftEdge[0]!.x, leftEdge[0]!.y);
+  for (let i = 1; i < leftEdge.length; i += 1) {
+    ctx.lineTo(leftEdge[i]!.x, leftEdge[i]!.y);
+  }
+  for (let i = rightEdge.length - 1; i >= 0; i -= 1) {
+    ctx.lineTo(rightEdge[i]!.x, rightEdge[i]!.y);
+  }
+  ctx.closePath();
+
+  const g = ctx.createLinearGradient(centerX - RIBBON_HALF_BASE * 1.8, 0, centerX + RIBBON_HALF_BASE * 1.8, 0);
+  g.addColorStop(0, "rgba(70, 190, 255, 0.22)");
+  g.addColorStop(0.32, "rgba(255, 210, 130, 0.55)");
+  g.addColorStop(0.5, "rgba(255, 255, 245, 0.82)");
+  g.addColorStop(0.68, "rgba(255, 150, 70, 0.52)");
+  g.addColorStop(1, "rgba(255, 80, 100, 0.28)");
+  ctx.fillStyle = g;
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 0; i < leftEdge.length; i += 1) {
+    const p = leftEdge[i]!;
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
+  }
+  ctx.stroke();
+  ctx.beginPath();
+  for (let i = 0; i < rightEdge.length; i += 1) {
+    const p = rightEdge[i]!;
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
+  }
+  ctx.stroke();
 
   ctx.restore();
 }
@@ -189,6 +262,7 @@ export function NfcEqVisualizer({
   const smoothRef = useRef<number[]>(Array.from({ length: BAR_ROWS }, () => IDLE));
   const rawRef = useRef<number[]>(Array.from({ length: BAR_ROWS }, () => IDLE));
   const dynamicsRef = useRef({ sessionPeak: 0.1 });
+  const ribbonHalfRef = useRef<number[]>(Array.from({ length: BAR_ROWS }, () => RIBBON_HALF_BASE * 0.5));
   const logicalSizeRef = useRef({ width: 0, height: 0 });
 
   useEffect(() => {
@@ -200,6 +274,7 @@ export function NfcEqVisualizer({
       smoothRef.current = Array.from({ length: BAR_ROWS }, () => IDLE);
       rawRef.current = Array.from({ length: BAR_ROWS }, () => IDLE);
       dynamicsRef.current.sessionPeak = 0.1;
+      ribbonHalfRef.current = Array.from({ length: BAR_ROWS }, () => RIBBON_HALF_BASE * 0.5);
     }
   }, [active]);
 
@@ -224,6 +299,7 @@ export function NfcEqVisualizer({
     ro.observe(canvas);
 
     const buffer = analyser ? new Uint8Array(analyser.frequencyBinCount) : null;
+    const waveBuffer = analyser ? new Uint8Array(analyser.fftSize) : null;
     const smooth = smoothRef.current;
     const raw = rawRef.current;
     const dynamics = dynamicsRef.current;
@@ -248,6 +324,9 @@ export function NfcEqVisualizer({
 
       if (active && analyser && buffer) {
         analyser.getByteFrequencyData(buffer);
+        if (waveBuffer) {
+          analyser.getByteTimeDomainData(waveBuffer);
+        }
       }
 
       let rawSumSq = 0;
@@ -309,16 +388,16 @@ export function NfcEqVisualizer({
         smooth[row] = smooth[row]! * rate + target * (1 - rate);
       }
 
-      let ribbonMusic = 0;
-      if (active && buffer) {
-        let peakRow = 0;
-        for (let row = 0; row < BAR_ROWS; row += 1) {
-          peakRow = Math.max(peakRow, smooth[row]!);
-        }
-        ribbonMusic = Math.min(1, peakRow * 1.05 + (peak > 0 ? peak * 0.35 : 0));
-      }
-
-      drawRibbon(ctx, centerX, height, smooth, time, active, ribbonMusic);
+      drawRibbonWaveMonitor(
+        ctx,
+        centerX,
+        height,
+        smooth,
+        ribbonHalfRef.current,
+        active && waveBuffer ? waveBuffer : null,
+        time,
+        active
+      );
 
       for (let row = 0; row < BAR_ROWS; row += 1) {
         const t = row / (BAR_ROWS - 1);

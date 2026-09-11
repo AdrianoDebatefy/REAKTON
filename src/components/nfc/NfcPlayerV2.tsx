@@ -131,6 +131,8 @@ export function NfcPlayerV2({
   const trackIndexRef = useRef(trackIndex);
   const trackLoadingRef = useRef(false);
   const playbackIntentRef = useRef(false);
+  const advancingTrackRef = useRef(false);
+  const androidEqTimerRef = useRef<number | null>(null);
   const cdSpinRef = useRef<HTMLDivElement>(null);
 
   tracksRef.current = tracks;
@@ -199,6 +201,18 @@ export function NfcPlayerV2({
     }
   }, []);
 
+  const scheduleAndroidEq = useCallback(() => {
+    if (!nfcPreferNativeAudioPlayback()) return;
+    if (androidEqTimerRef.current) {
+      window.clearTimeout(androidEqTimerRef.current);
+    }
+    androidEqTimerRef.current = window.setTimeout(() => {
+      androidEqTimerRef.current = null;
+      if (!playbackIntentRef.current) return;
+      void ensureAudioGraph();
+    }, 2_500);
+  }, [ensureAudioGraph]);
+
   const playPreparedAudio = useCallback(async () => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -209,8 +223,10 @@ export function NfcPlayerV2({
 
     if (!nfcPreferNativeAudioPlayback()) {
       await ensureAudioGraph();
+    } else {
+      scheduleAndroidEq();
     }
-  }, [ensureAudioGraph]);
+  }, [ensureAudioGraph, scheduleAndroidEq]);
 
   const loadTrack = useCallback(
     async (index: number, autoPlay: boolean) => {
@@ -226,6 +242,10 @@ export function NfcPlayerV2({
       if (!audio) return false;
 
       trackLoadingRef.current = true;
+      if (androidEqTimerRef.current) {
+        window.clearTimeout(androidEqTimerRef.current);
+        androidEqTimerRef.current = null;
+      }
       if (autoPlay) {
         setPaused(false);
       }
@@ -298,15 +318,18 @@ export function NfcPlayerV2({
   }, []);
 
   const goToTrack = useCallback(
-    async (nextIndex: number, flash?: "back" | "fwd") => {
+    async (nextIndex: number, flash?: "back" | "fwd", autoPlay?: boolean) => {
       const list = tracksRef.current;
       if (list.length === 0) return;
       const wrapped = (nextIndex + list.length) % list.length;
       if (flash) flashSkip(flash);
+      advancingTrackRef.current = true;
       setTrackIndex(wrapped);
       setProgress(0);
       setDuration(0);
-      await loadTrack(wrapped, !paused);
+      const shouldPlay = autoPlay ?? !paused;
+      await loadTrack(wrapped, shouldPlay);
+      advancingTrackRef.current = false;
     },
     [flashSkip, loadTrack, paused]
   );
@@ -326,6 +349,15 @@ export function NfcPlayerV2({
     setPaused(true);
     setIsAudioPlaying(false);
   }, [autoplayDone, tracks.length]);
+
+  useEffect(
+    () => () => {
+      if (androidEqTimerRef.current) {
+        window.clearTimeout(androidEqTimerRef.current);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -359,14 +391,25 @@ export function NfcPlayerV2({
         return;
       }
 
-      void goToTrack(trackIndexRef.current + 1);
+      void goToTrack(trackIndexRef.current + 1, undefined, true);
     };
     const onPlay = () => {
       setIsAudioPlaying(true);
       setPaused(false);
     };
     const onPause = () => {
-      if (trackLoadingRef.current) return;
+      if (trackLoadingRef.current || advancingTrackRef.current) return;
+
+      const dur = audio.duration;
+      const t = audio.currentTime;
+      const atNaturalEnd =
+        Number.isFinite(dur) && dur > 0 && t >= dur - 0.75;
+      if (atNaturalEnd) {
+        setIsAudioPlaying(false);
+        setPaused(true);
+        return;
+      }
+
       if (nfcPreferNativeAudioPlayback() && playbackIntentRef.current) {
         void audio.play().catch(() => undefined);
         return;

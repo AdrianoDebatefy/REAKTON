@@ -23,6 +23,7 @@ function toPlayerTracks(tracks: NfcTrack[]): NfcPlayerV2Track[] {
     title: t.title,
     order: t.order,
     audioUrl: t.audioUrl,
+    sourceUrl: t.audioUrl,
   }));
 }
 

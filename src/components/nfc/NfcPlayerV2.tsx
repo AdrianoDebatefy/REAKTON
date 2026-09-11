@@ -2,7 +2,6 @@
 
 import { Doto, Rajdhani } from "next/font/google";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
 import { NfcEqVisualizer } from "@/components/nfc/NfcEqVisualizer";
 import { NfcMarqueeTitle } from "@/components/nfc/NfcMarqueeTitle";
 import { useNfcCdRotation } from "@/hooks/useNfcCdRotation";
@@ -113,7 +112,6 @@ export function NfcPlayerV2({
   playbackError,
   onPlaybackError,
 }: NfcPlayerV2Props) {
-  const t = useTranslations("nfcAlbum");
   const [trackIndex, setTrackIndex] = useState(0);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [paused, setPaused] = useState(true);
@@ -744,7 +742,7 @@ export function NfcPlayerV2({
                 className={`${rajdhani.className} text-center font-medium leading-tight text-white/90`}
                 style={{ fontSize: NFC_V2_TEXT_DESKTOPCODE.labelFontSize }}
               >
-                {t("pcCodeLabel")}
+                {NFC_V2_TEXT_DESKTOPCODE.label}
               </p>
               <p
                 className="truncate text-center font-bold text-white drop-shadow-md"

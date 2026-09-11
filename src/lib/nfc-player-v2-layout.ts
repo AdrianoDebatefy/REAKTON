@@ -191,6 +191,8 @@ export const NFC_V2_TEXT_DESKTOPCODE = {
   scale: 1.35,
   fontSize: 22,
   labelFontSize: 14,
+  /** English only — NFC player has no locale switch. */
+  label: "For use on your computer",
 } as const;
 
 export function nfcV2TextLayerOuterStyle(rect: NfcV2Rect, tweak: NfcV2TextLayerTweak) {

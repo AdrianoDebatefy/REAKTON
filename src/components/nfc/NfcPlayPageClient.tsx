@@ -6,7 +6,7 @@ import { Link } from "@/i18n/routing";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { NfcAlbumPreloadScreen } from "@/components/nfc/NfcAlbumPreloadScreen";
 import { NfcPlayerV2, type NfcPlayerV2Track } from "@/components/nfc/NfcPlayerV2";
-import { revokeNfcPreloadBlobs } from "@/lib/nfc-audio-preload";
+import { NfcPreloadTrackError, revokeNfcPreloadBlobs } from "@/lib/nfc-audio-preload";
 
 interface NfcTrack {
   id: string;
@@ -15,6 +15,15 @@ interface NfcTrack {
   audioUrl: string;
   coverImage?: string;
   order: number;
+}
+
+function toPlayerTracks(tracks: NfcTrack[]): NfcPlayerV2Track[] {
+  return tracks.map((t) => ({
+    id: t.id,
+    title: t.title,
+    order: t.order,
+    audioUrl: t.audioUrl,
+  }));
 }
 
 export function NfcPlayPageClient() {
@@ -28,8 +37,11 @@ export function NfcPlayPageClient() {
   const [tracksLoading, setTracksLoading] = useState(false);
   const [preloadedTracks, setPreloadedTracks] = useState<NfcPlayerV2Track[] | null>(null);
   const [preloadFailed, setPreloadFailed] = useState(false);
+  const [preloadFailDetail, setPreloadFailDetail] = useState<string | null>(null);
+  const [useStreamingFallback, setUseStreamingFallback] = useState(false);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const blobUrlsRef = useRef<string[]>([]);
+  const sessionEndAtRef = useRef(0);
 
   const refreshSession = useCallback(async () => {
     const res = await fetch("/api/nfc/session", { cache: "no-store" });
@@ -42,12 +54,17 @@ export function NfcPlayPageClient() {
     setAuthenticated(data.authenticated);
     setPcCode(data.pcCode);
     setRemainingMs(data.remainingMs ?? 0);
+    if (data.authenticated && data.remainingMs > 0) {
+      sessionEndAtRef.current = Date.now() + data.remainingMs;
+    }
     return data;
   }, []);
 
   const loadTracks = useCallback(async () => {
     setTracksLoading(true);
     setPreloadFailed(false);
+    setPreloadFailDetail(null);
+    setUseStreamingFallback(false);
     setPreloadedTracks(null);
     revokeNfcPreloadBlobs(blobUrlsRef.current);
     blobUrlsRef.current = [];
@@ -81,16 +98,17 @@ export function NfcPlayPageClient() {
   }, [authenticated, refreshSession]);
 
   useEffect(() => {
-    if (!authenticated || remainingMs <= 0) return;
-    const started = Date.now();
-    const initial = remainingMs;
+    if (!authenticated) return undefined;
+    if (sessionEndAtRef.current <= 0) {
+      sessionEndAtRef.current = Date.now() + remainingMs;
+    }
     const timer = window.setInterval(() => {
-      const next = Math.max(0, initial - (Date.now() - started));
+      const next = Math.max(0, sessionEndAtRef.current - Date.now());
       setRemainingMs(next);
       if (next <= 0) setAuthenticated(false);
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [authenticated, remainingMs]);
+  }, [authenticated]);
 
   useEffect(
     () => () => {
@@ -104,11 +122,26 @@ export function NfcPlayPageClient() {
     blobUrlsRef.current = blobs;
     setPreloadedTracks(ready);
     setPreloadFailed(false);
+    setPreloadFailDetail(null);
   }, []);
 
-  const handlePreloadError = useCallback(() => {
-    setPreloadFailed(true);
-  }, []);
+  const handlePreloadError = useCallback(
+    (error: unknown) => {
+      setPreloadFailed(true);
+      if (error instanceof NfcPreloadTrackError) {
+        setPreloadFailDetail(
+          t("preloadFailedAtTrack", {
+            title: error.trackTitle,
+            done: error.completedBeforeFail,
+            total: tracks.length,
+          })
+        );
+      } else {
+        setPreloadFailDetail(null);
+      }
+    },
+    [t, tracks.length]
+  );
 
   const handlePlaybackError = useCallback(
     (code: string | null) => {
@@ -167,17 +200,41 @@ export function NfcPlayPageClient() {
     );
   }
 
+  if (useStreamingFallback) {
+    return (
+      <NfcPlayerV2
+        tracks={toPlayerTracks(tracks)}
+        pcCode={pcCode}
+        playbackError={playbackError}
+        onPlaybackError={handlePlaybackError}
+      />
+    );
+  }
+
   if (preloadFailed) {
     return (
       <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black px-6 text-center">
-        <p className="text-white/70">{t("preloadFailed")}</p>
-        <button
-          type="button"
-          className="mt-6 border border-white/30 px-6 py-2 text-sm uppercase tracking-widest text-white/80"
-          onClick={() => void loadTracks()}
-        >
-          {t("preloadRetry")}
-        </button>
+        <p className="text-white/70">{preloadFailDetail ?? t("preloadFailed")}</p>
+        <p className="mt-3 max-w-sm text-sm text-white/45">{t("preloadStreamHint")}</p>
+        <div className="mt-6 flex flex-col gap-3">
+          <button
+            type="button"
+            className="border border-white/30 px-6 py-2 text-sm uppercase tracking-widest text-white/80"
+            onClick={() => void loadTracks()}
+          >
+            {t("preloadRetry")}
+          </button>
+          <button
+            type="button"
+            className="border border-white/15 px-6 py-2 text-sm uppercase tracking-widest text-white/55"
+            onClick={() => {
+              setPreloadFailed(false);
+              setUseStreamingFallback(true);
+            }}
+          >
+            {t("preloadStreamAnyway")}
+          </button>
+        </div>
       </div>
     );
   }

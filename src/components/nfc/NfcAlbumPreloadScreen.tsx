@@ -12,7 +12,7 @@ import {
 interface NfcAlbumPreloadScreenProps {
   tracks: { id: string; title: string; audioUrl: string; order: number }[];
   onReady: (tracks: NfcPreloadedTrack[], blobUrls: string[]) => void;
-  onError: () => void;
+  onError: (error: unknown) => void;
 }
 
 export function NfcAlbumPreloadScreen({ tracks, onReady, onError }: NfcAlbumPreloadScreenProps) {
@@ -22,6 +22,7 @@ export function NfcAlbumPreloadScreen({ tracks, onReady, onError }: NfcAlbumPrel
     total: tracks.length,
     loadedBytes: 0,
     totalBytes: null,
+    currentTrackTitle: null,
   });
   const trackKey = tracks.map((tr) => tr.id).join("|");
   const onReadyRef = useRef(onReady);
@@ -42,7 +43,7 @@ export function NfcAlbumPreloadScreen({ tracks, onReady, onError }: NfcAlbumPrel
       .catch((err) => {
         if (controller.signal.aborted) return;
         if (err instanceof Error && err.message === "nfc_preload_aborted") return;
-        onErrorRef.current();
+        onErrorRef.current(err);
       });
 
     return () => {
@@ -71,6 +72,9 @@ export function NfcAlbumPreloadScreen({ tracks, onReady, onError }: NfcAlbumPrel
             style={{ width: `${Math.max(percent > 0 ? 2 : 4, percent)}%` }}
           />
         </div>
+        {progress.currentTrackTitle ? (
+          <p className="mt-2 truncate text-center text-xs text-white/40">{progress.currentTrackTitle}</p>
+        ) : null}
         <div className="mt-3 flex justify-between text-xs text-white/50">
           <span>{t("preloadTracks", { done: progress.completed, total: progress.total })}</span>
           <span>

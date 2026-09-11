@@ -14,6 +14,7 @@ export type NfcPreloadProgress = {
   total: number;
   loadedBytes: number;
   totalBytes: number | null;
+  currentTrackTitle: string | null;
 };
 
 export type NfcPreloadResult = {
@@ -25,12 +26,32 @@ export type NfcPreloadOptions = {
   signal?: AbortSignal;
 };
 
-function preloadConcurrency(): number {
-  if (typeof navigator === "undefined") return 2;
-  if (nfcPreferNativeAudioPlayback() || /iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-    return 1;
+export class NfcPreloadTrackError extends Error {
+  readonly trackTitle: string;
+  readonly sourceUrl: string;
+  readonly completedBeforeFail: number;
+
+  constructor(
+    trackTitle: string,
+    sourceUrl: string,
+    completedBeforeFail: number,
+    cause?: unknown
+  ) {
+    super("nfc_preload_track_failed");
+    this.name = "NfcPreloadTrackError";
+    this.trackTitle = trackTitle;
+    this.sourceUrl = sourceUrl;
+    this.completedBeforeFail = completedBeforeFail;
+    if (cause instanceof Error && cause.message) {
+      this.message = `${this.message}: ${cause.message}`;
+    }
   }
-  return 2;
+}
+
+const TRACK_RETRY_ATTEMPTS = 3;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 function resolveFetchUrl(audioUrl: string): { sourceUrl: string; fetchUrl: string } {
@@ -39,21 +60,13 @@ function resolveFetchUrl(audioUrl: string): { sourceUrl: string; fetchUrl: strin
   return { sourceUrl, fetchUrl };
 }
 
-async function estimateTotalBytes(
-  tracks: { audioUrl: string }[],
-  signal?: AbortSignal
-): Promise<number | null> {
+async function estimateTotalBytes(tracks: { audioUrl: string }[]): Promise<number | null> {
   let sum = 0;
   let found = false;
   for (const track of tracks) {
-    if (signal?.aborted) return found ? sum : null;
     const { fetchUrl } = resolveFetchUrl(track.audioUrl);
     try {
-      const res = await fetch(fetchUrl, {
-        method: "HEAD",
-        credentials: "same-origin",
-        signal,
-      });
+      const res = await fetch(fetchUrl, { method: "HEAD", credentials: "same-origin" });
       const cl = res.headers.get("content-length");
       if (cl) {
         sum += Number.parseInt(cl, 10);
@@ -66,52 +79,87 @@ async function estimateTotalBytes(
   return found ? sum : null;
 }
 
-async function fetchTrackToBlob(
-  audioUrl: string,
-  onChunk: (deltaBytes: number) => void,
+/** XHR + blob — reliable progress on Android Brave; fewer OOM issues than chunk arrays. */
+function fetchTrackToBlob(
+  fetchUrl: string,
+  onByteProgress: (loadedInTrack: number) => void,
   signal?: AbortSignal
-): Promise<{ sourceUrl: string; blobUrl: string; bytes: number }> {
-  const { sourceUrl, fetchUrl } = resolveFetchUrl(audioUrl);
-  const res = await fetch(fetchUrl, {
-    credentials: "same-origin",
-    signal,
-    cache: "default",
-    priority: "high",
-  } as RequestInit);
-  if (!res.ok) throw new Error("nfc_preload_fetch_failed");
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new Error("nfc_preload_aborted"));
+      return;
+    }
 
-  const reader = res.body?.getReader();
-  if (!reader) {
-    const blob = await res.blob();
-    onChunk(blob.size);
-    return {
-      sourceUrl,
-      blobUrl: URL.createObjectURL(blob),
-      bytes: blob.size,
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", fetchUrl, true);
+    xhr.responseType = "blob";
+    let lastLoaded = 0;
+
+    const onAbort = () => {
+      xhr.abort();
+      reject(new Error("nfc_preload_aborted"));
     };
+
+    signal?.addEventListener("abort", onAbort, { once: true });
+
+    xhr.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const delta = event.loaded - lastLoaded;
+        lastLoaded = event.loaded;
+        if (delta > 0) onByteProgress(delta);
+      }
+    };
+
+    xhr.onload = () => {
+      signal?.removeEventListener("abort", onAbort);
+      if (xhr.status >= 200 && xhr.status < 300 && xhr.response instanceof Blob) {
+        const blob = xhr.response;
+        if (lastLoaded === 0 && blob.size > 0) {
+          onByteProgress(blob.size);
+        }
+        resolve(blob);
+        return;
+      }
+      reject(new Error(`nfc_preload_http_${xhr.status}`));
+    };
+
+    xhr.onerror = () => {
+      signal?.removeEventListener("abort", onAbort);
+      reject(new Error("nfc_preload_network"));
+    };
+
+    xhr.send();
+  });
+}
+
+async function fetchTrackWithRetries(
+  track: { title: string; audioUrl: string },
+  onByteProgress: (delta: number) => void,
+  signal?: AbortSignal
+): Promise<{ sourceUrl: string; blobUrl: string }> {
+  const { sourceUrl, fetchUrl } = resolveFetchUrl(track.audioUrl);
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < TRACK_RETRY_ATTEMPTS; attempt += 1) {
+    if (signal?.aborted) throw new Error("nfc_preload_aborted");
+    try {
+      const blob = await fetchTrackToBlob(fetchUrl, onByteProgress, signal);
+      return { sourceUrl, blobUrl: URL.createObjectURL(blob) };
+    } catch (err) {
+      lastError = err;
+      if (err instanceof Error && err.message === "nfc_preload_aborted") throw err;
+      if (attempt < TRACK_RETRY_ATTEMPTS - 1) {
+        await sleep(800 * (attempt + 1));
+      }
+    }
   }
 
-  const parts: BlobPart[] = [];
-  let bytes = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    parts.push(value);
-    bytes += value.byteLength;
-    onChunk(value.byteLength);
-  }
-
-  const blob = new Blob(parts, { type: res.headers.get("content-type") ?? "audio/mpeg" });
-  return {
-    sourceUrl,
-    blobUrl: URL.createObjectURL(blob),
-    bytes,
-  };
+  throw new NfcPreloadTrackError(track.title, sourceUrl, 0, lastError);
 }
 
 /**
- * Download every album MP3 into RAM (blob URLs).
- * Mobile: one file at a time (HTTP/1.1 + Brave throttle parallel downloads badly).
+ * Download every album MP3 into RAM (blob URLs). Mobile: one file at a time.
  */
 export async function preloadNfcAlbumTracks(
   tracks: { id: string; title: string; audioUrl: string; order: number }[],
@@ -125,30 +173,38 @@ export async function preloadNfcAlbumTracks(
   let completed = 0;
   let loadedBytes = 0;
   let totalBytes: number | null = null;
+  let currentTrackTitle: string | null = null;
+  let bytesAtTrackStart = 0;
 
   const report = () => {
-    onProgress({ completed, total, loadedBytes, totalBytes });
+    onProgress({ completed, total, loadedBytes, totalBytes, currentTrackTitle });
   };
 
   report();
 
-  void estimateTotalBytes(list, signal).then((bytes) => {
-    if (bytes && !signal?.aborted) {
+  void estimateTotalBytes(list).then((bytes) => {
+    if (bytes) {
       totalBytes = bytes;
       report();
     }
   });
 
   const results: NfcPreloadedTrack[] = [];
-  const concurrency = preloadConcurrency();
 
-  if (concurrency <= 1) {
-    for (const track of list) {
-      if (signal?.aborted) throw new Error("nfc_preload_aborted");
-      const { sourceUrl, blobUrl, bytes } = await fetchTrackToBlob(
-        track.audioUrl,
+  for (const track of list) {
+    if (signal?.aborted) throw new Error("nfc_preload_aborted");
+
+    currentTrackTitle = track.title;
+    bytesAtTrackStart = loadedBytes;
+    report();
+
+    try {
+      let trackLoaded = 0;
+      const { sourceUrl, blobUrl } = await fetchTrackWithRetries(
+        track,
         (delta) => {
-          loadedBytes += delta;
+          trackLoaded += delta;
+          loadedBytes = bytesAtTrackStart + trackLoaded;
           report();
         },
         signal
@@ -162,39 +218,17 @@ export async function preloadNfcAlbumTracks(
         sourceUrl,
       });
       completed += 1;
+      currentTrackTitle = null;
       report();
+    } catch (err) {
+      if (err instanceof NfcPreloadTrackError) throw err;
+      throw new NfcPreloadTrackError(
+        track.title,
+        resolveFetchUrl(track.audioUrl).sourceUrl,
+        completed,
+        err
+      );
     }
-  } else {
-    let index = 0;
-    async function worker(): Promise<void> {
-      while (index < list.length) {
-        if (signal?.aborted) return;
-        const i = index;
-        index += 1;
-        const track = list[i];
-        const { sourceUrl, blobUrl } = await fetchTrackToBlob(
-          track.audioUrl,
-          (delta) => {
-            loadedBytes += delta;
-            report();
-          },
-          signal
-        );
-        blobUrls.push(blobUrl);
-        results.push({
-          id: track.id,
-          title: track.title,
-          order: track.order,
-          audioUrl: blobUrl,
-          sourceUrl,
-        });
-        completed += 1;
-        report();
-      }
-    }
-
-    const workers = Array.from({ length: Math.min(concurrency, total) }, () => worker());
-    await Promise.all(workers);
   }
 
   results.sort((a, b) => a.order - b.order);

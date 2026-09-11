@@ -154,10 +154,10 @@ export async function nfcPrepareAudioPlayback(
   await nfcWaitReadyToPlay(audio, maxWaitMs);
 }
 
-export function nfcScheduleBuffersAfterPlay(currentUrl: string, nextUrl?: string | null): void {
-  if (typeof window === "undefined") return;
+/** Prefetch only the *next* track — never fetch the URL that is currently streaming. */
+export function nfcScheduleBuffersAfterPlay(_currentUrl: string, nextUrl?: string | null): void {
+  if (typeof window === "undefined" || !nextUrl?.trim()) return;
   window.setTimeout(() => {
-    nfcQueueBackgroundBuffer(currentUrl);
-    if (nextUrl?.trim()) nfcQueueBackgroundBuffer(nextUrl);
-  }, 2_000);
+    nfcQueueBackgroundBuffer(nextUrl);
+  }, 5_000);
 }

@@ -125,7 +125,8 @@ export function NfcPlayerV2({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const sourceRef = useRef<MediaElementAudioSourceNode | MediaStreamAudioSourceNode | null>(null);
+  const captureStreamRef = useRef<MediaStream | null>(null);
   const tracksRef = useRef(tracks);
   const trackIndexRef = useRef(trackIndex);
   const trackLoadingRef = useRef(false);
@@ -157,26 +158,43 @@ export function NfcPlayerV2({
 
   const ensureAudioGraph = useCallback(async () => {
     const audio = audioRef.current;
-    if (!audio || sourceRef.current) {
-      if (audioCtxRef.current?.state === "suspended") await audioCtxRef.current.resume();
-      return;
+    if (!audio) return;
+
+    if (!sourceRef.current) {
+      try {
+        const AudioContextClass =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        const ctx = new AudioContextClass();
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 1024;
+
+        const captureStream = (
+          audio as HTMLAudioElement & { captureStream?: () => MediaStream }
+        ).captureStream?.bind(audio);
+
+        let source: MediaElementAudioSourceNode | MediaStreamAudioSourceNode;
+        if (captureStream) {
+          captureStreamRef.current = captureStream();
+          source = ctx.createMediaStreamSource(captureStreamRef.current);
+          source.connect(analyser);
+        } else {
+          source = ctx.createMediaElementSource(audio);
+          source.connect(analyser);
+          analyser.connect(ctx.destination);
+        }
+
+        audioCtxRef.current = ctx;
+        analyserRef.current = analyser;
+        sourceRef.current = source;
+        setAnalyserReady(true);
+      } catch {
+        /* audio without EQ */
+      }
     }
-    try {
-      const AudioContextClass =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      const ctx = new AudioContextClass();
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 1024;
-      const source = ctx.createMediaElementSource(audio);
-      source.connect(analyser);
-      analyser.connect(ctx.destination);
-      audioCtxRef.current = ctx;
-      analyserRef.current = analyser;
-      sourceRef.current = source;
-      setAnalyserReady(true);
-    } catch {
-      /* audio without EQ */
+
+    if (audioCtxRef.current?.state === "suspended") {
+      await audioCtxRef.current.resume();
     }
   }, []);
 
@@ -192,11 +210,8 @@ export function NfcPlayerV2({
   const playPreparedAudio = useCallback(async () => {
     const audio = audioRef.current;
     if (!audio) return;
-    await ensureAudioGraph();
-    if (audioCtxRef.current?.state === "suspended") {
-      await audioCtxRef.current.resume();
-    }
     await audio.play();
+    await ensureAudioGraph();
     setIsAudioPlaying(true);
     setPaused(false);
   }, [ensureAudioGraph]);
@@ -339,6 +354,14 @@ export function NfcPlayerV2({
     const onEnded = () => {
       const list = tracksRef.current;
       if (list.length === 0) return;
+
+      const dur = audio.duration;
+      const t = audio.currentTime;
+      if (Number.isFinite(dur) && dur > 2 && t < dur * 0.85) {
+        void audio.play().catch(() => undefined);
+        return;
+      }
+
       void goToTrack(trackIndexRef.current + 1);
     };
     const onPlay = () => {
@@ -759,7 +782,7 @@ export function NfcPlayerV2({
         </div>
       </div>
 
-      <audio ref={audioRef} preload="auto" playsInline className="hidden" />
+      <audio ref={audioRef} preload="auto" playsInline crossOrigin="anonymous" className="hidden" />
     </div>
   );
 }

@@ -14,8 +14,20 @@ const MIN_HZ = 50;
 const MAX_HZ = 14_000;
 const DEFAULT_SAMPLE_RATE = 44_100;
 const IDLE = 0.06;
+const LABEL_COLUMN = 80;
 
-const LABEL_FONT = `600 15px ${rajdhani.style.fontFamily}`;
+const DYNAMICS = {
+  SESSION_PEAK_DECAY: 0.996,
+  SESSION_PEAK_RISE: 0.35,
+  INPUT_BOOST: 1.15,
+  LOUDNESS_EXPONENT: 0.55,
+  POINT_ATTACK: 0.38,
+  POINT_RELEASE: 0.72,
+} as const;
+
+function labelFontFamily(): string {
+  return rajdhani.style.fontFamily;
+}
 
 function hzToBin(hz: number, fftSize: number, sampleRate: number): number {
   return (hz * fftSize) / sampleRate;
@@ -71,9 +83,9 @@ function drawRibbon(
     const e = energies[row] ?? IDLE;
     const pulse = active ? e : IDLE + 0.02 * Math.sin(time * 1.2 + y * 0.05);
     const wobble =
-      Math.sin(y * 0.045 + time * 2.1) * 3 +
-      Math.sin(y * 0.028 - time * 1.4) * 2.5;
-    const alpha = 0.12 + pulse * 0.55;
+      Math.sin(y * 0.045 + time * 2.1) * 4.5 +
+      Math.sin(y * 0.028 - time * 1.4) * 3.75;
+    const alpha = 0.18 + pulse * 0.82;
 
     const g = ctx.createLinearGradient(centerX - ribbonHalf, y, centerX + ribbonHalf, y);
     g.addColorStop(0, `rgba(80, 200, 255, ${alpha * 0.35})`);
@@ -103,22 +115,19 @@ export function NfcEqVisualizer({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef(0);
   const smoothRef = useRef<number[]>(Array.from({ length: BAR_ROWS }, () => IDLE));
+  const rawRef = useRef<number[]>(Array.from({ length: BAR_ROWS }, () => IDLE));
+  const dynamicsRef = useRef({ sessionPeak: 0.1 });
   const logicalSizeRef = useRef({ width: 0, height: 0 });
-  const fontReadyRef = useRef(false);
 
   useEffect(() => {
-    let cancelled = false;
-    void document.fonts.load(LABEL_FONT).then(() => {
-      if (!cancelled) fontReadyRef.current = true;
-    });
-    return () => {
-      cancelled = true;
-    };
+    void document.fonts.load(`600 15px ${labelFontFamily()}`);
   }, []);
 
   useEffect(() => {
     if (!active) {
       smoothRef.current = Array.from({ length: BAR_ROWS }, () => IDLE);
+      rawRef.current = Array.from({ length: BAR_ROWS }, () => IDLE);
+      dynamicsRef.current.sessionPeak = 0.1;
     }
   }, [active]);
 
@@ -144,6 +153,8 @@ export function NfcEqVisualizer({
 
     const buffer = analyser ? new Uint8Array(analyser.frequencyBinCount) : null;
     const smooth = smoothRef.current;
+    const raw = rawRef.current;
+    const dynamics = dynamicsRef.current;
 
     const draw = () => {
       frameRef.current = requestAnimationFrame(draw);
@@ -152,8 +163,8 @@ export function NfcEqVisualizer({
 
       const centerX = width / 2;
       const time = performance.now() / 1000;
-      const maxLeft = width * 0.44;
-      const maxRight = width * 0.46;
+      const maxLeft = Math.max(24, centerX - 8);
+      const maxRight = Math.max(24, width - centerX - LABEL_COLUMN);
 
       ctx.clearRect(0, 0, width, height);
 
@@ -167,21 +178,62 @@ export function NfcEqVisualizer({
         analyser.getByteFrequencyData(buffer);
       }
 
+      let rawSumSq = 0;
       for (let row = 0; row < BAR_ROWS; row += 1) {
         const t = row / (BAR_ROWS - 1);
         const hz = logHzAt(t);
-        let target = IDLE;
+        let sample = IDLE;
 
         if (active && buffer) {
-          target = Math.min(1, sampleBandEnergy(buffer, hz, fftSize, sampleRate) * 1.65);
+          sample = sampleBandEnergy(buffer, hz, fftSize, sampleRate);
         } else if (visible) {
-          target =
+          sample =
             IDLE +
             0.025 * Math.sin(time * 1.1 + row * 0.2) +
             0.015 * Math.sin(time * 0.65 + row * 0.08);
         }
 
-        const rate = target > smooth[row]! ? 0.42 : 0.78;
+        raw[row] = sample;
+        rawSumSq += sample * sample;
+      }
+
+      if (active && buffer) {
+        const bandRms = Math.sqrt(rawSumSq / BAR_ROWS);
+        if (bandRms > dynamics.sessionPeak) {
+          dynamics.sessionPeak +=
+            (bandRms - dynamics.sessionPeak) * DYNAMICS.SESSION_PEAK_RISE;
+        } else {
+          dynamics.sessionPeak =
+            dynamics.sessionPeak * DYNAMICS.SESSION_PEAK_DECAY +
+            bandRms * (1 - DYNAMICS.SESSION_PEAK_DECAY);
+        }
+        dynamics.sessionPeak = Math.max(dynamics.sessionPeak, 0.06);
+      }
+
+      const peak = dynamics.sessionPeak;
+      let rowMean = 0;
+      for (let row = 0; row < BAR_ROWS; row += 1) {
+        rowMean += raw[row]!;
+      }
+      rowMean /= BAR_ROWS;
+
+      for (let row = 0; row < BAR_ROWS; row += 1) {
+        let target = IDLE;
+
+        if (active && buffer) {
+          const relative = raw[row]! / peak;
+          const shaped = Math.pow(
+            Math.min(1.25, relative * DYNAMICS.INPUT_BOOST),
+            DYNAMICS.LOUDNESS_EXPONENT
+          );
+          const contrast = (raw[row]! - rowMean * 0.85) * 2.2;
+          target = Math.min(0.98, Math.max(0.05, shaped * 0.82 + contrast * 0.35));
+        } else if (visible) {
+          target = raw[row]!;
+        }
+
+        const rate =
+          target > smooth[row]! ? DYNAMICS.POINT_ATTACK : DYNAMICS.POINT_RELEASE;
         smooth[row] = smooth[row]! * rate + target * (1 - rate);
       }
 
@@ -218,29 +270,32 @@ export function NfcEqVisualizer({
       ctx.lineTo(centerX, height);
       ctx.stroke();
 
-      if (fontReadyRef.current) {
-        ctx.font = LABEL_FONT;
-        ctx.textBaseline = "middle";
+      ctx.font = `600 15px ${labelFontFamily()}, sans-serif`;
+      ctx.textBaseline = "middle";
+      ctx.textAlign = "right";
+      const labelX = width - 6;
 
-        for (let i = 0; i < LABEL_COUNT; i += 1) {
-          const t = (i + 0.5) / LABEL_COUNT;
-          const row = Math.min(BAR_ROWS - 1, Math.floor(t * BAR_ROWS));
-          const y = t * height;
-          const hz = logHzAt(row / (BAR_ROWS - 1));
-          const e = smooth[row]!;
-          const pegel = Math.min(99, Math.max(0, Math.round(e * 99)));
-          const rightLen = e * maxRight * (0.55 + 0.45 * Math.sin(t * Math.PI)) * (0.88 + 0.12 * t);
+      for (let i = 0; i < LABEL_COUNT; i += 1) {
+        const t = (i + 0.5) / LABEL_COUNT;
+        const row = Math.min(BAR_ROWS - 1, Math.floor(t * BAR_ROWS));
+        const y = t * height;
+        const hz = logHzAt(row / (BAR_ROWS - 1));
+        const e = smooth[row]!;
+        const pegel = Math.min(99, Math.max(1, Math.round(e * 99)));
+        const label = `${formatHz(hz)} ${pegel}`;
+        const textW = ctx.measureText(label).width;
+        const dotX = labelX - textW - 10;
 
-          const dotX = centerX + rightLen + 6;
-          ctx.fillStyle = `rgba(255, ${140 + Math.round(60 * t)}, 80, 0.95)`;
-          ctx.beginPath();
-          ctx.arc(dotX, y, 2.5, 0, Math.PI * 2);
-          ctx.fill();
+        ctx.fillStyle = `rgba(255, ${140 + Math.round(60 * t)}, 80, 0.95)`;
+        ctx.beginPath();
+        ctx.arc(dotX, y, 3, 0, Math.PI * 2);
+        ctx.fill();
 
-          ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
-          ctx.textAlign = "left";
-          ctx.fillText(`${formatHz(hz)} ${pegel}`, dotX + 8, y);
-        }
+        ctx.shadowColor = "rgba(0,0,0,0.85)";
+        ctx.shadowBlur = 4;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.98)";
+        ctx.fillText(label, labelX, y);
+        ctx.shadowBlur = 0;
       }
     };
 

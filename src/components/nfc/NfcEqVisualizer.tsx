@@ -15,6 +15,10 @@ const MAX_HZ = 14_000;
 const DEFAULT_SAMPLE_RATE = 44_100;
 const IDLE = 0.06;
 const LABEL_TEXT_PAD = 6;
+/** Max bar + label reach vs. half-width (15 % inward so Hz labels stay inside). */
+const METER_REACH = 0.85;
+/** Center ribbon half-width (was 14px → +50 %). */
+const RIBBON_HALF_BASE = 21;
 
 const DYNAMICS = {
   SESSION_PEAK_DECAY: 0.996,
@@ -108,20 +112,26 @@ function drawRibbon(
   height: number,
   energies: number[],
   time: number,
-  active: boolean
+  active: boolean,
+  musicLevel: number
 ) {
-  const ribbonHalf = 14;
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
 
   for (let y = 0; y < height; y += 2) {
     const row = Math.min(BAR_ROWS - 1, Math.floor((y / height) * BAR_ROWS));
     const e = energies[row] ?? IDLE;
-    const pulse = active ? e : IDLE + 0.02 * Math.sin(time * 1.2 + y * 0.05);
+    const pulse = active
+      ? Math.min(1.2, e * 1.45 + musicLevel * 0.35)
+      : IDLE + 0.02 * Math.sin(time * 1.2 + y * 0.05);
+    const ribbonHalf =
+      RIBBON_HALF_BASE * (0.72 + pulse * 0.42 + musicLevel * 0.28);
+    const wobbleScale = 1 + musicLevel * 0.9 + pulse * 0.35;
     const wobble =
-      Math.sin(y * 0.045 + time * 2.1) * 4.5 +
-      Math.sin(y * 0.028 - time * 1.4) * 3.75;
-    const alpha = 0.18 + pulse * 0.82;
+      (Math.sin(y * 0.045 + time * 2.1) * 4.5 +
+        Math.sin(y * 0.028 - time * 1.4) * 3.75) *
+      wobbleScale;
+    const alpha = 0.1 + pulse * 0.92 + musicLevel * 0.22;
 
     const g = ctx.createLinearGradient(centerX - ribbonHalf, y, centerX + ribbonHalf, y);
     g.addColorStop(0, `rgba(80, 200, 255, ${alpha * 0.35})`);
@@ -225,8 +235,8 @@ export function NfcEqVisualizer({
 
       const centerX = width / 2;
       const time = performance.now() / 1000;
-      const maxLeft = Math.max(20, centerX - 6);
-      const maxRight = Math.max(20, width - centerX - 6);
+      const maxLeft = Math.max(20, (centerX - 6) * METER_REACH);
+      const maxRight = Math.max(20, (width - centerX - 6) * METER_REACH);
 
       ctx.clearRect(0, 0, width, height);
 
@@ -299,7 +309,16 @@ export function NfcEqVisualizer({
         smooth[row] = smooth[row]! * rate + target * (1 - rate);
       }
 
-      drawRibbon(ctx, centerX, height, smooth, time, active);
+      let ribbonMusic = 0;
+      if (active && buffer) {
+        let peakRow = 0;
+        for (let row = 0; row < BAR_ROWS; row += 1) {
+          peakRow = Math.max(peakRow, smooth[row]!);
+        }
+        ribbonMusic = Math.min(1, peakRow * 1.05 + (peak > 0 ? peak * 0.35 : 0));
+      }
+
+      drawRibbon(ctx, centerX, height, smooth, time, active, ribbonMusic);
 
       for (let row = 0; row < BAR_ROWS; row += 1) {
         const t = row / (BAR_ROWS - 1);

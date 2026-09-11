@@ -30,6 +30,8 @@ export const NFC_V2_RECTS = {
   /** Pause state overlay — play symbol (stop redplay). */
   stopRedplay: { left: 364, top: 517, width: 42, height: 42 },
   stopOn: { left: 364, top: 517, width: 42, height: 42 },
+  /** Touch target — covers stop + redplay (always, play or pause). */
+  stopHit: { left: 348, top: 508, width: 76, height: 76 },
   skipBack: { left: 353, top: 586, width: 64, height: 70 },
   skipOnBack: { left: 364, top: 602, width: 42, height: 48 },
   textSongtitle: { left: 48, top: 509, width: 269, height: 260 },
@@ -56,6 +58,7 @@ export const NFC_V2_Z = {
   textTime: 15,
   textDesktopcode: 16,
   controls: 30,
+  stopControl: 50,
 } as const;
 
 export function nfcV2SliderRatioFromPoint(x: number, y: number): number {
@@ -82,7 +85,14 @@ export type NfcV2TextLayerTweak = {
   scale: number;
   nudgeX: number;
   nudgeY: number;
+  /** Inner scale anchor (timer: bottom edge of textarea). */
+  innerOrigin?: "center" | "bottom";
+  /** Text alignment inside the textarea box. */
+  align?: "center" | "bottom";
 };
+
+/** Longest track title for layout preview (null = use real track title). */
+export const NFC_V2_TITLE_PREVIEW: string | null = "Synchron Monoton";
 
 /** Set true only to show XD marker frames (#FF0000) while tuning. */
 export const NFC_V2_TEXT_DEBUG_FRAMES = false;
@@ -97,6 +107,8 @@ export const NFC_V2_TEXT_TIME: NfcV2TextLayerTweak = {
   scale: 1.5,
   nudgeX: 0,
   nudgeY: 0,
+  innerOrigin: "bottom",
+  align: "bottom",
 };
 
 export function nfcV2TextLayerOuterStyle(rect: NfcV2Rect, tweak: NfcV2TextLayerTweak) {
@@ -114,12 +126,18 @@ export function nfcV2TextLayerOuterStyle(rect: NfcV2Rect, tweak: NfcV2TextLayerT
 }
 
 export function nfcV2TextLayerInnerStyle(tweak: NfcV2TextLayerTweak) {
+  const originY = tweak.innerOrigin === "bottom" ? "100%" : "50%";
   return {
     transform: `scale(${tweak.scale})`,
-    transformOrigin: "50% 50%",
+    transformOrigin: `50% ${originY}`,
     width: "100%",
     height: "100%",
   };
+}
+
+export function nfcV2DisplayTitle(trackTitle: string | undefined): string {
+  const raw = NFC_V2_TITLE_PREVIEW ?? trackTitle ?? "";
+  return raw.toUpperCase();
 }
 
 export function nfcV2RectStyle(rect: NfcV2Rect) {

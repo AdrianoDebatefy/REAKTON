@@ -23,6 +23,7 @@ import {
   nfcV2RectStyle,
   nfcV2SliderPosition,
   nfcV2SliderRatioFromPoint,
+  nfcV2DisplayTitle,
   nfcV2TextLayerInnerStyle,
   nfcV2TextLayerOuterStyle,
 } from "@/lib/nfc-player-v2-layout";
@@ -219,7 +220,11 @@ export function NfcPlayerV2({
   }, [onPlaybackError]);
 
   const pauseCurrent = useCallback(() => {
-    audioRef.current?.pause();
+    const audio = audioRef.current;
+    if (audio && !audio.paused) {
+      audio.pause();
+    }
+    setIsAudioPlaying(false);
     setPaused(true);
   }, []);
 
@@ -253,7 +258,7 @@ export function NfcPlayerV2({
       return;
     }
     pauseCurrent();
-  }, [pauseCurrent, playCurrent]);
+  }, [pauseCurrent, playCurrent, paused]);
 
   useEffect(() => {
     if (tracks.length === 0 || autoplayDone) return;
@@ -373,7 +378,7 @@ export function NfcPlayerV2({
           />
 
           <div
-            className="absolute overflow-hidden"
+            className="pointer-events-none absolute overflow-hidden"
             style={{ ...nfcV2RectStyle(NFC_V2_RECTS.equalizerflaeche), zIndex: NFC_V2_Z.equalizerflaeche }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -384,7 +389,7 @@ export function NfcPlayerV2({
               draggable={false}
             />
             <div
-              className="absolute left-1/2 top-1/2"
+              className="pointer-events-none absolute left-1/2 top-1/2"
               style={{
                 width: "140%",
                 height: "140%",
@@ -513,7 +518,7 @@ export function NfcPlayerV2({
           >
             <div className="overflow-hidden" style={nfcV2TextLayerInnerStyle(NFC_V2_TEXT_SONGTITLE)}>
               <NfcMarqueeTitle
-                title={(activeTrack?.title ?? "").toUpperCase()}
+                title={nfcV2DisplayTitle(activeTrack?.title)}
                 className="flex h-full w-full items-center"
                 style={{ color: "#000", fontSize: 22, fontWeight: 700 }}
               />
@@ -528,7 +533,9 @@ export function NfcPlayerV2({
             }}
           >
             <p
-              className="flex h-full w-full items-center justify-center text-center font-bold text-white"
+              className={`flex h-full w-full justify-center text-center font-bold text-white ${
+                NFC_V2_TEXT_TIME.align === "bottom" ? "items-end" : "items-center"
+              }`}
               style={{ ...nfcV2TextLayerInnerStyle(NFC_V2_TEXT_TIME), fontSize: 20 }}
             >
               {formatPlayTime(progress)}
@@ -567,13 +574,20 @@ export function NfcPlayerV2({
           />
           <button
             type="button"
-            className="absolute border-0 bg-transparent p-0"
+            className="absolute cursor-pointer border-0 bg-transparent p-0"
             style={{
-              ...nfcV2RectStyle(paused ? NFC_V2_RECTS.stopRedplay : NFC_V2_RECTS.stop),
-              zIndex: NFC_V2_Z.controls,
+              ...nfcV2RectStyle(NFC_V2_RECTS.stopHit),
+              zIndex: NFC_V2_Z.stopControl,
               touchAction: "manipulation",
             }}
-            onClick={() => void handleStop()}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleStop();
+            }}
             aria-label={paused ? "Play" : "Pause"}
           />
           <button

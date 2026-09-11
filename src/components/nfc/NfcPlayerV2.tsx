@@ -61,8 +61,30 @@ interface NfcPlayerV2Props {
   tracksLoading?: boolean;
   tracksLoadingLabel?: string;
   pcCode: string | null;
+  pcCodeHidden?: boolean;
+  onHidePcCode?: () => void;
   playbackError: string | null;
   onPlaybackError: (message: string | null) => void;
+}
+
+function IconEyeHide({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
 }
 
 function formatPlayTime(seconds: number): string {
@@ -109,6 +131,8 @@ export function NfcPlayerV2({
   tracksLoading = false,
   tracksLoadingLabel = "",
   pcCode,
+  pcCodeHidden = false,
+  onHidePcCode,
   playbackError,
   onPlaybackError,
 }: NfcPlayerV2Props) {
@@ -729,33 +753,45 @@ export function NfcPlayerV2({
             </p>
           </div>
 
-          <div
-            className="absolute"
-            style={{ ...nfcV2RectStyle(NFC_V2_RECTS.textDesktopcode), zIndex: NFC_V2_Z.textDesktopcode }}
-          >
+          {!pcCodeHidden && pcCode ? (
             <div
-              className="absolute inset-0 overflow-hidden rounded-md border border-white/35 bg-white/12 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-md"
-              aria-hidden
-            />
-            <div className="relative z-10 flex h-full flex-col items-center justify-center gap-1 px-3 py-2">
-              <p
-                className={`${rajdhani.className} text-center font-medium leading-tight text-white/90`}
-                style={{ fontSize: NFC_V2_TEXT_DESKTOPCODE.labelFontSize }}
-              >
-                {NFC_V2_TEXT_DESKTOPCODE.label}
-              </p>
-              <p
-                className="truncate text-center font-bold text-white drop-shadow-md"
-                style={{
-                  fontSize: NFC_V2_TEXT_DESKTOPCODE.fontSize,
-                  transform: `scale(${NFC_V2_TEXT_DESKTOPCODE.scale})`,
-                  transformOrigin: "50% 50%",
-                }}
-              >
-                {pcCode ?? "—"}
-              </p>
+              className="absolute"
+              style={{ ...nfcV2RectStyle(NFC_V2_RECTS.textDesktopcode), zIndex: NFC_V2_Z.textDesktopcode }}
+            >
+              <div
+                className="absolute inset-0 overflow-hidden rounded-md border border-white/35 bg-white/12 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-md"
+                aria-hidden
+              />
+              {onHidePcCode ? (
+                <button
+                  type="button"
+                  onClick={onHidePcCode}
+                  className="absolute right-1 top-1 z-20 rounded p-1 text-white/45 transition-colors hover:text-white/75 active:text-white/90"
+                  aria-label="Hide computer code"
+                >
+                  <IconEyeHide />
+                </button>
+              ) : null}
+              <div className="relative z-10 flex h-full flex-col items-center justify-center gap-1 px-3 py-2 pt-3">
+                <p
+                  className={`${rajdhani.className} text-center font-medium leading-tight text-white/90`}
+                  style={{ fontSize: NFC_V2_TEXT_DESKTOPCODE.labelFontSize }}
+                >
+                  {NFC_V2_TEXT_DESKTOPCODE.label}
+                </p>
+                <p
+                  className="truncate text-center font-bold text-white drop-shadow-md"
+                  style={{
+                    fontSize: NFC_V2_TEXT_DESKTOPCODE.fontSize,
+                    transform: `scale(${NFC_V2_TEXT_DESKTOPCODE.scale})`,
+                    transformOrigin: "50% 50%",
+                  }}
+                >
+                  {pcCode}
+                </p>
+              </div>
             </div>
-          </div>
+          ) : null}
 
           {NFC_V2_SLIDER_DEBUG_LINE ? (
             <div

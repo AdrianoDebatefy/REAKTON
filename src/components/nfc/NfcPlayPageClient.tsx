@@ -8,6 +8,7 @@ import { usePortraitOrientationLock } from "@/hooks/usePortraitOrientationLock";
 import { NfcAlbumPreloadScreen } from "@/components/nfc/NfcAlbumPreloadScreen";
 import { NfcPlayerV2, type NfcPlayerV2Track } from "@/components/nfc/NfcPlayerV2";
 import { NfcPreloadTrackError, revokeNfcPreloadBlobs } from "@/lib/nfc-audio-preload";
+import { hidePcCodeForSession, isPcCodeHiddenForSession } from "@/lib/nfc-pc-code-visibility";
 
 interface NfcTrack {
   id: string;
@@ -34,6 +35,8 @@ export function NfcPlayPageClient() {
   const [sessionChecked, setSessionChecked] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
   const [pcCode, setPcCode] = useState<string | null>(null);
+  const [nfcSessionId, setNfcSessionId] = useState<string | null>(null);
+  const [pcCodeHidden, setPcCodeHidden] = useState(false);
   const [remainingMs, setRemainingMs] = useState(0);
   const [tracks, setTracks] = useState<NfcTrack[]>([]);
   const [tracksLoading, setTracksLoading] = useState(false);
@@ -52,12 +55,16 @@ export function NfcPlayPageClient() {
     if (!res.ok) return null;
     const data = (await res.json()) as {
       authenticated: boolean;
+      sessionId?: string;
       pcCode: string | null;
       remainingMs: number;
     };
     setAuthenticated(data.authenticated);
     setPcCode(data.pcCode);
     setRemainingMs(data.remainingMs ?? 0);
+    const sid = data.sessionId ?? null;
+    setNfcSessionId(sid);
+    setPcCodeHidden(isPcCodeHiddenForSession(sid));
     if (data.authenticated && data.remainingMs > 0) {
       sessionEndAtRef.current = Date.now() + data.remainingMs;
     }
@@ -147,6 +154,12 @@ export function NfcPlayPageClient() {
     [t, tracks.length]
   );
 
+  const handleHidePcCode = useCallback(() => {
+    if (!nfcSessionId) return;
+    hidePcCodeForSession(nfcSessionId);
+    setPcCodeHidden(true);
+  }, [nfcSessionId]);
+
   const handlePlaybackError = useCallback(
     (code: string | null) => {
       if (!code) {
@@ -209,6 +222,8 @@ export function NfcPlayPageClient() {
       <NfcPlayerV2
         tracks={toPlayerTracks(tracks)}
         pcCode={pcCode}
+        pcCodeHidden={pcCodeHidden}
+        onHidePcCode={handleHidePcCode}
         playbackError={playbackError}
         onPlaybackError={handlePlaybackError}
       />
@@ -257,6 +272,8 @@ export function NfcPlayPageClient() {
     <NfcPlayerV2
       tracks={preloadedTracks}
       pcCode={pcCode}
+      pcCodeHidden={pcCodeHidden}
+      onHidePcCode={handleHidePcCode}
       playbackError={playbackError}
       onPlaybackError={handlePlaybackError}
     />

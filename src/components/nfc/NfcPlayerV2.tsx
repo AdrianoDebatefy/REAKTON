@@ -21,8 +21,9 @@ import {
   NFC_V2_WIDTH,
   NFC_V2_Z,
   nfcV2RectStyle,
-  nfcV2SliderPosition,
+  nfcV2SliderKnobStyle,
   nfcV2SliderRatioFromPoint,
+  nfcV2SliderTrackMetrics,
   nfcV2DisplayTitle,
   nfcV2TextLayerInnerStyle,
   nfcV2TextLayerOuterStyle,
@@ -99,6 +100,7 @@ export function NfcPlayerV2({
   const [skipBackFlash, setSkipBackFlash] = useState(false);
   const [skipFwdFlash, setSkipFwdFlash] = useState(false);
   const [stageScale, setStageScale] = useState(1);
+  const [fullscreenActive, setFullscreenActive] = useState(false);
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const artboardRef = useRef<HTMLDivElement>(null);
@@ -117,7 +119,8 @@ export function NfcPlayerV2({
   const activeTrack = tracks[trackIndex] ?? null;
   const progressRatio = duration > 0 ? progress / duration : 0;
   const sliderRatio = knobDragRatio ?? progressRatio;
-  const knobPos = nfcV2SliderPosition(sliderRatio);
+  const knobStyle = nfcV2SliderKnobStyle(sliderRatio);
+  const sliderTrack = nfcV2SliderTrackMetrics();
   const cdSpinActive = !paused && isAudioPlaying;
   useNfcCdRotation(cdSpinRef, cdSpinActive, NFC_CD_RPM, NFC_CD_SPIN_RAMP_SEC);
 
@@ -321,20 +324,70 @@ export function NfcPlayerV2({
     };
   }, []);
 
-  const seekAlongSlider = useCallback(
-    (clientX: number, clientY: number) => {
-      if (!duration) return;
-      const point = pointerToArtboard(clientX, clientY);
-      if (!point) return;
-      const t = nfcV2SliderRatioFromPoint(point.x, point.y);
-      setKnobDragRatio(t);
+  const applySliderRatio = useCallback(
+    (t: number) => {
+      const clamped = Math.min(1, Math.max(0, t));
+      setKnobDragRatio(clamped);
       const audio = audioRef.current;
-      if (!audio) return;
-      audio.currentTime = t * duration;
+      const dur = audio?.duration && Number.isFinite(audio.duration) ? audio.duration : duration;
+      if (!audio || !dur || dur <= 0) {
+        setProgress(clamped * (dur || 0));
+        return;
+      }
+      audio.currentTime = clamped * dur;
       setProgress(audio.currentTime);
     },
-    [duration, pointerToArtboard]
+    [duration]
   );
+
+  const seekAlongSlider = useCallback(
+    (clientX: number, clientY: number) => {
+      const point = pointerToArtboard(clientX, clientY);
+      if (!point) return;
+      applySliderRatio(nfcV2SliderRatioFromPoint(point.x, point.y));
+    },
+    [applySliderRatio, pointerToArtboard]
+  );
+
+  const bindSliderPointer = useCallback(
+    (clientX: number, clientY: number) => {
+      seekAlongSlider(clientX, clientY);
+      const move = (ev: PointerEvent) => seekAlongSlider(ev.clientX, ev.clientY);
+      const up = () => {
+        setKnobDragRatio(null);
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+        window.removeEventListener("pointercancel", up);
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+      window.addEventListener("pointercancel", up);
+    },
+    [seekAlongSlider]
+  );
+
+  const toggleFullscreen = useCallback(async () => {
+    const root = viewportRef.current;
+    if (!root) return;
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        const req =
+          root.requestFullscreen ??
+          (root as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> }).webkitRequestFullscreen;
+        await req?.call(root);
+      }
+    } catch {
+      /* not supported or denied */
+    }
+  }, []);
+
+  useEffect(() => {
+    const onChange = () => setFullscreenActive(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
 
   return (
     <div
@@ -476,39 +529,6 @@ export function NfcPlayerV2({
             style={{ opacity: skipBackFlash ? 1 : 0, transition: "opacity 150ms ease" }}
           />
 
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={NFC_PLAYER_V2_ASSETS.sliderKnob}
-            alt=""
-            className="absolute touch-none"
-            style={{
-              left: knobPos.x,
-              top: knobPos.y,
-              width: NFC_V2_SLIDER.knobWidth,
-              height: NFC_V2_SLIDER.knobHeight,
-              zIndex: NFC_V2_Z.sliderKnob,
-              touchAction: "none",
-            }}
-            draggable={false}
-            onPointerDown={(e) => {
-              e.preventDefault();
-              const knobEl = e.currentTarget;
-              knobEl.setPointerCapture(e.pointerId);
-              const move = (ev: PointerEvent) => seekAlongSlider(ev.clientX, ev.clientY);
-              const up = (ev: PointerEvent) => {
-                setKnobDragRatio(null);
-                if (knobEl.hasPointerCapture(ev.pointerId)) {
-                  knobEl.releasePointerCapture(ev.pointerId);
-                }
-                window.removeEventListener("pointermove", move);
-                window.removeEventListener("pointerup", up);
-              };
-              window.addEventListener("pointermove", move);
-              window.addEventListener("pointerup", up);
-              seekAlongSlider(e.clientX, e.clientY);
-            }}
-          />
-
           <div
             className="pointer-events-none absolute overflow-visible"
             style={{
@@ -546,20 +566,60 @@ export function NfcPlayerV2({
             className="absolute"
             style={{ ...nfcV2RectStyle(NFC_V2_RECTS.textDesktopcode), zIndex: NFC_V2_Z.textDesktopcode }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={NFC_PLAYER_V2_ASSETS.textDesktopcodeBg}
-              alt=""
-              className="pointer-events-none absolute inset-0 h-full w-full"
-              draggable={false}
+            <div
+              className="absolute inset-0 overflow-hidden rounded-md border border-white/35 bg-white/12 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-md"
+              aria-hidden
             />
             <p
-              className="absolute inset-0 flex items-center justify-center truncate px-2 text-center font-bold text-black"
+              className="absolute inset-0 flex items-center justify-center truncate px-2 text-center font-bold text-black drop-shadow-sm"
               style={{ fontSize: 22 }}
             >
               {pcCode ?? "—"}
             </p>
           </div>
+
+          <div
+            className="absolute touch-none"
+            style={{
+              left: NFC_V2_SLIDER.start.x,
+              top: NFC_V2_SLIDER.start.y - NFC_V2_SLIDER.knobHeight / 2,
+              width: sliderTrack.length,
+              height: NFC_V2_SLIDER.knobHeight,
+              transformOrigin: "0 50%",
+              transform: `rotate(${sliderTrack.angleDeg}deg)`,
+              zIndex: NFC_V2_Z.sliderTrack,
+              touchAction: "none",
+            }}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              bindSliderPointer(e.clientX, e.clientY);
+            }}
+            role="slider"
+            aria-label="Track position"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(sliderRatio * 100)}
+          />
+
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={NFC_PLAYER_V2_ASSETS.sliderKnob}
+            alt=""
+            className="absolute touch-none"
+            style={{
+              ...knobStyle,
+              zIndex: NFC_V2_Z.sliderKnob,
+              touchAction: "none",
+              pointerEvents: "auto",
+            }}
+            draggable={false}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              bindSliderPointer(e.clientX, e.clientY);
+            }}
+          />
 
           <button
             type="button"
@@ -610,6 +670,16 @@ export function NfcPlayerV2({
           </div>
         </div>
       </div>
+
+      <button
+        type="button"
+        className="absolute right-3 z-[110] rounded-md border border-white/25 bg-black/40 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm"
+        style={{ top: "max(0.5rem, env(safe-area-inset-top))" }}
+        onClick={() => void toggleFullscreen()}
+        aria-label={fullscreenActive ? "Exit fullscreen" : "Enter fullscreen"}
+      >
+        {fullscreenActive ? "Exit" : "Fullscreen"}
+      </button>
 
       <audio ref={audioRef} preload="auto" playsInline className="hidden" />
     </div>

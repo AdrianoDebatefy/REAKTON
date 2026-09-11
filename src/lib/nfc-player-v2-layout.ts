@@ -53,7 +53,8 @@ export const NFC_V2_Z = {
   stopOn: 10,
   skipBack: 11,
   skipOnBack: 12,
-  sliderKnob: 13,
+  sliderTrack: 47,
+  sliderKnob: 48,
   textSongtitle: 14,
   textTime: 15,
   textDesktopcode: 16,
@@ -74,6 +75,26 @@ export function nfcV2SliderPosition(progressRatio: number) {
   return {
     x: NFC_V2_SLIDER.start.x + (NFC_V2_SLIDER.end.x - NFC_V2_SLIDER.start.x) * t,
     y: NFC_V2_SLIDER.start.y + (NFC_V2_SLIDER.end.y - NFC_V2_SLIDER.start.y) * t,
+  };
+}
+
+/** Diagonal scrub line from 0% → 100% (knob top-left travels start → end). */
+export function nfcV2SliderTrackMetrics() {
+  const dx = NFC_V2_SLIDER.end.x - NFC_V2_SLIDER.start.x;
+  const dy = NFC_V2_SLIDER.end.y - NFC_V2_SLIDER.start.y;
+  return {
+    length: Math.hypot(dx, dy),
+    angleDeg: (Math.atan2(dy, dx) * 180) / Math.PI,
+  };
+}
+
+export function nfcV2SliderKnobStyle(progressRatio: number) {
+  const pos = nfcV2SliderPosition(progressRatio);
+  return {
+    left: pos.x,
+    top: pos.y,
+    width: NFC_V2_SLIDER.knobWidth,
+    height: NFC_V2_SLIDER.knobHeight,
   };
 }
 

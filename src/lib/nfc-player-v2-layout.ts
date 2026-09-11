@@ -12,8 +12,8 @@ export const NFC_V2_TEXT_ROTATION_DEG = -38;
  * Toggle debug overlay to align with gestell: NFC_V2_SLIDER_DEBUG_LINE
  */
 export const NFC_V2_SLIDER = {
-  start: { x: 28, y: 660 },
-  end: { x: 290, y: 457 },
+  start: { x: 28, y: 706 },
+  end: { x: 290, y: 503 },
   knobWidth: 48,
   knobHeight: 48,
 } as const;

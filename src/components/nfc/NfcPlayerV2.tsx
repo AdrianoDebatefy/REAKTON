@@ -43,7 +43,10 @@ const doto = Doto({
 export interface NfcPlayerV2Track {
   id: string;
   title: string;
+  /** Playback URL (blob after album preload). */
   audioUrl: string;
+  /** Original /uploads/ path — track identity when audioUrl is a blob. */
+  sourceUrl?: string;
   order: number;
 }
 
@@ -228,7 +231,7 @@ export function NfcPlayerV2({
       }
 
       try {
-        nfcApplyAudioSource(audio, track.audioUrl);
+        nfcApplyAudioSource(audio, track.audioUrl, track.sourceUrl);
         if (autoPlay) {
           await nfcWaitReadyToPlay(audio, 8_000);
           await playPreparedAudio();
@@ -259,7 +262,7 @@ export function NfcPlayerV2({
 
     trackLoadingRef.current = true;
     try {
-      nfcApplyAudioSource(audio, track.audioUrl);
+      nfcApplyAudioSource(audio, track.audioUrl, track.sourceUrl);
       if (audio.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
         await nfcWaitReadyToPlay(audio, 8_000);
       }

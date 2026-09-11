@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import { NfcPlayerV2 } from "@/components/nfc/NfcPlayerV2";
+import { NfcAlbumPreloadScreen } from "@/components/nfc/NfcAlbumPreloadScreen";
+import { NfcPlayerV2, type NfcPlayerV2Track } from "@/components/nfc/NfcPlayerV2";
+import { revokeNfcPreloadBlobs } from "@/lib/nfc-audio-preload";
 
 interface NfcTrack {
   id: string;
@@ -24,7 +26,10 @@ export function NfcPlayPageClient() {
   const [remainingMs, setRemainingMs] = useState(0);
   const [tracks, setTracks] = useState<NfcTrack[]>([]);
   const [tracksLoading, setTracksLoading] = useState(false);
+  const [preloadedTracks, setPreloadedTracks] = useState<NfcPlayerV2Track[] | null>(null);
+  const [preloadFailed, setPreloadFailed] = useState(false);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const blobUrlsRef = useRef<string[]>([]);
 
   const refreshSession = useCallback(async () => {
     const res = await fetch("/api/nfc/session", { cache: "no-store" });
@@ -42,6 +47,10 @@ export function NfcPlayPageClient() {
 
   const loadTracks = useCallback(async () => {
     setTracksLoading(true);
+    setPreloadFailed(false);
+    setPreloadedTracks(null);
+    revokeNfcPreloadBlobs(blobUrlsRef.current);
+    blobUrlsRef.current = [];
     try {
       const res = await fetch("/api/nfc/tracks", { cache: "no-store" });
       if (!res.ok) throw new Error("tracks");
@@ -82,6 +91,24 @@ export function NfcPlayPageClient() {
     }, 1000);
     return () => window.clearInterval(timer);
   }, [authenticated, remainingMs]);
+
+  useEffect(
+    () => () => {
+      revokeNfcPreloadBlobs(blobUrlsRef.current);
+      blobUrlsRef.current = [];
+    },
+    []
+  );
+
+  const handlePreloadReady = useCallback((ready: NfcPlayerV2Track[], blobs: string[]) => {
+    blobUrlsRef.current = blobs;
+    setPreloadedTracks(ready);
+    setPreloadFailed(false);
+  }, []);
+
+  const handlePreloadError = useCallback(() => {
+    setPreloadFailed(true);
+  }, []);
 
   const handlePlaybackError = useCallback(
     (code: string | null) => {
@@ -124,6 +151,14 @@ export function NfcPlayPageClient() {
     );
   }
 
+  if (tracksLoading) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black text-white/60">
+        {t("loadingTracks")}
+      </div>
+    );
+  }
+
   if (!tracksLoading && tracks.length === 0) {
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black px-6 text-center text-white/60">
@@ -132,11 +167,34 @@ export function NfcPlayPageClient() {
     );
   }
 
+  if (preloadFailed) {
+    return (
+      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black px-6 text-center">
+        <p className="text-white/70">{t("preloadFailed")}</p>
+        <button
+          type="button"
+          className="mt-6 border border-white/30 px-6 py-2 text-sm uppercase tracking-widest text-white/80"
+          onClick={() => void loadTracks()}
+        >
+          {t("preloadRetry")}
+        </button>
+      </div>
+    );
+  }
+
+  if (!preloadedTracks) {
+    return (
+      <NfcAlbumPreloadScreen
+        tracks={tracks}
+        onReady={handlePreloadReady}
+        onError={handlePreloadError}
+      />
+    );
+  }
+
   return (
     <NfcPlayerV2
-      tracks={tracks}
-      tracksLoading={tracksLoading}
-      tracksLoadingLabel={t("loadingTracks")}
+      tracks={preloadedTracks}
       pcCode={pcCode}
       playbackError={playbackError}
       onPlaybackError={handlePlaybackError}

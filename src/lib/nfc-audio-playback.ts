@@ -36,20 +36,26 @@ export function nfcCanonicalAudioUrl(url: string): string {
   return trimmed;
 }
 
-/** Set audio src (always HTTP stream). Does not block. */
-export function nfcApplyAudioSource(audio: HTMLAudioElement, url: string): string {
-  const canonical = nfcCanonicalAudioUrl(url);
-  const resolvedSrc = canonical.startsWith("http")
-    ? canonical
-    : nfcResolveAudioUrl(canonical);
+/** Set playback src (blob URL after preload, or HTTP stream). */
+export function nfcApplyAudioSource(
+  audio: HTMLAudioElement,
+  playbackUrl: string,
+  canonicalKey?: string
+): string {
+  const key = canonicalKey ?? nfcCanonicalAudioUrl(playbackUrl);
+  const src = playbackUrl.startsWith("blob:")
+    ? playbackUrl
+    : playbackUrl.startsWith("http")
+      ? nfcCanonicalAudioUrl(playbackUrl)
+      : nfcResolveAudioUrl(nfcCanonicalAudioUrl(playbackUrl));
 
-  if (audio.dataset.nfcSourceUrl !== canonical) {
-    audio.dataset.nfcSourceUrl = canonical;
+  if (audio.dataset.nfcSourceUrl !== key || audio.src !== src) {
+    audio.dataset.nfcSourceUrl = key;
     audio.preload = "auto";
-    audio.src = resolvedSrc;
+    audio.src = src;
     audio.load();
   }
-  return canonical;
+  return key;
 }
 
 export async function nfcWaitReadyToPlay(audio: HTMLAudioElement, maxMs = 6_000): Promise<void> {

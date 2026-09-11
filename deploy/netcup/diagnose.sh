@@ -38,3 +38,18 @@ echo ""
 
 echo "Last PM2 logs:"
 pm2 logs reakton --lines 20 --nostream 2>/dev/null || true
+echo ""
+
+echo "=== Static MP3 (HTTPS) ==="
+SAMPLE_MP3=$(ls "${APP_DIR}/public/uploads/"*.mp3 2>/dev/null | head -1)
+if [[ -z "${SAMPLE_MP3}" ]]; then
+  echo "  No .mp3 in public/uploads — skip"
+else
+  NAME=$(basename "${SAMPLE_MP3}")
+  echo "Sample: /uploads/${NAME}"
+  echo "HTTPS headers (should be fast; Accept-Ranges: bytes):"
+  curl -sI --max-time 15 "https://reakton.de/uploads/${NAME}" 2>/dev/null | head -12 || echo "  curl failed"
+  echo ""
+  echo "If slow or missing Accept-Ranges: add include snippets/reakton-static.conf to SSL server block."
+  echo "See deploy/netcup/README-NGINX-SSL-UPLOADS.md"
+fi

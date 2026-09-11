@@ -45,6 +45,12 @@ else
   pm2 save
 fi
 
+if [[ -f deploy/netcup/reakton-static-locations.conf ]] && [[ -d /etc/nginx/snippets ]]; then
+  cp deploy/netcup/reakton-static-locations.conf /etc/nginx/snippets/reakton-static.conf
+  echo "==> Nginx snippet: /etc/nginx/snippets/reakton-static.conf"
+  echo "    SSL-Block (443) muss 'include /etc/nginx/snippets/reakton-static.conf;' haben — siehe deploy/netcup/README-NGINX-SSL-UPLOADS.md"
+fi
+
 echo ""
 echo "==> Fertig. App laeuft auf http://localhost:${PORT}"
 echo "==> Test: curl -I http://localhost:${PORT}   (nicht 127.0.0.1)"

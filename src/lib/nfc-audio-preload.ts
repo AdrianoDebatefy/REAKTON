@@ -8,12 +8,14 @@ export type NfcPreloadedTrack = {
   order: number;
 };
 
-const PRELOAD_CONCURRENCY = 2;
+/** Parallel downloads once nginx serves /uploads/ on HTTPS directly. */
+const PRELOAD_CONCURRENCY = 4;
 
 export type NfcPreloadProgress = {
   completed: number;
   total: number;
   loadedBytes: number;
+  totalBytes: number | null;
 };
 
 export type NfcPreloadResult = {
@@ -21,22 +23,72 @@ export type NfcPreloadResult = {
   blobUrls: string[];
 };
 
-async function fetchTrackToBlob(audioUrl: string): Promise<{ sourceUrl: string; blobUrl: string; bytes: number }> {
+function resolveFetchUrl(audioUrl: string): { sourceUrl: string; fetchUrl: string } {
   const sourceUrl = nfcCanonicalAudioUrl(audioUrl);
   const fetchUrl = sourceUrl.startsWith("http") ? sourceUrl : nfcResolveAudioUrl(sourceUrl);
+  return { sourceUrl, fetchUrl };
+}
+
+async function estimateTotalBytes(
+  tracks: { audioUrl: string }[]
+): Promise<number | null> {
+  let sum = 0;
+  let found = false;
+  for (const track of tracks) {
+    const { fetchUrl } = resolveFetchUrl(track.audioUrl);
+    try {
+      const res = await fetch(fetchUrl, { method: "HEAD", credentials: "same-origin" });
+      const cl = res.headers.get("content-length");
+      if (cl) {
+        sum += Number.parseInt(cl, 10);
+        found = true;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return found ? sum : null;
+}
+
+async function fetchTrackToBlob(
+  audioUrl: string,
+  onChunk: (deltaBytes: number) => void
+): Promise<{ sourceUrl: string; blobUrl: string; bytes: number }> {
+  const { sourceUrl, fetchUrl } = resolveFetchUrl(audioUrl);
   const res = await fetch(fetchUrl, { credentials: "same-origin" });
   if (!res.ok) throw new Error("nfc_preload_fetch_failed");
-  const blob = await res.blob();
+
+  const reader = res.body?.getReader();
+  if (!reader) {
+    const blob = await res.blob();
+    onChunk(blob.size);
+    return {
+      sourceUrl,
+      blobUrl: URL.createObjectURL(blob),
+      bytes: blob.size,
+    };
+  }
+
+  const parts: BlobPart[] = [];
+  let bytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    parts.push(value);
+    bytes += value.byteLength;
+    onChunk(value.byteLength);
+  }
+
+  const blob = new Blob(parts, { type: res.headers.get("content-type") ?? "audio/mpeg" });
   return {
     sourceUrl,
     blobUrl: URL.createObjectURL(blob),
-    bytes: blob.size,
+    bytes,
   };
 }
 
 /**
- * Download every album MP3 into RAM (blob URLs). Serialized in small batches
- * so progress stays smooth and the radio stack is not overwhelmed.
+ * Download every album MP3 into RAM (blob URLs).
  */
 export async function preloadNfcAlbumTracks(
   tracks: { id: string; title: string; audioUrl: string; order: number }[],
@@ -47,8 +99,13 @@ export async function preloadNfcAlbumTracks(
   const blobUrls: string[] = [];
   let completed = 0;
   let loadedBytes = 0;
+  const totalBytes = await estimateTotalBytes(list);
 
-  onProgress({ completed: 0, total, loadedBytes: 0 });
+  const report = () => {
+    onProgress({ completed, total, loadedBytes, totalBytes });
+  };
+
+  report();
 
   const results: NfcPreloadedTrack[] = [];
 
@@ -58,7 +115,10 @@ export async function preloadNfcAlbumTracks(
       const i = index;
       index += 1;
       const track = list[i];
-      const { sourceUrl, blobUrl, bytes } = await fetchTrackToBlob(track.audioUrl);
+      const { sourceUrl, blobUrl, bytes } = await fetchTrackToBlob(track.audioUrl, (delta) => {
+        loadedBytes += delta;
+        report();
+      });
       blobUrls.push(blobUrl);
       results.push({
         id: track.id,
@@ -68,8 +128,7 @@ export async function preloadNfcAlbumTracks(
         sourceUrl,
       });
       completed += 1;
-      loadedBytes += bytes;
-      onProgress({ completed, total, loadedBytes });
+      report();
     }
   }
 

@@ -21,6 +21,7 @@ export function NfcAlbumPreloadScreen({ tracks, onReady, onError }: NfcAlbumPrel
     completed: 0,
     total: tracks.length,
     loadedBytes: 0,
+    totalBytes: null,
   });
   const trackKey = tracks.map((t) => t.id).join("|");
 
@@ -41,8 +42,12 @@ export function NfcAlbumPreloadScreen({ tracks, onReady, onError }: NfcAlbumPrel
     };
   }, [trackKey, tracks, onReady, onError]);
 
-  const ratio = progress.total > 0 ? progress.completed / progress.total : 0;
-  const percent = Math.min(100, Math.round(ratio * 100));
+  const percent =
+    progress.totalBytes && progress.totalBytes > 0
+      ? Math.min(100, Math.round((progress.loadedBytes / progress.totalBytes) * 100))
+      : progress.total > 0
+        ? Math.min(100, Math.round((progress.completed / progress.total) * 100))
+        : 0;
 
   return (
     <div className="fixed inset-0 z-[110] flex flex-col items-center justify-center bg-[#050508] px-8">
@@ -59,7 +64,10 @@ export function NfcAlbumPreloadScreen({ tracks, onReady, onError }: NfcAlbumPrel
         </div>
         <div className="mt-3 flex justify-between text-xs text-white/50">
           <span>{t("preloadTracks", { done: progress.completed, total: progress.total })}</span>
-          <span>{formatPreloadMegabytes(progress.loadedBytes)}</span>
+          <span>
+            {formatPreloadMegabytes(progress.loadedBytes)}
+            {progress.totalBytes ? ` / ${formatPreloadMegabytes(progress.totalBytes)}` : ""}
+          </span>
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import { NfcMarqueeTitle } from "@/components/nfc/NfcMarqueeTitle";
 import { useNfcCdRotation } from "@/hooks/useNfcCdRotation";
 import { nfcApplyAudioSource, nfcWaitReadyToPlay } from "@/lib/nfc-audio-playback";
 import { NFC_AUDIO_ELEMENT_STYLE, nfcPreferNativeAudioPlayback } from "@/lib/nfc-audio-platform";
+import { lockPortraitForUserGesture } from "@/hooks/usePortraitOrientationLock";
 import { useScreenWakeLock } from "@/hooks/useScreenWakeLock";
 import {
   NFC_CD_RPM,
@@ -246,6 +247,7 @@ export function NfcPlayerV2({
   const playPreparedAudio = useCallback(async () => {
     const audio = audioRef.current;
     if (!audio) return;
+    lockPortraitForUserGesture();
     playbackIntentRef.current = true;
     await audio.play();
     setIsAudioPlaying(true);

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { usePortraitOrientationLock } from "@/hooks/usePortraitOrientationLock";
 import { NfcAlbumPreloadScreen } from "@/components/nfc/NfcAlbumPreloadScreen";
 import { NfcPlayerV2, type NfcPlayerV2Track } from "@/components/nfc/NfcPlayerV2";
 import { NfcPreloadTrackError, revokeNfcPreloadBlobs } from "@/lib/nfc-audio-preload";
@@ -43,6 +44,8 @@ export function NfcPlayPageClient() {
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const blobUrlsRef = useRef<string[]>([]);
   const sessionEndAtRef = useRef(0);
+
+  usePortraitOrientationLock(authenticated && isMobile);
 
   const refreshSession = useCallback(async () => {
     const res = await fetch("/api/nfc/session", { cache: "no-store" });

@@ -70,20 +70,43 @@ export const NFC_V2_Z = {
   stopControl: 50,
 } as const;
 
+/** XD endpoints shifted +1× knob size along the groove (knob was short at both ends). */
+export function nfcV2SliderTravelCenters() {
+  const { start, end, knobWidth } = NFC_V2_SLIDER;
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const len = Math.hypot(dx, dy);
+  if (len <= 0) {
+    return { startCenter: start, endCenter: end };
+  }
+  const ux = dx / len;
+  const uy = dy / len;
+  const pad = knobWidth;
+  return {
+    startCenter: { x: start.x + ux * pad, y: start.y + uy * pad },
+    endCenter: { x: end.x + ux * pad, y: end.y + uy * pad },
+  };
+}
+
 function nfcV2SliderCenter(progressRatio: number) {
   const t = Math.min(1, Math.max(0, progressRatio));
+  const { startCenter, endCenter } = nfcV2SliderTravelCenters();
   return {
-    x: NFC_V2_SLIDER.start.x + (NFC_V2_SLIDER.end.x - NFC_V2_SLIDER.start.x) * t,
-    y: NFC_V2_SLIDER.start.y + (NFC_V2_SLIDER.end.y - NFC_V2_SLIDER.start.y) * t,
+    x: startCenter.x + (endCenter.x - startCenter.x) * t,
+    y: startCenter.y + (endCenter.y - startCenter.y) * t,
   };
 }
 
 export function nfcV2SliderRatioFromPoint(x: number, y: number): number {
-  const dx = NFC_V2_SLIDER.end.x - NFC_V2_SLIDER.start.x;
-  const dy = NFC_V2_SLIDER.end.y - NFC_V2_SLIDER.start.y;
+  const { startCenter, endCenter } = nfcV2SliderTravelCenters();
+  const dx = endCenter.x - startCenter.x;
+  const dy = endCenter.y - startCenter.y;
   const lenSq = dx * dx + dy * dy;
   if (lenSq <= 0) return 0;
-  return Math.min(1, Math.max(0, ((x - NFC_V2_SLIDER.start.x) * dx + (y - NFC_V2_SLIDER.start.y) * dy) / lenSq));
+  return Math.min(
+    1,
+    Math.max(0, ((x - startCenter.x) * dx + (y - startCenter.y) * dy) / lenSq)
+  );
 }
 
 /** Knob center on the scrub line. */
@@ -93,13 +116,14 @@ export function nfcV2SliderPosition(progressRatio: number) {
 
 /** Diagonal scrub line between 0% and 100% knob centers. */
 export function nfcV2SliderTrackMetrics() {
-  const dx = NFC_V2_SLIDER.end.x - NFC_V2_SLIDER.start.x;
-  const dy = NFC_V2_SLIDER.end.y - NFC_V2_SLIDER.start.y;
+  const { startCenter, endCenter } = nfcV2SliderTravelCenters();
+  const dx = endCenter.x - startCenter.x;
+  const dy = endCenter.y - startCenter.y;
   return {
     length: Math.hypot(dx, dy),
     angleDeg: (Math.atan2(dy, dx) * 180) / Math.PI,
-    startCenter: NFC_V2_SLIDER.start,
-    endCenter: NFC_V2_SLIDER.end,
+    startCenter,
+    endCenter,
   };
 }
 
@@ -156,12 +180,17 @@ export const NFC_V2_TEXT_SONGTITLE: NfcV2TextLayerTweak = {
 };
 
 export const NFC_V2_TEXT_TIME: NfcV2TextLayerTweak = {
-  scale: 1.5,
+  scale: 2,
   nudgeX: 0,
   nudgeY: 0,
   innerOrigin: "bottom",
   align: "bottom",
 };
+
+export const NFC_V2_TEXT_DESKTOPCODE = {
+  scale: 1.4,
+  fontSize: 22,
+} as const;
 
 export function nfcV2TextLayerOuterStyle(rect: NfcV2Rect, tweak: NfcV2TextLayerTweak) {
   return {

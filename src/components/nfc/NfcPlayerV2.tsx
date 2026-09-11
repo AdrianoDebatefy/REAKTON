@@ -16,6 +16,7 @@ import {
   NFC_V2_HEIGHT,
   NFC_V2_RECTS,
   NFC_V2_SLIDER,
+  NFC_V2_TEXT_DESKTOPCODE,
   NFC_V2_TEXT_SONGTITLE,
   NFC_V2_TEXT_TIME,
   NFC_V2_WIDTH,
@@ -572,12 +573,20 @@ export function NfcPlayerV2({
               className="absolute inset-0 overflow-hidden rounded-md border border-white/35 bg-white/12 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-md"
               aria-hidden
             />
-            <p
-              className="absolute inset-0 flex items-center justify-center truncate px-2 text-center font-bold text-black drop-shadow-sm"
-              style={{ fontSize: 22 }}
+            <div
+              className="absolute inset-0 flex items-center justify-center overflow-hidden"
+              style={{
+                transform: `scale(${NFC_V2_TEXT_DESKTOPCODE.scale})`,
+                transformOrigin: "50% 50%",
+              }}
             >
-              {pcCode ?? "—"}
-            </p>
+              <p
+                className="truncate px-2 text-center font-bold text-white drop-shadow-md"
+                style={{ fontSize: NFC_V2_TEXT_DESKTOPCODE.fontSize }}
+              >
+                {pcCode ?? "—"}
+              </p>
+            </div>
           </div>
 
           {NFC_V2_SLIDER_DEBUG_LINE ? (

@@ -35,6 +35,7 @@ Wenn `location /nfc/` auf `public/nfc/` zeigt, fängt Nginx **`/nfc/tap`** ab (N
 sudo cp /var/www/reakton/deploy/netcup/reakton-static-locations.conf /etc/nginx/snippets/reakton-static.conf
 sudo nginx -t && sudo systemctl reload nginx
 curl -sI "https://reakton.de/nfc/tap?card=test" | head -3   # 400 oder 302, nicht 404
+bash deploy/netcup/verify-nfc-tap.sh
 ```
 
 ## Häufiger Fehler: `duplicate location "/uploads/"`

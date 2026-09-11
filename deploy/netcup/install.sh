@@ -59,6 +59,13 @@ if [[ -f deploy/netcup/reakton-static-locations.conf ]] && [[ -d /etc/nginx/snip
     echo "    sudo nginx -t && sudo systemctl reload nginx"
     echo "    Details: deploy/netcup/README-NGINX-SSL-UPLOADS.md"
   fi
+  if [[ -f "$SNIPPET_DEST" ]] && cmp -s deploy/netcup/reakton-static-locations.conf "$SNIPPET_DEST" 2>/dev/null; then
+    if sudo nginx -t 2>/dev/null && sudo systemctl reload nginx 2>/dev/null; then
+      echo "==> Nginx neu geladen"
+    else
+      echo "==> Snippet aktualisiert — bitte manuell: sudo nginx -t && sudo systemctl reload nginx"
+    fi
+  fi
 fi
 
 echo ""

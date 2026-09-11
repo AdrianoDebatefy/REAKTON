@@ -7,12 +7,18 @@ export const NFC_V2_GESTELL_BLEED_TOP = 24;
 
 export const NFC_V2_TEXT_ROTATION_DEG = -38;
 
+/**
+ * Track scrub line — 0% / 100% = **center** of the 48×48 knob on the groove (XD).
+ * Toggle debug overlay to align with gestell: NFC_V2_SLIDER_DEBUG_LINE
+ */
 export const NFC_V2_SLIDER = {
   start: { x: 28, y: 660 },
   end: { x: 430, y: 932 },
   knobWidth: 48,
   knobHeight: 48,
 } as const;
+
+export const NFC_V2_SLIDER_DEBUG_LINE = false;
 
 export type NfcV2Rect = { left: number; top: number; width: number; height: number };
 
@@ -37,6 +43,7 @@ export const NFC_V2_RECTS = {
   textSongtitle: { left: 48, top: 509, width: 269, height: 260 },
   textTime: { left: 82, top: 584, width: 235, height: 190 },
   textDesktopcode: { left: 39, top: 150, width: 370, height: 63 },
+  fullScreen: { left: 272, top: 282, width: 154, height: 70 },
 } as const satisfies Record<string, NfcV2Rect>;
 
 /** Back → front (matches XD layer list). */
@@ -59,8 +66,17 @@ export const NFC_V2_Z = {
   textTime: 15,
   textDesktopcode: 16,
   controls: 30,
+  fullScreen: 49,
   stopControl: 50,
 } as const;
+
+function nfcV2SliderCenter(progressRatio: number) {
+  const t = Math.min(1, Math.max(0, progressRatio));
+  return {
+    x: NFC_V2_SLIDER.start.x + (NFC_V2_SLIDER.end.x - NFC_V2_SLIDER.start.x) * t,
+    y: NFC_V2_SLIDER.start.y + (NFC_V2_SLIDER.end.y - NFC_V2_SLIDER.start.y) * t,
+  };
+}
 
 export function nfcV2SliderRatioFromPoint(x: number, y: number): number {
   const dx = NFC_V2_SLIDER.end.x - NFC_V2_SLIDER.start.x;
@@ -70,31 +86,46 @@ export function nfcV2SliderRatioFromPoint(x: number, y: number): number {
   return Math.min(1, Math.max(0, ((x - NFC_V2_SLIDER.start.x) * dx + (y - NFC_V2_SLIDER.start.y) * dy) / lenSq));
 }
 
+/** Knob center on the scrub line. */
 export function nfcV2SliderPosition(progressRatio: number) {
-  const t = Math.min(1, Math.max(0, progressRatio));
-  return {
-    x: NFC_V2_SLIDER.start.x + (NFC_V2_SLIDER.end.x - NFC_V2_SLIDER.start.x) * t,
-    y: NFC_V2_SLIDER.start.y + (NFC_V2_SLIDER.end.y - NFC_V2_SLIDER.start.y) * t,
-  };
+  return nfcV2SliderCenter(progressRatio);
 }
 
-/** Diagonal scrub line from 0% → 100% (knob top-left travels start → end). */
+/** Diagonal scrub line between 0% and 100% knob centers. */
 export function nfcV2SliderTrackMetrics() {
   const dx = NFC_V2_SLIDER.end.x - NFC_V2_SLIDER.start.x;
   const dy = NFC_V2_SLIDER.end.y - NFC_V2_SLIDER.start.y;
   return {
     length: Math.hypot(dx, dy),
     angleDeg: (Math.atan2(dy, dx) * 180) / Math.PI,
+    startCenter: NFC_V2_SLIDER.start,
+    endCenter: NFC_V2_SLIDER.end,
   };
 }
 
 export function nfcV2SliderKnobStyle(progressRatio: number) {
-  const pos = nfcV2SliderPosition(progressRatio);
+  const center = nfcV2SliderCenter(progressRatio);
+  const halfW = NFC_V2_SLIDER.knobWidth / 2;
+  const halfH = NFC_V2_SLIDER.knobHeight / 2;
   return {
-    left: pos.x,
-    top: pos.y,
+    left: center.x - halfW,
+    top: center.y - halfH,
     width: NFC_V2_SLIDER.knobWidth,
     height: NFC_V2_SLIDER.knobHeight,
+  };
+}
+
+/** Red overlay segment for tuning start/end against gestell.svg */
+export function nfcV2SliderDebugLineStyle() {
+  const { length, angleDeg, startCenter } = nfcV2SliderTrackMetrics();
+  return {
+    left: startCenter.x,
+    top: startCenter.y,
+    width: length,
+    height: 0,
+    transformOrigin: "0 0",
+    transform: `rotate(${angleDeg}deg)`,
+    borderTop: "2px solid #FF0000",
   };
 }
 

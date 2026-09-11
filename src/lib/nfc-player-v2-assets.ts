@@ -18,6 +18,7 @@ export const NFC_PLAYER_V2_ASSETS = {
   skipOnBack: "/nfc/player-v2/skip-on-back.png",
   sliderKnob: "/nfc/player-v2/slider-knob.png",
   textDesktopcodeBg: "/nfc/player-v2/text-desktopcode-bg.png",
+  fullScreen: "/nfc/player-v2/full-screen.png",
 } as const;
 
 export const NFC_CD_RPM = 200;

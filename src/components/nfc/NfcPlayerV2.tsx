@@ -21,6 +21,8 @@ import {
   NFC_V2_WIDTH,
   NFC_V2_Z,
   nfcV2RectStyle,
+  NFC_V2_SLIDER_DEBUG_LINE,
+  nfcV2SliderDebugLineStyle,
   nfcV2SliderKnobStyle,
   nfcV2SliderRatioFromPoint,
   nfcV2SliderTrackMetrics,
@@ -578,11 +580,19 @@ export function NfcPlayerV2({
             </p>
           </div>
 
+          {NFC_V2_SLIDER_DEBUG_LINE ? (
+            <div
+              className="pointer-events-none absolute"
+              style={{ ...nfcV2SliderDebugLineStyle(), zIndex: NFC_V2_Z.sliderKnob + 1 }}
+              aria-hidden
+            />
+          ) : null}
+
           <div
             className="absolute touch-none"
             style={{
-              left: NFC_V2_SLIDER.start.x,
-              top: NFC_V2_SLIDER.start.y - NFC_V2_SLIDER.knobHeight / 2,
+              left: sliderTrack.startCenter.x,
+              top: sliderTrack.startCenter.y - NFC_V2_SLIDER.knobHeight / 2,
               width: sliderTrack.length,
               height: NFC_V2_SLIDER.knobHeight,
               transformOrigin: "0 50%",
@@ -619,6 +629,23 @@ export function NfcPlayerV2({
               e.stopPropagation();
               bindSliderPointer(e.clientX, e.clientY);
             }}
+          />
+
+          <LayerImage
+            src={NFC_PLAYER_V2_ASSETS.fullScreen}
+            rect={NFC_V2_RECTS.fullScreen}
+            zIndex={NFC_V2_Z.fullScreen}
+          />
+          <button
+            type="button"
+            className="absolute cursor-pointer border-0 bg-transparent p-0"
+            style={{
+              ...nfcV2RectStyle(NFC_V2_RECTS.fullScreen),
+              zIndex: NFC_V2_Z.fullScreen + 1,
+              touchAction: "manipulation",
+            }}
+            onClick={() => void toggleFullscreen()}
+            aria-label={fullscreenActive ? "Exit fullscreen" : "Enter fullscreen"}
           />
 
           <button
@@ -670,16 +697,6 @@ export function NfcPlayerV2({
           </div>
         </div>
       </div>
-
-      <button
-        type="button"
-        className="absolute right-3 z-[110] rounded-md border border-white/25 bg-black/40 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm"
-        style={{ top: "max(0.5rem, env(safe-area-inset-top))" }}
-        onClick={() => void toggleFullscreen()}
-        aria-label={fullscreenActive ? "Exit fullscreen" : "Enter fullscreen"}
-      >
-        {fullscreenActive ? "Exit" : "Fullscreen"}
-      </button>
 
       <audio ref={audioRef} preload="auto" playsInline className="hidden" />
     </div>

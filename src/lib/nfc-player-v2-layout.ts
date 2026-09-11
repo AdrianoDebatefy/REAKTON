@@ -81,7 +81,7 @@ export function nfcV2SliderTravelCenters() {
   }
   const ux = dx / len;
   const uy = dy / len;
-  const pad = knobWidth;
+  const pad = Math.max(0, knobWidth - 10);
   return {
     startCenter: { x: start.x + ux * pad, y: start.y + uy * pad },
     endCenter: { x: end.x + ux * pad, y: end.y + uy * pad },

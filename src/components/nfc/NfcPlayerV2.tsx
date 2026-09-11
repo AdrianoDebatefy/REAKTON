@@ -183,8 +183,6 @@ export function NfcPlayerV2({
         setPaused(false);
       }
 
-      await ensureAudioGraph();
-
       const absoluteUrl = track.audioUrl.startsWith("http")
         ? track.audioUrl
         : new URL(track.audioUrl, window.location.origin).href;
@@ -195,6 +193,11 @@ export function NfcPlayerV2({
         if (!autoPlay) {
           trackLoadingRef.current = false;
           return true;
+        }
+
+        await ensureAudioGraph();
+        if (audioCtxRef.current?.state === "suspended") {
+          await audioCtxRef.current.resume();
         }
 
         await audio.play();
@@ -216,14 +219,32 @@ export function NfcPlayerV2({
   const playCurrent = useCallback(async () => {
     const audio = audioRef.current;
     if (!audio) return;
+    const track = tracksRef.current[trackIndexRef.current];
+    if (!track?.audioUrl?.trim()) {
+      onPlaybackError("no_audio");
+      return;
+    }
+
+    const absoluteUrl = track.audioUrl.startsWith("http")
+      ? track.audioUrl
+      : new URL(track.audioUrl, window.location.origin).href;
+
     try {
+      if (!audio.src || audio.src !== absoluteUrl) {
+        await nfcPrepareAudioPlayback(audio, absoluteUrl);
+      }
+      await ensureAudioGraph();
+      if (audioCtxRef.current?.state === "suspended") {
+        await audioCtxRef.current.resume();
+      }
       await audio.play();
       setIsAudioPlaying(true);
       setPaused(false);
+      onPlaybackError(null);
     } catch {
       onPlaybackError("playback_failed");
     }
-  }, [onPlaybackError]);
+  }, [ensureAudioGraph, onPlaybackError]);
 
   const pauseCurrent = useCallback(() => {
     const audio = audioRef.current;

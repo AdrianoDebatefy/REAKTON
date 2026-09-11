@@ -144,7 +144,7 @@ export type NfcV2TextLayerTweak = {
 };
 
 /** Longest track title for layout preview (null = use real track title). */
-export const NFC_V2_TITLE_PREVIEW: string | null = "Synchron Monoton";
+export const NFC_V2_TITLE_PREVIEW: string | null = null;
 
 /** Set true only to show XD marker frames (#FF0000) while tuning. */
 export const NFC_V2_TEXT_DEBUG_FRAMES = false;

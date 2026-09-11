@@ -165,6 +165,18 @@ export function NfcPlayerV2({
     }
   }, []);
 
+  const playPreparedAudio = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    await ensureAudioGraph();
+    if (audioCtxRef.current?.state === "suspended") {
+      await audioCtxRef.current.resume();
+    }
+    await audio.play();
+    setIsAudioPlaying(true);
+    setPaused(false);
+  }, [ensureAudioGraph]);
+
   const loadTrack = useCallback(
     async (index: number, autoPlay: boolean) => {
       const list = tracksRef.current;
@@ -195,14 +207,7 @@ export function NfcPlayerV2({
           return true;
         }
 
-        await ensureAudioGraph();
-        if (audioCtxRef.current?.state === "suspended") {
-          await audioCtxRef.current.resume();
-        }
-
-        await audio.play();
-        setIsAudioPlaying(true);
-        setPaused(false);
+        await playPreparedAudio();
         trackLoadingRef.current = false;
         return true;
       } catch {
@@ -213,7 +218,7 @@ export function NfcPlayerV2({
         return false;
       }
     },
-    [ensureAudioGraph, onPlaybackError]
+    [onPlaybackError, playPreparedAudio]
   );
 
   const playCurrent = useCallback(async () => {
@@ -230,21 +235,13 @@ export function NfcPlayerV2({
       : new URL(track.audioUrl, window.location.origin).href;
 
     try {
-      if (!audio.src || audio.src !== absoluteUrl) {
-        await nfcPrepareAudioPlayback(audio, absoluteUrl);
-      }
-      await ensureAudioGraph();
-      if (audioCtxRef.current?.state === "suspended") {
-        await audioCtxRef.current.resume();
-      }
-      await audio.play();
-      setIsAudioPlaying(true);
-      setPaused(false);
+      await nfcPrepareAudioPlayback(audio, absoluteUrl);
+      await playPreparedAudio();
       onPlaybackError(null);
     } catch {
       onPlaybackError("playback_failed");
     }
-  }, [ensureAudioGraph, onPlaybackError]);
+  }, [onPlaybackError, playPreparedAudio]);
 
   const pauseCurrent = useCallback(() => {
     const audio = audioRef.current;

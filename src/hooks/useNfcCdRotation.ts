@@ -60,10 +60,26 @@ function waitForCanPlay(audio: HTMLAudioElement): Promise<void> {
   });
 }
 
+function audioUrlMatches(audio: HTMLAudioElement, absoluteUrl: string): boolean {
+  if (!audio.src) return false;
+  try {
+    return new URL(audio.src).href === new URL(absoluteUrl, window.location.origin).href;
+  } catch {
+    return audio.src === absoluteUrl;
+  }
+}
+
 export async function nfcPrepareAudioPlayback(audio: HTMLAudioElement, absoluteUrl: string): Promise<void> {
-  if (audio.src !== absoluteUrl) {
-    audio.src = absoluteUrl;
+  const resolved = absoluteUrl.startsWith("http")
+    ? absoluteUrl
+    : new URL(absoluteUrl, window.location.origin).href;
+
+  if (!audioUrlMatches(audio, resolved)) {
+    audio.src = resolved;
     audio.load();
+  }
+
+  if (audio.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
     await waitForCanPlay(audio);
   }
 }

@@ -1,111 +1,52 @@
-import { nfcPreferNativeAudioPlayback } from "@/lib/nfc-audio-platform";
-
 /**
- * NFC player v2 audio: direct /uploads URLs, optional background full-file cache
- * (one download at a time — does not compete with initial PNG load).
+ * NFC player v2: stream MP3 from /uploads only (no in-memory blob cache).
  */
 
-const MAX_BLOB_TRACKS = 4;
-
-const blobUrlByCanonical = new Map<string, string>();
-const blobOrder: string[] = [];
-const pendingDownloads = new Set<string>();
-const downloadQueue: string[] = [];
-let activeDownload: string | null = null;
-
 export function nfcResolveAudioUrl(url: string): string {
+  if (typeof window === "undefined") return url.trim();
   if (url.startsWith("http")) return url;
   return new URL(url, window.location.origin).href;
 }
 
 /** Prefer nginx-static /uploads over buffering the whole file through Next API. */
 export function nfcCanonicalAudioUrl(url: string): string {
-  const resolved = nfcResolveAudioUrl(url);
-  try {
-    const parsed = new URL(resolved);
-    const apiMatch = parsed.pathname.match(/^\/api\/world-asset\/uploads\/(.+)$/);
-    if (apiMatch) {
-      return `${parsed.origin}/uploads/${decodeURIComponent(apiMatch[1])}`;
+  const trimmed = url.trim();
+  if (!trimmed) return trimmed;
+
+  const apiPath = trimmed.match(/^\/api\/world-asset\/uploads\/(.+)$/);
+  if (apiPath) return `/uploads/${decodeURIComponent(apiPath[1])}`;
+
+  if (trimmed.startsWith("http")) {
+    try {
+      const parsed = new URL(trimmed);
+      const apiMatch = parsed.pathname.match(/^\/api\/world-asset\/uploads\/(.+)$/);
+      if (apiMatch) {
+        return `${parsed.origin}/uploads/${decodeURIComponent(apiMatch[1])}`;
+      }
+      return parsed.href;
+    } catch {
+      return trimmed;
     }
-  } catch {
-    /* keep resolved */
-  }
-  return resolved;
-}
-
-function touchBlobEntry(canonical: string, blobUrl: string): void {
-  const idx = blobOrder.indexOf(canonical);
-  if (idx >= 0) blobOrder.splice(idx, 1);
-  blobOrder.push(canonical);
-  blobUrlByCanonical.set(canonical, blobUrl);
-  while (blobOrder.length > MAX_BLOB_TRACKS) {
-    const evict = blobOrder.shift();
-    if (!evict) break;
-    const old = blobUrlByCanonical.get(evict);
-    if (old) URL.revokeObjectURL(old);
-    blobUrlByCanonical.delete(evict);
-  }
-}
-
-async function fetchFullTrackToBlob(canonical: string): Promise<string> {
-  const cached = blobUrlByCanonical.get(canonical);
-  if (cached) {
-    touchBlobEntry(canonical, cached);
-    return cached;
   }
 
-  const res = await fetch(canonical, { credentials: "same-origin" });
-  if (!res.ok) throw new Error("nfc_audio_fetch_failed");
-  const blob = await res.blob();
-  const blobUrl = URL.createObjectURL(blob);
-  touchBlobEntry(canonical, blobUrl);
-  return blobUrl;
-}
-
-function pumpDownloadQueue(): void {
-  if (activeDownload || downloadQueue.length === 0) return;
-  const next = downloadQueue.shift();
-  if (!next || blobUrlByCanonical.has(next)) {
-    pumpDownloadQueue();
-    return;
+  if (typeof window !== "undefined") {
+    return nfcResolveAudioUrl(trimmed);
   }
-  activeDownload = next;
-  void fetchFullTrackToBlob(next)
-    .catch(() => undefined)
-    .finally(() => {
-      pendingDownloads.delete(next);
-      activeDownload = null;
-      pumpDownloadQueue();
-    });
+
+  return trimmed;
 }
 
-/** Queue a low-priority full download (serialized). Safe to call after UI + play. */
-export function nfcQueueBackgroundBuffer(url: string): void {
-  if (!url.trim() || typeof window === "undefined") return;
-  const canonical = nfcCanonicalAudioUrl(url);
-  if (blobUrlByCanonical.has(canonical) || pendingDownloads.has(canonical)) return;
-  pendingDownloads.add(canonical);
-  downloadQueue.push(canonical);
-  pumpDownloadQueue();
-}
-
-export function nfcHasBufferedTrack(url: string): boolean {
-  return blobUrlByCanonical.has(nfcCanonicalAudioUrl(url));
-}
-
-function playbackSrcForUrl(url: string): { canonical: string; src: string } {
-  const canonical = nfcCanonicalAudioUrl(url);
-  const blob = blobUrlByCanonical.get(canonical);
-  return { canonical, src: blob ?? canonical };
-}
-
-/** Set audio src (blob if already buffered, else stream). Does not block. */
+/** Set audio src (always HTTP stream). Does not block. */
 export function nfcApplyAudioSource(audio: HTMLAudioElement, url: string): string {
-  const { canonical, src } = playbackSrcForUrl(url);
-  if (audio.dataset.nfcSourceUrl !== canonical || audio.src !== src) {
+  const canonical = nfcCanonicalAudioUrl(url);
+  const resolvedSrc = canonical.startsWith("http")
+    ? canonical
+    : nfcResolveAudioUrl(canonical);
+
+  if (audio.dataset.nfcSourceUrl !== canonical) {
     audio.dataset.nfcSourceUrl = canonical;
     audio.preload = "auto";
-    audio.src = src;
+    audio.src = resolvedSrc;
     audio.load();
   }
   return canonical;
@@ -147,20 +88,7 @@ export async function nfcWaitReadyToPlay(audio: HTMLAudioElement, maxMs = 6_000)
   });
 }
 
-export async function nfcPrepareAudioPlayback(
-  audio: HTMLAudioElement,
-  url: string,
-  maxWaitMs = 6_000
-): Promise<void> {
-  nfcApplyAudioSource(audio, url);
-  await nfcWaitReadyToPlay(audio, maxWaitMs);
-}
-
-/** Prefetch only the *next* track — never fetch the URL that is currently streaming. */
-export function nfcScheduleBuffersAfterPlay(_currentUrl: string, nextUrl?: string | null): void {
-  if (typeof window === "undefined" || !nextUrl?.trim()) return;
-  if (nfcPreferNativeAudioPlayback()) return;
-  window.setTimeout(() => {
-    nfcQueueBackgroundBuffer(nextUrl);
-  }, 12_000);
+/** @deprecated No-op — blob prefetch removed for playback stability. */
+export function nfcScheduleBuffersAfterPlay(_currentUrl: string, _nextUrl?: string | null): void {
+  /* intentionally empty */
 }

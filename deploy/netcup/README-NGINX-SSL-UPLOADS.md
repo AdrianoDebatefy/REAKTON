@@ -10,8 +10,15 @@ Wenn das NFC-Album auf dem Handy **Minuten** braucht (trotz schnellem LTE), lieg
 ## Prüfen (vom VPS oder PC)
 
 ```bash
-# Eine echte MP3-Datei aus uploads einsetzen:
-curl -sI "https://reakton.de/uploads/DEINE-DATEI.mp3" | head -15
+# Echte Datei vom Server (nicht den Platzhalter „DEIN-TRACK“):
+FILE=$(ls /var/www/reakton/public/uploads/*.mp3 2>/dev/null | head -1)
+test -n "$FILE" || { echo "Keine MP3 in public/uploads"; exit 1; }
+NAME=$(basename "$FILE")
+echo "Test: /uploads/$NAME"
+curl -sI "https://reakton.de/uploads/${NAME}" | head -15
+echo "--- Download-Geschwindigkeit (sollte wenige Sekunden für ~5–10 MB sein) ---"
+time curl -fsS -o /tmp/reakton-mp3-test.mp3 "https://reakton.de/uploads/${NAME}"
+ls -lh /tmp/reakton-mp3-test.mp3
 ```
 
 **Gut:** `HTTP/2 200`, `Accept-Ranges: bytes`, große `Content-Length`, Antwort in **unter 1 s** für Header.

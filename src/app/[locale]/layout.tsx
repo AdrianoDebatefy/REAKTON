@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getMessages, getTranslations } from "next-intl/server";
+import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import type { Locale } from "@/types/content";
@@ -53,6 +53,8 @@ export default async function LocaleLayout({
 }) {
   const { locale } = await params;
   if (!routing.locales.includes(locale as Locale)) notFound();
+
+  setRequestLocale(locale);
 
   const messages = await getMessages();
   const content = getSiteContent();

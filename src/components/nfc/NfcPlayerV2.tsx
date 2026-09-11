@@ -5,7 +5,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { NfcEqVisualizer } from "@/components/nfc/NfcEqVisualizer";
 import { NfcMarqueeTitle } from "@/components/nfc/NfcMarqueeTitle";
 import { useNfcCdRotation } from "@/hooks/useNfcCdRotation";
-import { nfcPrefetchAudio, nfcPrepareAudioPlayback } from "@/lib/nfc-audio-playback";
+import {
+  nfcApplyAudioSource,
+  nfcScheduleBuffersAfterPlay,
+  nfcWaitReadyToPlay,
+} from "@/lib/nfc-audio-playback";
 import { useScreenWakeLock } from "@/hooks/useScreenWakeLock";
 import {
   NFC_CD_RPM,
@@ -48,6 +52,8 @@ export interface NfcPlayerV2Track {
 
 interface NfcPlayerV2Props {
   tracks: NfcPlayerV2Track[];
+  tracksLoading?: boolean;
+  tracksLoadingLabel?: string;
   pcCode: string | null;
   playbackError: string | null;
   onPlaybackError: (message: string | null) => void;
@@ -67,6 +73,7 @@ function LayerImage({
   style,
   objectFit = "fill",
   zIndex,
+  priority = false,
 }: {
   src: string;
   rect: { left: number; top: number; width: number; height: number };
@@ -74,6 +81,7 @@ function LayerImage({
   style?: React.CSSProperties;
   objectFit?: "fill" | "contain" | "cover" | "none";
   zIndex?: number;
+  priority?: boolean;
 }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -81,7 +89,8 @@ function LayerImage({
       src={src}
       alt=""
       decoding="async"
-      loading="eager"
+      loading={priority ? "eager" : "lazy"}
+      fetchPriority={priority ? "high" : "auto"}
       className={`pointer-events-none absolute ${className}`}
       style={{ ...nfcV2RectStyle(rect), objectFit, zIndex, ...style }}
       draggable={false}
@@ -91,6 +100,8 @@ function LayerImage({
 
 export function NfcPlayerV2({
   tracks,
+  tracksLoading = false,
+  tracksLoadingLabel = "",
   pcCode,
   playbackError,
   onPlaybackError,
@@ -118,7 +129,6 @@ export function NfcPlayerV2({
   const tracksRef = useRef(tracks);
   const trackIndexRef = useRef(trackIndex);
   const trackLoadingRef = useRef(false);
-  const resumeAfterBufferRef = useRef(false);
   const cdSpinRef = useRef<HTMLDivElement>(null);
 
   tracksRef.current = tracks;
@@ -170,27 +180,14 @@ export function NfcPlayerV2({
     }
   }, []);
 
-  const prefetchTimerRef = useRef<number | null>(null);
-
-  const schedulePrefetchNextTrack = useCallback((index: number) => {
-    if (prefetchTimerRef.current) {
-      window.clearTimeout(prefetchTimerRef.current);
-    }
-    prefetchTimerRef.current = window.setTimeout(() => {
-      prefetchTimerRef.current = null;
-      const list = tracksRef.current;
-      if (list.length < 2) return;
-      const nextUrl = list[(index + 1) % list.length]?.audioUrl?.trim();
-      if (nextUrl) nfcPrefetchAudio(nextUrl);
-    }, 3000);
+  const scheduleBufferDownloads = useCallback((index: number) => {
+    const list = tracksRef.current;
+    const current = list[index]?.audioUrl?.trim();
+    if (!current) return;
+    const next =
+      list.length > 1 ? list[(index + 1) % list.length]?.audioUrl?.trim() ?? null : null;
+    nfcScheduleBuffersAfterPlay(current, next);
   }, []);
-
-  useEffect(
-    () => () => {
-      if (prefetchTimerRef.current) window.clearTimeout(prefetchTimerRef.current);
-    },
-    []
-  );
 
   const playPreparedAudio = useCallback(async () => {
     const audio = audioRef.current;
@@ -223,15 +220,13 @@ export function NfcPlayerV2({
       }
 
       try {
-        await nfcPrepareAudioPlayback(audio, track.audioUrl);
-        schedulePrefetchNextTrack(index);
-
-        if (!autoPlay) {
-          trackLoadingRef.current = false;
-          return true;
+        nfcApplyAudioSource(audio, track.audioUrl);
+        if (autoPlay) {
+          await nfcWaitReadyToPlay(audio, 8_000);
+          await playPreparedAudio();
+          scheduleBufferDownloads(index);
         }
 
-        await playPreparedAudio();
         trackLoadingRef.current = false;
         return true;
       } catch {
@@ -242,13 +237,14 @@ export function NfcPlayerV2({
         return false;
       }
     },
-    [onPlaybackError, playPreparedAudio, schedulePrefetchNextTrack]
+    [onPlaybackError, playPreparedAudio, scheduleBufferDownloads]
   );
 
   const playCurrent = useCallback(async () => {
     const audio = audioRef.current;
     if (!audio) return;
-    const track = tracksRef.current[trackIndexRef.current];
+    const index = trackIndexRef.current;
+    const track = tracksRef.current[index];
     if (!track?.audioUrl?.trim()) {
       onPlaybackError("no_audio");
       return;
@@ -256,9 +252,12 @@ export function NfcPlayerV2({
 
     trackLoadingRef.current = true;
     try {
-      await nfcPrepareAudioPlayback(audio, track.audioUrl);
-      schedulePrefetchNextTrack(trackIndexRef.current);
+      nfcApplyAudioSource(audio, track.audioUrl);
+      if (audio.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+        await nfcWaitReadyToPlay(audio, 8_000);
+      }
       await playPreparedAudio();
+      scheduleBufferDownloads(index);
       onPlaybackError(null);
     } catch {
       onPlaybackError("playback_failed");
@@ -267,7 +266,7 @@ export function NfcPlayerV2({
     } finally {
       trackLoadingRef.current = false;
     }
-  }, [onPlaybackError, playPreparedAudio, schedulePrefetchNextTrack]);
+  }, [onPlaybackError, playPreparedAudio, scheduleBufferDownloads]);
 
   const pauseCurrent = useCallback(() => {
     const audio = audioRef.current;
@@ -316,8 +315,20 @@ export function NfcPlayerV2({
     setTrackIndex(0);
     setPaused(true);
     setIsAudioPlaying(false);
-    void loadTrack(0, false);
-  }, [autoplayDone, loadTrack, tracks.length]);
+  }, [autoplayDone, tracks.length]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const hrefs = [NFC_PLAYER_V2_ASSETS.gestell, NFC_PLAYER_V2_ASSETS.background];
+    for (const href of hrefs) {
+      if (document.querySelector(`link[rel="preload"][href="${href}"]`)) continue;
+      const link = document.createElement("link");
+      link.rel = "preload";
+      link.as = "image";
+      link.href = href;
+      document.head.appendChild(link);
+    }
+  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -340,27 +351,8 @@ export function NfcPlayerV2({
       setPaused(true);
     };
     const onPlaying = () => {
-      resumeAfterBufferRef.current = false;
       setIsAudioPlaying(true);
       setPaused(false);
-    };
-    const onWaiting = () => {
-      if (!trackLoadingRef.current && !audio.paused) {
-        resumeAfterBufferRef.current = true;
-      }
-    };
-    const onStalled = () => {
-      if (!trackLoadingRef.current && !audio.paused) {
-        resumeAfterBufferRef.current = true;
-      }
-    };
-    const onCanPlayAfterWait = () => {
-      if (!resumeAfterBufferRef.current || trackLoadingRef.current) return;
-      if (audio.paused) {
-        void audio.play().catch(() => {
-          resumeAfterBufferRef.current = false;
-        });
-      }
     };
 
     audio.addEventListener("timeupdate", onTimeUpdate);
@@ -369,9 +361,6 @@ export function NfcPlayerV2({
     audio.addEventListener("play", onPlay);
     audio.addEventListener("playing", onPlaying);
     audio.addEventListener("pause", onPause);
-    audio.addEventListener("waiting", onWaiting);
-    audio.addEventListener("stalled", onStalled);
-    audio.addEventListener("canplay", onCanPlayAfterWait);
     return () => {
       audio.removeEventListener("timeupdate", onTimeUpdate);
       audio.removeEventListener("loadedmetadata", onLoaded);
@@ -379,9 +368,6 @@ export function NfcPlayerV2({
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("playing", onPlaying);
       audio.removeEventListener("pause", onPause);
-      audio.removeEventListener("waiting", onWaiting);
-      audio.removeEventListener("stalled", onStalled);
-      audio.removeEventListener("canplay", onCanPlayAfterWait);
     };
   }, [goToTrack]);
 
@@ -502,6 +488,7 @@ export function NfcPlayerV2({
             src={NFC_PLAYER_V2_ASSETS.background}
             rect={NFC_V2_RECTS.background}
             zIndex={NFC_V2_Z.background}
+            priority
           />
 
           <div
@@ -758,6 +745,11 @@ export function NfcPlayerV2({
             aria-label="Previous track"
           />
 
+          {tracksLoading && tracksLoadingLabel ? (
+            <p className="pointer-events-none absolute bottom-2 left-2 right-2 z-20 text-center text-xs text-white/50">
+              {tracksLoadingLabel}
+            </p>
+          ) : null}
           {playbackError ? (
             <p className="pointer-events-none absolute bottom-2 left-2 right-2 z-20 text-center text-xs text-red-300">
               {playbackError}

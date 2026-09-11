@@ -124,15 +124,7 @@ export function NfcPlayPageClient() {
     );
   }
 
-  if (tracksLoading) {
-    return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black text-white/60">
-        {t("loadingTracks")}
-      </div>
-    );
-  }
-
-  if (tracks.length === 0) {
+  if (!tracksLoading && tracks.length === 0) {
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black px-6 text-center text-white/60">
         {t("noTracks")}
@@ -143,6 +135,8 @@ export function NfcPlayPageClient() {
   return (
     <NfcPlayerV2
       tracks={tracks}
+      tracksLoading={tracksLoading}
+      tracksLoadingLabel={t("loadingTracks")}
       pcCode={pcCode}
       playbackError={playbackError}
       onPlaybackError={handlePlaybackError}

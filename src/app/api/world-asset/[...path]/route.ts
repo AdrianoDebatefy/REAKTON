@@ -1,6 +1,7 @@
+import { createReadStream, existsSync, statSync } from "fs";
 import { NextRequest, NextResponse } from "next/server";
-import { existsSync, readFileSync } from "fs";
 import path from "path";
+import { Readable } from "stream";
 
 const MIME_BY_EXT: Record<string, string> = {
   ".glb": "model/gltf-binary",
@@ -43,9 +44,46 @@ function resolveAssetFile(segments: string[]): { root: string; filePath: string 
   return { root, filePath: normalizedFile };
 }
 
+function parseRangeHeader(range: string | null, size: number): { start: number; end: number } | null {
+  if (!range || !range.startsWith("bytes=")) return null;
+  const [startStr, endStr] = range.replace(/^bytes=/, "").split("-");
+  const start = startStr ? Number.parseInt(startStr, 10) : 0;
+  const end = endStr ? Number.parseInt(endStr, 10) : size - 1;
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start > end || start >= size) return null;
+  return { start, end: Math.min(end, size - 1) };
+}
+
+function streamResponse(
+  filePath: string,
+  contentType: string,
+  start: number,
+  end: number,
+  size: number,
+  partial: boolean
+): NextResponse {
+  const length = end - start + 1;
+  const stream = createReadStream(filePath, { start, end });
+  const body = Readable.toWeb(stream) as ReadableStream;
+
+  const headers: Record<string, string> = {
+    "Content-Type": contentType,
+    "Accept-Ranges": "bytes",
+    "Cache-Control": "public, max-age=604800",
+  };
+
+  if (partial) {
+    headers["Content-Range"] = `bytes ${start}-${end}/${size}`;
+    headers["Content-Length"] = String(length);
+    return new NextResponse(body, { status: 206, headers });
+  }
+
+  headers["Content-Length"] = String(size);
+  return new NextResponse(body, { headers });
+}
+
 /** Serve world + upload assets from disk (GLB etc.) — reliable on production VPS. */
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   const { path: segments } = await params;
@@ -56,12 +94,20 @@ export async function GET(
   }
 
   const ext = path.extname(resolved.filePath).toLowerCase();
-  const body = readFileSync(resolved.filePath);
+  const contentType = MIME_BY_EXT[ext] ?? "application/octet-stream";
+  const { size } = statSync(resolved.filePath);
+  const range = parseRangeHeader(request.headers.get("range"), size);
 
-  return new NextResponse(body, {
-    headers: {
-      "Content-Type": MIME_BY_EXT[ext] ?? "application/octet-stream",
-      "Cache-Control": "public, max-age=604800",
-    },
-  });
+  if (range) {
+    return streamResponse(
+      resolved.filePath,
+      contentType,
+      range.start,
+      range.end,
+      size,
+      true
+    );
+  }
+
+  return streamResponse(resolved.filePath, contentType, 0, size - 1, size, false);
 }

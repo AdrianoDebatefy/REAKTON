@@ -25,6 +25,10 @@ ls -lh /tmp/reakton-mp3-test.mp3
 
 **Schlecht:** lange Wartezeit, kein `Accept-Ranges`, oder Traffic fühlt sich wie „hängender“ Download an.
 
+## Häufiger Fehler: `duplicate location "/uploads/"`
+
+Pro `server { }` Block **entweder** `include …reakton-static.conf` **oder** manuelle `location /uploads/` — **nicht beides**.
+
 ## Fix
 
 1. Snippet installieren:
@@ -33,7 +37,17 @@ ls -lh /tmp/reakton-mp3-test.mp3
 sudo cp /var/www/reakton/deploy/netcup/reakton-static-locations.conf /etc/nginx/snippets/reakton-static.conf
 ```
 
-2. Nginx-Site bearbeiten (meist `/etc/nginx/sites-available/reakton.de`):
+2. Nginx-Site bearbeiten (`/etc/nginx/sites-enabled/reakton.de`):
+
+In **jedem** `server { }`, der die Seite ausliefert (mindestens **`listen 443 ssl`** und **`listen 80`**), **vor** `location / { proxy_pass … }` einfügen:
+
+Prüfen:
+
+```bash
+sudo grep -n "server {\|listen \|reakton-static\|location /uploads" /etc/nginx/sites-enabled/reakton.de
+```
+
+Es muss **pro aktivem Server-Block genau ein** `include …reakton-static.conf` geben, **kein** zusätzliches `location /uploads/`.
 
 Im **`server { listen 443 ssl … }`** Block **vor** `location / { proxy_pass … }` einfügen:
 

@@ -42,7 +42,7 @@ export const NFC_V2_RECTS = {
   skipOnBack: { left: 364, top: 602, width: 42, height: 48 },
   textSongtitle: { left: 48, top: 509, width: 269, height: 260 },
   textTime: { left: 82, top: 584, width: 235, height: 190 },
-  textDesktopcode: { left: 39, top: 150, width: 370, height: 63 },
+  textDesktopcode: { left: 39, top: 218, width: 370, height: 92 },
   fullScreen: { left: 272, top: 282, width: 154, height: 70 },
 } as const satisfies Record<string, NfcV2Rect>;
 
@@ -188,8 +188,9 @@ export const NFC_V2_TEXT_TIME: NfcV2TextLayerTweak = {
 };
 
 export const NFC_V2_TEXT_DESKTOPCODE = {
-  scale: 1.4,
+  scale: 1.35,
   fontSize: 22,
+  labelFontSize: 14,
 } as const;
 
 export function nfcV2TextLayerOuterStyle(rect: NfcV2Rect, tweak: NfcV2TextLayerTweak) {

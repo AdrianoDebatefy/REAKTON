@@ -1,7 +1,8 @@
 "use client";
 
-import { Doto } from "next/font/google";
+import { Doto, Rajdhani } from "next/font/google";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { NfcEqVisualizer } from "@/components/nfc/NfcEqVisualizer";
 import { NfcMarqueeTitle } from "@/components/nfc/NfcMarqueeTitle";
 import { useNfcCdRotation } from "@/hooks/useNfcCdRotation";
@@ -39,6 +40,11 @@ import {
 const doto = Doto({
   subsets: ["latin"],
   weight: ["400", "700"],
+});
+
+const rajdhani = Rajdhani({
+  subsets: ["latin"],
+  weight: ["500"],
 });
 
 export interface NfcPlayerV2Track {
@@ -107,6 +113,7 @@ export function NfcPlayerV2({
   playbackError,
   onPlaybackError,
 }: NfcPlayerV2Props) {
+  const t = useTranslations("nfcAlbum");
   const [trackIndex, setTrackIndex] = useState(0);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [paused, setPaused] = useState(true);
@@ -732,16 +739,20 @@ export function NfcPlayerV2({
               className="absolute inset-0 overflow-hidden rounded-md border border-white/35 bg-white/12 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-md"
               aria-hidden
             />
-            <div
-              className="absolute inset-0 flex items-center justify-center overflow-hidden"
-              style={{
-                transform: `scale(${NFC_V2_TEXT_DESKTOPCODE.scale})`,
-                transformOrigin: "50% 50%",
-              }}
-            >
+            <div className="relative z-10 flex h-full flex-col items-center justify-center gap-1 px-3 py-2">
               <p
-                className="truncate px-2 text-center font-bold text-white drop-shadow-md"
-                style={{ fontSize: NFC_V2_TEXT_DESKTOPCODE.fontSize }}
+                className={`${rajdhani.className} text-center font-medium leading-tight text-white/90`}
+                style={{ fontSize: NFC_V2_TEXT_DESKTOPCODE.labelFontSize }}
+              >
+                {t("pcCodeLabel")}
+              </p>
+              <p
+                className="truncate text-center font-bold text-white drop-shadow-md"
+                style={{
+                  fontSize: NFC_V2_TEXT_DESKTOPCODE.fontSize,
+                  transform: `scale(${NFC_V2_TEXT_DESKTOPCODE.scale})`,
+                  transformOrigin: "50% 50%",
+                }}
               >
                 {pcCode ?? "—"}
               </p>

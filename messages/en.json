@@ -74,6 +74,7 @@
     "preloadTracks": "{done} / {total} tracks",
     "preloadFailed": "Could not load the full album.",
     "preloadRetry": "Try again",
+    "preloadMobileSequential": "On mobile, one song loads at a time — the bar should move steadily.",
     "noTracks": "No NFC tracks configured yet.",
     "nowPlaying": "Now playing",
     "play": "Play",

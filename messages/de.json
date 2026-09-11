@@ -74,6 +74,7 @@
     "preloadTracks": "{done} / {total} Tracks",
     "preloadFailed": "Album konnte nicht vollständig geladen werden.",
     "preloadRetry": "Erneut versuchen",
+    "preloadMobileSequential": "Auf dem Handy lädt jeweils ein Song — der Balken steigt dann schneller.",
     "noTracks": "Noch keine NFC-Tracks konfiguriert.",
     "nowPlaying": "Jetzt läuft",
     "play": "Abspielen",

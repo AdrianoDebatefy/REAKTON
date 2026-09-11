@@ -74,6 +74,7 @@
     "preloadTracks": "{done} / {total} トラック",
     "preloadFailed": "アルバムを完全に読み込めませんでした。",
     "preloadRetry": "再試行",
+    "preloadMobileSequential": "モバイルでは1曲ずつ読み込みます。バーが順調に進むはずです。",
     "noTracks": "NFCトラックがまだ設定されていません。",
     "nowPlaying": "再生中",
     "play": "再生",

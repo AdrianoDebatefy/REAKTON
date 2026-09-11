@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { PressEqWaves } from "@/components/press/PressEqWaves";
 import { NfcMarqueeTitle } from "@/components/nfc/NfcMarqueeTitle";
 import { nfcPrepareAudioPlayback, useNfcCdRotation } from "@/hooks/useNfcCdRotation";
+import { useScreenWakeLock } from "@/hooks/useScreenWakeLock";
 import {
   NFC_CD_RPM,
   NFC_CD_SPIN_RAMP_SEC,
@@ -409,6 +410,8 @@ export function NfcPlayerV2({
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
+
+  useScreenWakeLock(fullscreenActive);
 
   return (
     <div

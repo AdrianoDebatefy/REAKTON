@@ -13,7 +13,7 @@ export const NFC_V2_TEXT_ROTATION_DEG = -38;
  */
 export const NFC_V2_SLIDER = {
   start: { x: 28, y: 660 },
-  end: { x: 430, y: 932 },
+  end: { x: 290, y: 457 },
   knobWidth: 48,
   knobHeight: 48,
 } as const;

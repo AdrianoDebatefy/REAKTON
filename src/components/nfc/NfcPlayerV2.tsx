@@ -5,7 +5,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { NfcEqVisualizer } from "@/components/nfc/NfcEqVisualizer";
 import { NfcMarqueeTitle } from "@/components/nfc/NfcMarqueeTitle";
 import { useNfcCdRotation } from "@/hooks/useNfcCdRotation";
-import { nfcPrefetchAdjacentStreamTracks } from "@/lib/nfc-audio-prefetch";
+import {
+  nfcPrefetchAdjacentStreamTracks,
+  nfcWarmAlbumHttpCacheInBackground,
+} from "@/lib/nfc-audio-prefetch";
 import { nfcApplyAudioSource, nfcWaitReadyToPlay } from "@/lib/nfc-audio-playback";
 import { NFC_AUDIO_ELEMENT_STYLE, nfcPreferNativeAudioPlayback } from "@/lib/nfc-audio-platform";
 import { lockPortraitForUserGesture } from "@/hooks/usePortraitOrientationLock";
@@ -441,6 +444,20 @@ export function NfcPlayerV2({
     setPaused(true);
     setIsAudioPlaying(false);
   }, [autoplayDone, tracks.length]);
+
+  const albumCacheKey = tracks.map((t) => t.id).join("|");
+  useEffect(() => {
+    const streaming = tracks.some((t) => t.audioUrl && !t.audioUrl.startsWith("blob:"));
+    if (!streaming || tracks.length === 0) return undefined;
+
+    const controller = new AbortController();
+    nfcWarmAlbumHttpCacheInBackground(tracks, {
+      signal: controller.signal,
+      startDelayMs: 3_000,
+    });
+
+    return () => controller.abort();
+  }, [albumCacheKey, tracks]);
 
   useEffect(
     () => () => {

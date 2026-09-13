@@ -42,3 +42,48 @@ export function nfcPrefetchAdjacentStreamTracks(
   if (next?.audioUrl) nfcPrefetchStreamTrack(next.audioUrl, next.sourceUrl);
   if (prev?.audioUrl) nfcPrefetchStreamTrack(prev.audioUrl, prev.sourceUrl);
 }
+
+const albumHttpCacheWarmKeys = new Set<string>();
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+/**
+ * After playback starts: download remaining MP3s sequentially into the browser HTTP cache
+ * (not RAM blobs). Next NFC visit reuses cache when still valid (nginx Cache-Control).
+ */
+export function nfcWarmAlbumHttpCacheInBackground(
+  tracks: { audioUrl: string; sourceUrl?: string }[],
+  options?: { signal?: AbortSignal; startDelayMs?: number }
+): void {
+  if (typeof window === "undefined") return;
+
+  const list = tracks.filter((t) => t.audioUrl?.trim() && !t.audioUrl.startsWith("blob:"));
+  if (list.length === 0) return;
+
+  void (async () => {
+    const delay = options?.startDelayMs ?? 3_000;
+    if (delay > 0) {
+      await sleep(delay);
+      if (options?.signal?.aborted) return;
+    }
+
+    for (const track of list) {
+      if (options?.signal?.aborted) return;
+
+      const key = track.sourceUrl ?? nfcCanonicalAudioUrl(track.audioUrl);
+      if (albumHttpCacheWarmKeys.has(key)) continue;
+
+      const url = streamSrc(track.audioUrl);
+      try {
+        const res = await fetch(url, { credentials: "same-origin" });
+        if (!res.ok) continue;
+        await res.blob();
+        albumHttpCacheWarmKeys.add(key);
+      } catch {
+        /* network or abort — skip */
+      }
+    }
+  })();
+}

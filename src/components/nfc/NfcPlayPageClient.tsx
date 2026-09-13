@@ -50,6 +50,14 @@ export function NfcPlayPageClient() {
 
   usePortraitOrientationLock(authenticated && isMobile);
 
+  const startStreamingPlayback = useCallback(() => {
+    setUseStreamingFallback(true);
+    setPreloadFailed(false);
+    setPreloadedTracks(null);
+    revokeNfcPreloadBlobs(blobUrlsRef.current);
+    blobUrlsRef.current = [];
+  }, []);
+
   const refreshSession = useCallback(async () => {
     const res = await fetch("/api/nfc/session", { cache: "no-store" });
     if (!res.ok) return null;
@@ -217,10 +225,13 @@ export function NfcPlayPageClient() {
     );
   }
 
-  if (useStreamingFallback) {
+  const useStreamPlayback = isMobile || useStreamingFallback;
+  const playerTracks = preloadedTracks ?? toPlayerTracks(tracks);
+
+  if (useStreamPlayback || preloadedTracks) {
     return (
       <NfcPlayerV2
-        tracks={toPlayerTracks(tracks)}
+        tracks={playerTracks}
         pcCode={pcCode}
         pcCodeHidden={pcCodeHidden}
         onHidePcCode={handleHidePcCode}
@@ -264,18 +275,10 @@ export function NfcPlayPageClient() {
         tracks={tracks}
         onReady={handlePreloadReady}
         onError={handlePreloadError}
+        onStreamInstead={startStreamingPlayback}
       />
     );
   }
 
-  return (
-    <NfcPlayerV2
-      tracks={preloadedTracks}
-      pcCode={pcCode}
-      pcCodeHidden={pcCodeHidden}
-      onHidePcCode={handleHidePcCode}
-      playbackError={playbackError}
-      onPlaybackError={handlePlaybackError}
-    />
-  );
+  return null;
 }

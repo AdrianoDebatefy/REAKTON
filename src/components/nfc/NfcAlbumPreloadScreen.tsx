@@ -13,9 +13,15 @@ interface NfcAlbumPreloadScreenProps {
   tracks: { id: string; title: string; audioUrl: string; order: number }[];
   onReady: (tracks: NfcPreloadedTrack[], blobUrls: string[]) => void;
   onError: (error: unknown) => void;
+  onStreamInstead?: () => void;
 }
 
-export function NfcAlbumPreloadScreen({ tracks, onReady, onError }: NfcAlbumPreloadScreenProps) {
+export function NfcAlbumPreloadScreen({
+  tracks,
+  onReady,
+  onError,
+  onStreamInstead,
+}: NfcAlbumPreloadScreenProps) {
   const t = useTranslations("nfcAlbum");
   const [progress, setProgress] = useState<NfcPreloadProgress>({
     completed: 0,
@@ -33,8 +39,11 @@ export function NfcAlbumPreloadScreen({ tracks, onReady, onError }: NfcAlbumPrel
   onErrorRef.current = onError;
   tracksRef.current = tracks;
 
+  const abortRef = useRef<AbortController | null>(null);
+
   useEffect(() => {
     const controller = new AbortController();
+    abortRef.current = controller;
 
     void preloadNfcAlbumTracks(tracksRef.current, setProgress, { signal: controller.signal })
       .then((result) => {
@@ -48,8 +57,15 @@ export function NfcAlbumPreloadScreen({ tracks, onReady, onError }: NfcAlbumPrel
 
     return () => {
       controller.abort();
+      abortRef.current = null;
     };
   }, [trackKey]);
+
+  const startStreaming = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    onStreamInstead?.();
+  };
 
   const percent =
     progress.totalBytes && progress.totalBytes > 0
@@ -83,6 +99,16 @@ export function NfcAlbumPreloadScreen({ tracks, onReady, onError }: NfcAlbumPrel
           </span>
         </div>
       </div>
+
+      {onStreamInstead ? (
+        <button
+          type="button"
+          onClick={startStreaming}
+          className="mt-10 border border-white/25 px-6 py-2.5 text-sm uppercase tracking-widest text-white/75 hover:border-white/45 hover:text-white"
+        >
+          {t("preloadStreamAnyway")}
+        </button>
+      ) : null}
     </div>
   );
 }

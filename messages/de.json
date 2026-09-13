@@ -70,7 +70,7 @@
     "loading": "Lade Session…",
     "loadingTracks": "Lade Tracks…",
     "preloadTitle": "Album wird geladen",
-    "preloadHint": "Alle Songs werden in den Speicher geladen — danach läuft die Wiedergabe ohne Unterbrechung.",
+    "preloadHint": "Optional: alle Songs in den Speicher laden. Auf dem Handy startet die Wiedergabe standardmäßig per Streaming.",
     "preloadTracks": "{done} / {total} Tracks",
     "preloadFailed": "Album konnte nicht vollständig geladen werden.",
     "preloadRetry": "Erneut versuchen",

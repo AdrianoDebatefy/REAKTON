@@ -99,6 +99,8 @@ export interface NfcAlbumTrack {
 export interface NfcCard {
   /** Card id in tap URL query (?card=…) */
   id: string;
+  /** Stable row id for admin UI — do not use in tap URLs. */
+  editorKey?: string;
   label?: string;
   role?: "fan" | "dj";
   enabled: boolean;

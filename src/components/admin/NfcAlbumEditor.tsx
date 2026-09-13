@@ -2,6 +2,20 @@
 
 import type { NfcAlbumConfig, NfcAlbumTrack, NfcCard } from "@/types/content";
 
+function newCardEditorKey(): string {
+  return `nfc-card-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function duplicateCardIds(cards: NfcCard[]): string[] {
+  const seen = new Map<string, number>();
+  for (const card of cards) {
+    const id = card.id.trim().toLowerCase();
+    if (!id) continue;
+    seen.set(id, (seen.get(id) ?? 0) + 1);
+  }
+  return [...seen.entries()].filter(([, n]) => n > 1).map(([id]) => id);
+}
+
 export function NfcAlbumEditor({
   config,
   onChange,
@@ -36,7 +50,8 @@ export function NfcAlbumEditor({
 
   const addCard = () => {
     const next: NfcCard = {
-      id: `CARD-${config.cards.length + 1}`,
+      editorKey: newCardEditorKey(),
+      id: "",
       label: "",
       role: "fan",
       enabled: true,
@@ -44,18 +59,21 @@ export function NfcAlbumEditor({
     onChange({ ...config, cards: [...config.cards, next] });
   };
 
-  const updateCard = (id: string, patch: Partial<NfcCard>) => {
+  const updateCard = (editorKey: string, patch: Partial<NfcCard>) => {
     onChange({
       ...config,
-      cards: config.cards.map((card) => (card.id === id ? { ...card, ...patch } : card)),
+      cards: config.cards.map((card) =>
+        card.editorKey === editorKey ? { ...card, ...patch } : card
+      ),
     });
   };
 
-  const removeCard = (id: string) => {
-    onChange({ ...config, cards: config.cards.filter((card) => card.id !== id) });
+  const removeCard = (editorKey: string) => {
+    onChange({ ...config, cards: config.cards.filter((card) => card.editorKey !== editorKey) });
   };
 
   const tracks = [...config.tracks].sort((a, b) => a.order - b.order);
+  const dupIds = duplicateCardIds(config.cards);
 
   return (
     <div className="mt-10 space-y-8 border-t border-white/10 pt-8">
@@ -98,18 +116,30 @@ export function NfcAlbumEditor({
             + Karte
           </button>
         </div>
+        {dupIds.length > 0 ? (
+          <p className="rounded border border-amber-400/35 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+            Doppelte Karten-IDs (NFC funktioniert nur für eine davon):{" "}
+            <code className="text-amber-50">{dupIds.join(", ")}</code>
+          </p>
+        ) : null}
         {config.cards.length === 0 ? (
           <p className="text-sm text-white/40">Noch keine Karten registriert.</p>
         ) : (
           <ul className="space-y-3">
             {config.cards.map((card) => (
-              <li key={card.id} className="grid gap-3 rounded border border-white/10 p-3 md:grid-cols-4">
+              <li
+                key={card.editorKey ?? card.id}
+                className="grid gap-3 rounded border border-white/10 p-3 md:grid-cols-4"
+              >
                 <label className="block text-xs text-white/75">
                   Karten-ID
                   <input
                     type="text"
                     value={card.id}
-                    onChange={(e) => updateCard(card.id, { id: e.target.value })}
+                    onChange={(e) =>
+                      updateCard(card.editorKey!, { id: e.target.value })
+                    }
+                    placeholder="z. B. TEST-001"
                     className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-xs"
                   />
                 </label>
@@ -118,7 +148,7 @@ export function NfcAlbumEditor({
                   <input
                     type="text"
                     value={card.label ?? ""}
-                    onChange={(e) => updateCard(card.id, { label: e.target.value })}
+                    onChange={(e) => updateCard(card.editorKey!, { label: e.target.value })}
                     className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-xs"
                   />
                 </label>
@@ -127,7 +157,9 @@ export function NfcAlbumEditor({
                   <select
                     value={card.role ?? "fan"}
                     onChange={(e) =>
-                      updateCard(card.id, { role: e.target.value === "dj" ? "dj" : "fan" })
+                      updateCard(card.editorKey!, {
+                        role: e.target.value === "dj" ? "dj" : "fan",
+                      })
                     }
                     className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-xs"
                   >
@@ -140,13 +172,15 @@ export function NfcAlbumEditor({
                     <input
                       type="checkbox"
                       checked={card.enabled}
-                      onChange={(e) => updateCard(card.id, { enabled: e.target.checked })}
+                      onChange={(e) =>
+                        updateCard(card.editorKey!, { enabled: e.target.checked })
+                      }
                     />
                     Aktiv
                   </label>
                   <button
                     type="button"
-                    onClick={() => removeCard(card.id)}
+                    onClick={() => removeCard(card.editorKey!)}
                     className="text-[10px] uppercase tracking-widest text-white/45 underline hover:text-white/70"
                   >
                     Entfernen

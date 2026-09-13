@@ -27,6 +27,9 @@ export function normalizeNfcAlbumConfig(raw?: NfcAlbumConfig | null): NfcAlbumCo
       .sort((a, b) => a.order - b.order),
     cards: (raw.cards ?? []).map((card, index) => ({
       id: (card.id || `card-${index}`).trim(),
+      editorKey:
+        card.editorKey?.trim() ||
+        `legacy-${index}-${(card.id || `card-${index}`).trim().toLowerCase()}`,
       label: card.label ?? "",
       role: card.role === "dj" ? "dj" : "fan",
       enabled: card.enabled !== false,

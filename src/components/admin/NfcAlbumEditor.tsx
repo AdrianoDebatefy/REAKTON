@@ -1,6 +1,10 @@
 "use client";
 
+import { useState } from "react";
+import { NfcTapStatsPanel } from "@/components/admin/NfcTapStatsPanel";
 import type { NfcAlbumConfig, NfcAlbumTrack, NfcCard } from "@/types/content";
+
+type NfcEditorView = "config" | "stats";
 
 function newCardEditorKey(): string {
   return `nfc-card-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -25,6 +29,8 @@ export function NfcAlbumEditor({
   onChange: (config: NfcAlbumConfig) => void;
   onUpload: (file: File) => Promise<string>;
 }) {
+  const [view, setView] = useState<NfcEditorView>("config");
+
   const addTrack = () => {
     const next: NfcAlbumTrack = {
       id: `nfc-${Date.now()}`,
@@ -83,8 +89,36 @@ export function NfcAlbumEditor({
           NFC-Karten öffnen den Mobile-Player. Der PC-Code aktiviert 60 Minuten Club-Wiedergabe auf
           Desktop.
         </p>
+        <nav className="mt-4 flex flex-wrap gap-2" aria-label="NFC Admin">
+          <button
+            type="button"
+            onClick={() => setView("config")}
+            className={`rounded border px-4 py-2 text-[10px] uppercase tracking-widest ${
+              view === "config"
+                ? "border-white/50 bg-white/10 text-white"
+                : "border-white/20 text-white/55 hover:border-white/35 hover:text-white/80"
+            }`}
+          >
+            Karten &amp; Album
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("stats")}
+            className={`rounded border px-4 py-2 text-[10px] uppercase tracking-widest ${
+              view === "stats"
+                ? "border-white/50 bg-white/10 text-white"
+                : "border-white/20 text-white/55 hover:border-white/35 hover:text-white/80"
+            }`}
+          >
+            Tap-Zähler
+          </button>
+        </nav>
       </div>
 
+      {view === "stats" ? <NfcTapStatsPanel /> : null}
+
+      {view === "config" ? (
+        <>
       <div className="rounded border border-white/15 p-4">
         <label className="block text-xs text-white/75">
           Session-Dauer (Minuten)
@@ -289,6 +323,8 @@ export function NfcAlbumEditor({
           </ul>
         )}
       </div>
+        </>
+      ) : null}
     </div>
   );
 }

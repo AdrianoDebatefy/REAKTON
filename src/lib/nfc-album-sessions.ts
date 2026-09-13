@@ -8,6 +8,7 @@ import {
   getNfcTracksFromConfig,
   normalizeNfcAlbumConfig,
 } from "@/lib/nfc-album-config";
+import { recordNfcTap } from "@/lib/nfc-tap-stats";
 
 const CODE_WORDS = [
   "Clip",
@@ -149,6 +150,7 @@ export function createNfcSession(cardId: string): NfcSessionRecord {
   data.sessions[session.sessionId] = session;
   data.pcCodes[normalizePcCode(pcCode)] = session.sessionId;
   writeSessionsFile(data);
+  recordNfcTap(cardId);
   return session;
 }
 

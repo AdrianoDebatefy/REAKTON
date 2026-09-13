@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { NfcEqVisualizer } from "@/components/nfc/NfcEqVisualizer";
 import { NfcMarqueeTitle } from "@/components/nfc/NfcMarqueeTitle";
 import { useNfcCdRotation } from "@/hooks/useNfcCdRotation";
+import { nfcPrefetchAdjacentStreamTracks } from "@/lib/nfc-audio-prefetch";
 import { nfcApplyAudioSource, nfcWaitReadyToPlay } from "@/lib/nfc-audio-playback";
 import { NFC_AUDIO_ELEMENT_STYLE, nfcPreferNativeAudioPlayback } from "@/lib/nfc-audio-platform";
 import { lockPortraitForUserGesture } from "@/hooks/usePortraitOrientationLock";
@@ -164,6 +165,7 @@ export function NfcPlayerV2({
   const trackLoadingRef = useRef(false);
   const playbackIntentRef = useRef(false);
   const advancingTrackRef = useRef(false);
+  const loadGenerationRef = useRef(0);
   const androidEqTimerRef = useRef<number | null>(null);
   const cdSpinRef = useRef<HTMLDivElement>(null);
 
@@ -291,6 +293,13 @@ export function NfcPlayerV2({
     }
   }, [ensureAudioGraph, scheduleAndroidEq]);
 
+  const prefetchNeighbors = useCallback((index: number) => {
+    const list = tracksRef.current;
+    const current = list[index];
+    if (!current?.audioUrl || current.audioUrl.startsWith("blob:")) return;
+    nfcPrefetchAdjacentStreamTracks(list, index);
+  }, []);
+
   const loadTrack = useCallback(
     async (index: number, autoPlay: boolean) => {
       const list = tracksRef.current;
@@ -299,6 +308,9 @@ export function NfcPlayerV2({
         onPlaybackError("no_audio");
         return false;
       }
+
+      const loadGen = loadGenerationRef.current + 1;
+      loadGenerationRef.current = loadGen;
 
       onPlaybackError(null);
       const audio = audioRef.current;
@@ -318,17 +330,23 @@ export function NfcPlayerV2({
         setPaused(false);
       }
 
+      const preferBuffered = !track.audioUrl.startsWith("blob:");
+
       try {
         nfcApplyAudioSource(audio, track.audioUrl, track.sourceUrl);
         if (autoPlay) {
-          await nfcWaitReadyToPlay(audio, 8_000);
+          await nfcWaitReadyToPlay(audio, 12_000, { preferBuffered });
+          if (loadGenerationRef.current !== loadGen) return false;
           await playPreparedAudio();
+          if (loadGenerationRef.current !== loadGen) return false;
+          prefetchNeighbors(index);
         }
 
         trackLoadingRef.current = false;
         setAudioLoading(false);
         return true;
       } catch {
+        if (loadGenerationRef.current !== loadGen) return false;
         onPlaybackError("playback_failed");
         setIsAudioPlaying(false);
         setPaused(true);
@@ -337,7 +355,7 @@ export function NfcPlayerV2({
         return false;
       }
     },
-    [onPlaybackError, playPreparedAudio, releaseCaptureStreamGraph]
+    [onPlaybackError, playPreparedAudio, prefetchNeighbors, releaseCaptureStreamGraph]
   );
 
   const playCurrent = useCallback(async () => {
@@ -359,6 +377,7 @@ export function NfcPlayerV2({
       }
       await playPreparedAudio();
       onPlaybackError(null);
+      prefetchNeighbors(trackIndexRef.current);
     } catch {
       onPlaybackError("playback_failed");
       setIsAudioPlaying(false);
@@ -367,7 +386,7 @@ export function NfcPlayerV2({
       trackLoadingRef.current = false;
       setAudioLoading(false);
     }
-  }, [onPlaybackError, playPreparedAudio]);
+  }, [onPlaybackError, playPreparedAudio, prefetchNeighbors]);
 
   const pauseCurrent = useCallback(() => {
     playbackIntentRef.current = false;
@@ -394,6 +413,7 @@ export function NfcPlayerV2({
       const list = tracksRef.current;
       if (list.length === 0) return;
       const wrapped = (nextIndex + list.length) % list.length;
+      loadGenerationRef.current += 1;
       if (flash) flashSkip(flash);
       advancingTrackRef.current = true;
       setTrackIndex(wrapped);

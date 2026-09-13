@@ -58,8 +58,15 @@ export function nfcApplyAudioSource(
   return key;
 }
 
-export async function nfcWaitReadyToPlay(audio: HTMLAudioElement, maxMs = 6_000): Promise<void> {
-  if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) return;
+export async function nfcWaitReadyToPlay(
+  audio: HTMLMediaElement,
+  maxMs = 6_000,
+  options?: { preferBuffered?: boolean }
+): Promise<void> {
+  const minReady = options?.preferBuffered
+    ? HTMLMediaElement.HAVE_ENOUGH_DATA
+    : HTMLMediaElement.HAVE_FUTURE_DATA;
+  if (audio.readyState >= minReady) return;
 
   await new Promise<void>((resolve, reject) => {
     const timeout = window.setTimeout(() => {
@@ -69,7 +76,12 @@ export async function nfcWaitReadyToPlay(audio: HTMLAudioElement, maxMs = 6_000)
     }, maxMs);
 
     const tryResolve = () => {
-      if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+      if (audio.readyState >= minReady) {
+        cleanup();
+        resolve();
+        return;
+      }
+      if (!options?.preferBuffered && audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
         cleanup();
         resolve();
       }
@@ -82,19 +94,16 @@ export async function nfcWaitReadyToPlay(audio: HTMLAudioElement, maxMs = 6_000)
 
     const cleanup = () => {
       window.clearTimeout(timeout);
+      audio.removeEventListener("canplaythrough", tryResolve);
       audio.removeEventListener("canplay", tryResolve);
       audio.removeEventListener("loadeddata", tryResolve);
       audio.removeEventListener("error", onError);
     };
 
+    audio.addEventListener("canplaythrough", tryResolve);
     audio.addEventListener("canplay", tryResolve);
     audio.addEventListener("loadeddata", tryResolve);
     audio.addEventListener("error", onError);
     tryResolve();
   });
-}
-
-/** @deprecated No-op — blob prefetch removed for playback stability. */
-export function nfcScheduleBuffersAfterPlay(_currentUrl: string, _nextUrl?: string | null): void {
-  /* intentionally empty */
 }

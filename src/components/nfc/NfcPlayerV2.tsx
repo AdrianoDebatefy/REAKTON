@@ -20,6 +20,7 @@ import {
   NFC_V2_HEIGHT,
   NFC_V2_RECTS,
   NFC_V2_SLIDER,
+  NFC_V2_LOADING_LABEL,
   NFC_V2_TEXT_DESKTOPCODE,
   NFC_V2_TEXT_SONGTITLE,
   NFC_V2_TEXT_TIME,
@@ -149,6 +150,7 @@ export function NfcPlayerV2({
   const [skipFwdFlash, setSkipFwdFlash] = useState(false);
   const [stageScale, setStageScale] = useState(1);
   const [fullscreenActive, setFullscreenActive] = useState(false);
+  const [audioLoading, setAudioLoading] = useState(false);
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const artboardRef = useRef<HTMLDivElement>(null);
@@ -303,6 +305,7 @@ export function NfcPlayerV2({
       if (!audio) return false;
 
       trackLoadingRef.current = true;
+      setAudioLoading(true);
       if (androidEqTimerRef.current) {
         window.clearTimeout(androidEqTimerRef.current);
         androidEqTimerRef.current = null;
@@ -323,12 +326,14 @@ export function NfcPlayerV2({
         }
 
         trackLoadingRef.current = false;
+        setAudioLoading(false);
         return true;
       } catch {
         onPlaybackError("playback_failed");
         setIsAudioPlaying(false);
         setPaused(true);
         trackLoadingRef.current = false;
+        setAudioLoading(false);
         return false;
       }
     },
@@ -346,6 +351,7 @@ export function NfcPlayerV2({
     }
 
     trackLoadingRef.current = true;
+    setAudioLoading(true);
     try {
       nfcApplyAudioSource(audio, track.audioUrl, track.sourceUrl);
       if (audio.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
@@ -359,6 +365,7 @@ export function NfcPlayerV2({
       setPaused(true);
     } finally {
       trackLoadingRef.current = false;
+      setAudioLoading(false);
     }
   }, [onPlaybackError, playPreparedAudio]);
 
@@ -490,6 +497,13 @@ export function NfcPlayerV2({
     const onPlaying = () => {
       setIsAudioPlaying(true);
       setPaused(false);
+      setAudioLoading(false);
+    };
+    const onWaiting = () => {
+      if (playbackIntentRef.current && !trackLoadingRef.current) {
+        setAudioLoading(true);
+      }
+      recoverPlayback();
     };
 
     audio.addEventListener("timeupdate", onTimeUpdate);
@@ -499,7 +513,7 @@ export function NfcPlayerV2({
     audio.addEventListener("playing", onPlaying);
     audio.addEventListener("pause", onPause);
     audio.addEventListener("stalled", recoverPlayback);
-    audio.addEventListener("waiting", recoverPlayback);
+    audio.addEventListener("waiting", onWaiting);
     return () => {
       audio.removeEventListener("timeupdate", onTimeUpdate);
       audio.removeEventListener("loadedmetadata", onLoaded);
@@ -508,7 +522,7 @@ export function NfcPlayerV2({
       audio.removeEventListener("playing", onPlaying);
       audio.removeEventListener("pause", onPause);
       audio.removeEventListener("stalled", recoverPlayback);
-      audio.removeEventListener("waiting", recoverPlayback);
+      audio.removeEventListener("waiting", onWaiting);
     };
   }, [goToTrack]);
 
@@ -599,6 +613,19 @@ export function NfcPlayerV2({
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
+      {audioLoading || tracksLoading ? (
+        <div
+          className="pointer-events-none absolute inset-0 z-[120] flex items-center justify-center bg-black/40"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <p
+            className={`${rajdhani.className} text-sm font-medium uppercase tracking-[0.35em] text-white/90`}
+          >
+            {tracksLoading && tracksLoadingLabel ? tracksLoadingLabel : NFC_V2_LOADING_LABEL}
+          </p>
+        </div>
+      ) : null}
       <div
         className="absolute left-1/2 top-1/2"
         style={{

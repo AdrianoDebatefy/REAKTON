@@ -187,6 +187,9 @@ export const NFC_V2_TEXT_TIME: NfcV2TextLayerTweak = {
   align: "bottom",
 };
 
+/** English only — NFC player has no locale switch. */
+export const NFC_V2_LOADING_LABEL = "Loading";
+
 export const NFC_V2_TEXT_DESKTOPCODE = {
   scale: 1.35,
   fontSize: 22,

@@ -9,6 +9,7 @@ import { NfcAlbumPreloadScreen } from "@/components/nfc/NfcAlbumPreloadScreen";
 import { NfcPlayerV2, type NfcPlayerV2Track } from "@/components/nfc/NfcPlayerV2";
 import { NfcPreloadTrackError, revokeNfcPreloadBlobs } from "@/lib/nfc-audio-preload";
 import { hidePcCodeForSession, isPcCodeHiddenForSession } from "@/lib/nfc-pc-code-visibility";
+import { NFC_V2_LOADING_LABEL } from "@/lib/nfc-player-v2-layout";
 
 interface NfcTrack {
   id: string;
@@ -183,7 +184,7 @@ export function NfcPlayPageClient() {
   if (!sessionChecked) {
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black text-white/60">
-        {t("loading")}
+        {NFC_V2_LOADING_LABEL}
       </div>
     );
   }
@@ -212,7 +213,7 @@ export function NfcPlayPageClient() {
   if (tracksLoading) {
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black text-white/60">
-        {t("loadingTracks")}
+        {NFC_V2_LOADING_LABEL}
       </div>
     );
   }

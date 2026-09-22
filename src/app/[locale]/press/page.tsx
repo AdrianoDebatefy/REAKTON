@@ -17,7 +17,7 @@ export async function generateMetadata({
     locale: locale as Locale,
     path: "/press",
     title: t("title"),
-    description: t("subtitle"),
+    description: t("metaDescription"),
   });
 }
 

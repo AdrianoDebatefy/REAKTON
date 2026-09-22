@@ -8,7 +8,10 @@ export function Footer() {
 
   return (
     <footer className="border-t border-white/5 px-4 py-6 text-center text-[10px] uppercase tracking-widest text-white/35 md:text-[7px]">
-      <nav className="flex justify-center gap-6" aria-label="Legal">
+      <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2" aria-label="Legal">
+        <Link href="/about" className="hover:text-white/60">
+          {t("about")}
+        </Link>
         <Link href="/impressum" className="hover:text-white/60">
           {t("impressum")}
         </Link>

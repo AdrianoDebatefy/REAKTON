@@ -7,6 +7,7 @@
     "contact": "Contact",
     "impressum": "Legal Notice",
     "datenschutz": "Privacy Policy",
+    "about": "About REAKTON",
     "back": "Back",
     "home": "Home",
     "menu": "Menu"
@@ -37,7 +38,19 @@
   "press": {
     "title": "Press",
     "subtitle": "Interviews, reviews and mentions",
+    "metaDescription": "Press & media — REAKTON, Robotronic music from Berlin. Interviews, reviews, Kraftwerk tradition.",
     "readMore": "Read article"
+  },
+  "about": {
+    "title": "About REAKTON",
+    "metaDescription": "REAKTON — electronic duo from Berlin. Robotronic music between Kraftwerk tradition and electronic pop culture.",
+    "intro": "REAKTON is an electronic duo from Berlin. Robert Waters and Adriano Theel create Robotronic music — precise synth-pop productions spanning cosmic album worlds, nano-futurism, and club night.",
+    "quote": "How would it sound if Kraftwerk continued to write music?",
+    "quoteAttribution": "The question Adriano Theel asked in 2013 — quoted in the Side-Line interview, 2020",
+    "body": "The answer is not nostalgic pastiche but an evolution of what still resonates in the Kraftwerk lineage: clear rhythms, machine aesthetics, and themes from the present. Albums such as Universe:Earth:Human and Micro:Macro:Nano connect that tradition with lyrics and sounds about data, medicine, smart dust, and digital everyday life.",
+    "body2": "REAKTON has performed live at Tempodrom Berlin, among other venues. Press, previews, and contact are available from the navigation — the three worlds on the home page remain the core experience of this site.",
+    "sideLineLink": "Read the Side-Line interview",
+    "albumsHeading": "Album worlds"
   },
   "pressPreview": {
     "sectionTitle": "Album Preview",

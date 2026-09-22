@@ -1,8 +1,14 @@
 import { getSiteContent } from "@/lib/content";
+import { HomeSeoIntro } from "@/components/seo/HomeSeoIntro";
 import { WorldColumnsLoader } from "@/components/worlds/WorldColumnsLoader";
 
-export default function HomePage() {
+export default async function HomePage() {
   const content = getSiteContent();
 
-  return <WorldColumnsLoader worlds={content.worlds} clubRobot={content.clubRobot} />;
+  return (
+    <>
+      <HomeSeoIntro />
+      <WorldColumnsLoader worlds={content.worlds} clubRobot={content.clubRobot} />
+    </>
+  );
 }

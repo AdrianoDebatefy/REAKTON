@@ -79,6 +79,7 @@ export function buildPageMetadata({
 /** Public routes included in the sitemap (press player excluded — login-only). */
 export const SITEMAP_PATHS = [
   "/",
+  "/about",
   "/press",
   "/live",
   "/merch",

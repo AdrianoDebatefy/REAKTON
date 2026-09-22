@@ -7,6 +7,7 @@
     "contact": "お問い合わせ",
     "impressum": "法的情報",
     "datenschutz": "プライバシー",
+    "about": "REAKTONについて",
     "back": "戻る",
     "home": "ホーム",
     "menu": "メニュー"
@@ -37,7 +38,19 @@
   "press": {
     "title": "プレス",
     "subtitle": "インタビュー、レビュー、メディア掲載",
+    "metaDescription": "プレス — ベルリンのロボトロニック・バンド REAKTON。インタビュー、レビュー、クラフトワークの系譜。",
     "readMore": "記事を読む"
+  },
+  "about": {
+    "title": "REAKTONについて",
+    "metaDescription": "REAKTON — ベルリンのエレクトロデュオ。クラフトワークの系譜と電子ポップ文化のあいだのロボトロニック・ミュージック。",
+    "intro": "REAKTONはベルリンを拠点とするエレクトロデュオです。Robert WatersとAdriano Theelが、宇宙的世界観、ナノ未来、クラブの夜を横断するロボトロニック・ミュージックを制作しています。",
+    "quote": "How would it sound if Kraftwerk continued to write music?",
+    "quoteAttribution": "2013年にAdriano Theelが問いかけた言葉 — Side-Lineインタビュー（2020）より",
+    "body": "それは懐古的な模倣ではなく、クラフトワークの系譜に今も息づく要素 — 明確なリズム、機械的な美学、現代のテーマ — の発展です。『Weltall:Erde:Mensch』『micro:macro:nano』などのアルバムは、データ、医療、スマートダスト、デジタル日常を音と言葉で描きます。",
+    "body2": "ライブではベルリン・テンポドロムなどで演奏。プレス、試聴、お問い合わせはナビゲーションから — サイトの中心は引き続きトップページの3つのワールドです。",
+    "sideLineLink": "Side-Lineインタビューを読む",
+    "albumsHeading": "アルバム・ワールド"
   },
   "pressPreview": {
     "sectionTitle": "アルバム・プレビュー",
@@ -144,6 +157,6 @@
   },
   "meta": {
     "title": "REAKTON — Robotronic Music",
-    "description": "REAKTON — ベルリンのエレクトロデュオ。電子ポップ文化の進化形としてのロボトロニック・ミュージック。"
+    "description": "REAKTON — ベルリンのエレクトロデュオ。クラフトワークに続くドイツ・シンセポップの系譜を継ぐロボトロニック・ミュージック。"
   }
 }

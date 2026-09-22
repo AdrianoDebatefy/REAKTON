@@ -7,6 +7,7 @@
     "contact": "Kontakt",
     "impressum": "Impressum",
     "datenschutz": "Datenschutz",
+    "about": "Über REAKTON",
     "back": "Zurück",
     "home": "Start",
     "menu": "Menü"
@@ -37,7 +38,19 @@
   "press": {
     "title": "Presse",
     "subtitle": "Interviews, Reviews und Erwähnungen",
+    "metaDescription": "Presse & Medien — REAKTON, Robotronic Music aus Berlin. Interviews, Reviews, Kraftwerk-Tradition.",
     "readMore": "Zum Artikel"
+  },
+  "about": {
+    "title": "Über REAKTON",
+    "metaDescription": "REAKTON — Elektro-Duo aus Berlin. Robotronic Music zwischen Kraftwerk-Tradition und elektronischer Popkultur.",
+    "intro": "REAKTON ist ein Elektro-Duo aus Berlin. Robert Waters und Adriano Theel entwickeln Robotronic Music — präzise Synthesizer-Pop-Produktionen zwischen kosmischen Album-Welten, Nano-Futurologie und Club-Nacht.",
+    "quote": "How would it sound if Kraftwerk continued to write music?",
+    "quoteAttribution": "Frage, mit der Adriano Theel 2013 begann — zitiert im Side-Line-Interview, 2020",
+    "body": "Die Antwort ist kein pastiches Nostalgie-Projekt, sondern eine Weiterentwicklung dessen, was an der Kraftwerk-Linie zeitlos wirkt: klare Rhythmen, maschinelle Ästhetik und Themen aus der Gegenwart. Alben wie „Weltall:Erde:Mensch“ und „micro:macro:nano“ verbinden diese Tradition mit Texten und Sounds über Daten, Medizin, Smart Dust und digitale Alltagskultur.",
+    "body2": "Live stand REAKTON u. a. im Tempodrom Berlin. Presse, Hörproben und Kontakt finden Sie über die Navigation — die drei Welten auf der Startseite sind das zentrale Erlebnis der Website.",
+    "sideLineLink": "Side-Line-Interview lesen",
+    "albumsHeading": "Album-Welten"
   },
   "pressPreview": {
     "sectionTitle": "Album Preview",
@@ -144,6 +157,6 @@
   },
   "meta": {
     "title": "REAKTON — Robotronic Music",
-    "description": "REAKTON — Elektro-Duo aus Berlin. Robotronic Music als konsequente Weiterentwicklung elektronischer Popkultur."
+    "description": "REAKTON — Elektro-Duo aus Berlin. Robotronic Music — Elektronik in der Tradition von Kraftwerk und deutscher Synthpop-Kultur."
   }
 }

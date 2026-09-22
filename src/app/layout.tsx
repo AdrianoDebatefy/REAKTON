@@ -13,7 +13,8 @@ const rajdhani = Rajdhani({
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   title: "REAKTON — Robotronic Music",
-  description: "REAKTON — Robotronic music from Berlin. micro:macro:nano.",
+  description:
+    "REAKTON — Elektro-Duo aus Berlin. Robotronic Music — Elektronik in der Tradition von Kraftwerk und deutscher Synthpop-Kultur.",
   icons: {
     icon: "/brand/reakton-logo.svg",
   },

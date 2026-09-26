@@ -275,3 +275,4 @@ Bilder nur erneut hochladen, wenn sich etwas unter `public/worlds` geändert hat
 | 500 / 307 auf `/` oder `/press` | PM2: `-H localhost` (siehe `deploy/netcup/ecosystem.config.cjs`), Nginx upstream `localhost:3010` + `X-Forwarded-Port 443`, dann `git pull`, `npm run build`, `pm2 restart reakton`, `nginx -t && systemctl reload nginx` |
 | Uploads verschwinden | Persistentes Volume — nicht auf serverless deployen |
 | Port 3010 belegt | In `deploy/netcup/ecosystem.config.cjs` und nginx auf z. B. 3011 ändern |
+| Presse-Code steht in PM, fehlt auf Server | `PRESS_ACCESS_PASSWORD='…' PRESS_ACCESS_DAYS=30 node deploy/netcup/add-press-access.mjs` in `/var/www/reakton` (Klartext nur per SSH, nicht ins Git) |

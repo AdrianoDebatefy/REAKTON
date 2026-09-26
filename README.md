@@ -42,6 +42,8 @@ Open [http://localhost:3000](http://localhost:3000)
 
 Content is stored in `data/site-content.json`. Add worlds, songs, press entries, and links without code changes.
 
+**Press album preview** (`/press`, player login): generate time-limited access codes in Admin → **Presse** → **Album Preview Player**. Multiple codes can run in parallel with different expiry; stored on the server in `data/press-preview.local.json`. See **`docs/PRESS-PREVIEW-ADMIN.md`** (German).
+
 ## Contact form
 
 - Header **Kontakt** → `/contact`

@@ -246,6 +246,8 @@ certbot --nginx -d reakton.de -d www.reakton.de
 
 Admin-Passwort nach erstem Login unter **Zugang** ändern.
 
+**Presse-Preview-Zugangscodes:** mehrere parallele Passwörter mit eigener Laufzeit, Daten in `data/press-preview.local.json` auf dem VPS — siehe **`docs/PRESS-PREVIEW-ADMIN.md`**.
+
 **Nach Admin-Änderungen (Slots, Texte, Uploads):** kein `npm run build` nötig — Seite liest `data/site-content.local.json` live. Nur nach Code-Updates neu bauen.
 
 ---
@@ -275,3 +277,4 @@ Bilder nur erneut hochladen, wenn sich etwas unter `public/worlds` geändert hat
 | 500 / 307 auf `/` oder `/press` | PM2: `-H localhost` (siehe `deploy/netcup/ecosystem.config.cjs`), Nginx upstream `localhost:3010` + `X-Forwarded-Port 443`, dann `git pull`, `npm run build`, `pm2 restart reakton`, `nginx -t && systemctl reload nginx` |
 | Uploads verschwinden | Persistentes Volume — nicht auf serverless deployen |
 | Port 3010 belegt | In `deploy/netcup/ecosystem.config.cjs` und nginx auf z. B. 3011 ändern |
+| Presse-Login / Admin Presse-Zugang | `docs/PRESS-PREVIEW-ADMIN.md`; Datei `data/press-preview.local.json` nicht löschen |

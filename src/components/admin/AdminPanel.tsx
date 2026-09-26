@@ -676,12 +676,16 @@ function PressPreviewEditor({
   config: NonNullable<SiteContent["pressPreview"]>;
   onChange: (config: NonNullable<SiteContent["pressPreview"]>) => void;
 }) {
-  const [passwordStatus, setPasswordStatus] = useState<{
+  const [accessSummary, setAccessSummary] = useState<{
     configured: boolean;
-    expiresAt?: string;
-    expired?: boolean;
-    expiryDays?: number;
+    hasActiveAccess: boolean;
+    activeCount: number;
+    totalCount: number;
+    latestActiveExpiresAt: string | null;
   } | null>(null);
+  const [accesses, setAccesses] = useState<
+    { id: string; expiresAt: string; expiryDays: number; createdAt: string; expired: boolean }[]
+  >([]);
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [accessLog, setAccessLog] = useState<{ email: string; world: string; at: string }[]>([]);
@@ -691,16 +695,25 @@ function PressPreviewEditor({
     const res = await fetch("/api/admin/press-preview");
     if (!res.ok) return;
     const data = (await res.json()) as {
-      password: {
+      summary: {
         configured: boolean;
-        expiresAt?: string;
-        expired?: boolean;
-        expiryDays?: number;
+        hasActiveAccess: boolean;
+        activeCount: number;
+        totalCount: number;
+        latestActiveExpiresAt: string | null;
       };
+      accesses: {
+        id: string;
+        expiresAt: string;
+        expiryDays: number;
+        createdAt: string;
+        expired: boolean;
+      }[];
       accessLog: { email: string; world: string; at: string }[];
       votes: Record<string, { average: number; voteCount: number }>;
     };
-    setPasswordStatus(data.password);
+    setAccessSummary(data.summary);
+    setAccesses(data.accesses);
     setAccessLog(data.accessLog);
     setVoteSummary(data.votes);
   }, []);
@@ -740,7 +753,7 @@ function PressPreviewEditor({
       const res = await fetch("/api/admin/press-preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ expiryDays: config.expiryDays, regenerate: true }),
+        body: JSON.stringify({ expiryDays: config.expiryDays }),
       });
       if (!res.ok) return;
       const data = (await res.json()) as { password: string };
@@ -769,9 +782,13 @@ function PressPreviewEditor({
 
       <div className="rounded border border-white/15 p-4">
         <h3 className="text-xs uppercase tracking-widest text-white/60">Presse-Zugang</h3>
+        <p className="mt-2 text-xs text-white/45">
+          Jede Generierung legt ein zusätzliches Passwort an. Bereits verschickte Codes bleiben bis zu
+          ihrer eigenen Laufzeit gültig.
+        </p>
         <div className="mt-3 flex flex-wrap items-end gap-4">
           <label className="block text-xs text-white/75">
-            Passwort läuft ab nach (Tage)
+            Laufzeit für neues Passwort (Tage)
             <input
               type="number"
               min={1}
@@ -789,18 +806,23 @@ function PressPreviewEditor({
             onClick={() => void generatePassword()}
             className="rounded border border-white/25 px-4 py-2 text-[10px] uppercase tracking-widest text-white/80 hover:border-white/50 disabled:opacity-50"
           >
-            Zufalls-Passwort erzeugen
+            Weiteres Passwort erzeugen
           </button>
         </div>
-        {passwordStatus?.configured ? (
+        {accessSummary?.configured ? (
           <p className="mt-3 text-xs text-white/45">
-            Aktuell gültig bis{" "}
-            <span className={passwordStatus.expired ? "text-red-300" : "text-white/70"}>
-              {passwordStatus.expiresAt
-                ? new Date(passwordStatus.expiresAt).toLocaleString("de-DE")
-                : "—"}
-            </span>
-            {passwordStatus.expired ? " (abgelaufen)" : ""}
+            {accessSummary.activeCount} aktiv · {accessSummary.totalCount} gesamt
+            {accessSummary.latestActiveExpiresAt ? (
+              <>
+                {" "}
+                — spätestes Ablaufdatum aktiver Codes:{" "}
+                <span className="text-white/70">
+                  {new Date(accessSummary.latestActiveExpiresAt).toLocaleString("de-DE")}
+                </span>
+              </>
+            ) : (
+              <span className="text-red-300"> — alle Codes abgelaufen</span>
+            )}
           </p>
         ) : (
           <p className="mt-3 text-xs text-amber-200/80">Noch kein Presse-Passwort erzeugt.</p>
@@ -810,6 +832,24 @@ function PressPreviewEditor({
             Neues Passwort (einmalig anzeigen):{" "}
             <code className="font-mono text-base">{generatedPassword}</code>
           </p>
+        ) : null}
+        {accesses.length > 0 ? (
+          <ul className="mt-4 space-y-2 border-t border-white/10 pt-3">
+            {accesses.map((row) => (
+              <li
+                key={row.id}
+                className="flex flex-wrap items-baseline justify-between gap-2 text-xs text-white/45"
+              >
+                <span>
+                  Erstellt {new Date(row.createdAt).toLocaleString("de-DE")} · {row.expiryDays} Tage
+                </span>
+                <span className={row.expired ? "text-red-300/90" : "text-white/65"}>
+                  {row.expired ? "abgelaufen" : "gültig bis"}{" "}
+                  {new Date(row.expiresAt).toLocaleString("de-DE")}
+                </span>
+              </li>
+            ))}
+          </ul>
         ) : null}
       </div>
 

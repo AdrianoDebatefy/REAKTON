@@ -5,7 +5,7 @@ import { randomUUID } from "crypto";
 import type { WorldAtmosphere } from "@/types/content";
 import { recordPressAccess } from "@/lib/press-access-log";
 import {
-  getPressPreviewPasswordStatus,
+  getPressPreviewAccessSummary,
   verifyPressPreviewPassword,
 } from "@/lib/press-preview-credentials";
 import { PRESS_PREVIEW_COOKIE } from "@/lib/press-preview-auth";
@@ -33,11 +33,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid" }, { status: 400 });
   }
 
-  const status = getPressPreviewPasswordStatus();
-  if (!status.configured) {
+  const summary = getPressPreviewAccessSummary();
+  if (!summary.configured) {
     return NextResponse.json({ error: "not_configured" }, { status: 503 });
   }
-  if (status.expired) {
+  if (!summary.hasActiveAccess) {
     return NextResponse.json({ error: "expired" }, { status: 401 });
   }
 

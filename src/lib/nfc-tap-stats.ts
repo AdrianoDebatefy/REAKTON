@@ -36,6 +36,13 @@ export async function recordNfcTap(cardId: string): Promise<void> {
   });
 }
 
+/** Clear all tap counts (admin). Does not remove cards or sessions. */
+export async function resetNfcTapStats(): Promise<void> {
+  await mutateJsonFile(STATS_PATH, emptyStatsFile(), (data) => {
+    data.byCardId = {};
+  });
+}
+
 export function getNfcTapStatsByCardId(): Record<string, NfcTapStatEntry> {
   if (!existsSync(STATS_PATH)) return {};
   try {

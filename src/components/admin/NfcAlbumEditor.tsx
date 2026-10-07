@@ -276,6 +276,7 @@ export function NfcAlbumEditor({
   const [tapRows, setTapRows] = useState<TapStatsRow[]>([]);
   const [unknownTaps, setUnknownTaps] = useState<TapStatsRow[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [statsResetting, setStatsResetting] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [bulkCount, setBulkCount] = useState(10);
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -315,6 +316,32 @@ export function NfcAlbumEditor({
   useEffect(() => {
     if (view === "cards") void loadTapStats();
   }, [view, loadTapStats]);
+
+  const resetTapStats = async () => {
+    if (
+      !window.confirm(
+        "Alle Tabzähler auf 0 setzen? (NFC-Karten, Bulks und Sessions bleiben unverändert.)"
+      )
+    ) {
+      return;
+    }
+    setStatsResetting(true);
+    setStatsError(null);
+    try {
+      const res = await fetch("/api/admin/nfc/tap-stats", { method: "DELETE" });
+      if (!res.ok) {
+        setStatsError(res.status === 401 ? "Nicht angemeldet." : "Tabzähler konnten nicht zurückgesetzt werden.");
+        return;
+      }
+      await loadTapStats();
+      setCopyHint("Tabzähler wurden zurückgesetzt.");
+      window.setTimeout(() => setCopyHint(null), 3000);
+    } catch {
+      setStatsError("Netzwerkfehler beim Zurücksetzen.");
+    } finally {
+      setStatsResetting(false);
+    }
+  };
 
   const addTrack = () => {
     const next: NfcAlbumTrack = {
@@ -523,10 +550,18 @@ export function NfcAlbumEditor({
                 <button
                   type="button"
                   onClick={() => void loadTapStats()}
-                  disabled={statsLoading}
+                  disabled={statsLoading || statsResetting}
                   className="rounded border border-white/25 px-4 py-2 text-[10px] uppercase tracking-widest text-white/80 hover:border-white/50 disabled:opacity-50"
                 >
                   Tabzähler aktualisieren
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void resetTapStats()}
+                  disabled={statsLoading || statsResetting}
+                  className="rounded border border-amber-400/35 px-4 py-2 text-[10px] uppercase tracking-widest text-amber-100/90 hover:border-amber-300/50 disabled:opacity-50"
+                >
+                  Tabzähler zurücksetzen
                 </button>
                 <button
                   type="button"

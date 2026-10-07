@@ -11,6 +11,34 @@ CARDS_FILE="${CARDS_FILE:-}"
 
 cd "${APP_DIR}"
 
+if ! command -v node >/dev/null 2>&1; then
+  echo "FEHLER: node nicht im PATH"
+  exit 1
+fi
+
+NODE_MAJOR=$(node -e "console.log(process.version.match(/^v(\\d+)/)[1])")
+if [[ "${NODE_MAJOR}" -lt 18 ]]; then
+  echo "FEHLER: Node ${NODE_MAJOR} — Lasttest braucht Node 18+ (fetch API). Aktuell: $(node -v)"
+  exit 1
+fi
+
+echo "==> Warte auf ${BASE} (max 30s) …"
+READY=0
+for _ in $(seq 1 30); do
+  if curl -sf -o /dev/null --max-time 2 "${BASE}/" 2>/dev/null; then
+    READY=1
+    break
+  fi
+  sleep 1
+done
+if [[ "${READY}" -ne 1 ]]; then
+  echo "FEHLER: ${BASE} antwortet nicht. Bitte zuerst:"
+  echo "  pm2 status"
+  echo "  curl -sI ${BASE}/ | head"
+  echo "  pm2 logs reakton --lines 40 --nostream"
+  exit 1
+fi
+
 echo "==> NFC load test (REAKTON)"
 echo "    Base: ${BASE} · Total: ${TOTAL} · Concurrency: ${CONCURRENCY}"
 

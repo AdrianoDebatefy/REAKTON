@@ -39,6 +39,22 @@ node scripts/nfc-load-test.mjs --base https://reakton.de --cards-file ./karten-i
 - **Datei-Lock** auf `data/nfc-sessions.json` und `nfc-tap-stats.json` (parallele Taps überschreiben sich nicht mehr).
 - **PC-Codes:** **3 Wörter à 4 Buchstaben** (CI: `CLIP:CLAP:CLUB`), großer Pool (~64³ Kombinationen).
 
+## `fetch failed` / 0 Erfolge
+
+Das bedeutet: **Keine Verbindung zu Next.js** (nicht „Karte ungültig“).
+
+1. **Nach `pm2 restart` 5–10 Sekunden warten**, dann Test erneut.
+2. Prüfen:
+   ```bash
+   curl -sI http://localhost:3010/ | head -3
+   ss -tlnp | grep 3010
+   pm2 status
+   pm2 logs reakton --lines 40 --nostream
+   ```
+3. Viele PM2-Restarts (↺) → App stürzt ab, Logs lesen (`.env`, Speicher, Build).
+4. Node **v18+** für das Skript: `node -v`
+5. Falls nötig: `BASE=http://127.0.0.1:3010 bash deploy/netcup/nfc-load-test.sh`
+
 ## Wann nachjustieren?
 
 | Symptom | Maßnahme |

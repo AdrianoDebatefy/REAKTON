@@ -21,6 +21,7 @@ NFC Load Test (REAKTON)
   --cards-file PATH       one card ID per line (from Bulk CSV column Karten-ID)
   --from-content          use enabled card IDs from data/site-content.local.json or site-content.json
   --warmup N              ignored requests before measuring (default: 5)
+  --wait-ready SEC        wait until base URL responds (default: 30, 0 = skip)
 
 Success = HTTP 302 redirect to /nfc/play after tap.
 `);
@@ -34,6 +35,7 @@ function parseArgs(argv) {
     cardsFile: "",
     fromContent: false,
     warmup: 5,
+    waitReadySec: 30,
   };
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
@@ -47,8 +49,50 @@ function parseArgs(argv) {
     else if (arg === "--concurrency") opts.concurrency = Math.max(1, Number(argv[++i]) || opts.concurrency);
     else if (arg === "--cards-file") opts.cardsFile = argv[++i] ?? "";
     else if (arg === "--warmup") opts.warmup = Math.max(0, Number(argv[++i]) ?? opts.warmup);
+    else if (arg === "--wait-ready") opts.waitReadySec = Math.max(0, Number(argv[++i]) ?? opts.waitReadySec);
   }
   return opts;
+}
+
+function formatFetchError(error) {
+  if (!(error instanceof Error)) return String(error);
+  const cause = error.cause;
+  if (cause && typeof cause === "object" && "code" in cause) {
+    return `${error.message} (${cause.code})`;
+  }
+  return error.message;
+}
+
+async function probeBase(base) {
+  const res = await fetch(base, { redirect: "manual" });
+  return res.status > 0;
+}
+
+/** PM2 restart needs a few seconds before localhost:3010 accepts connections. */
+async function waitForServer(base, timeoutSec) {
+  if (timeoutSec <= 0) return true;
+  const deadline = Date.now() + timeoutSec * 1000;
+  let lastErr = "";
+  while (Date.now() < deadline) {
+    try {
+      if (await probeBase(base)) return true;
+    } catch (error) {
+      lastErr = formatFetchError(error);
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  console.error(`FEHLER: ${base} nicht erreichbar (${timeoutSec}s gewartet).`);
+  if (lastErr) console.error(`Letzter Fehler: ${lastErr}`);
+  console.error(`
+Prüfe auf dem Server:
+  curl -sI http://localhost:3010 | head -3
+  ss -tlnp | grep 3010
+  pm2 status && pm2 logs reakton --lines 30 --nostream
+
+Hinweis: Nach «pm2 restart» 5–10 s warten. Bei vielen Restarts (↺) Logs auf Crash prüfen.
+Node für dieses Skript: v18+ (node -v). Alternative Base: --base http://127.0.0.1:3010
+`);
+  return false;
 }
 
 function loadCardsFromContent() {
@@ -97,7 +141,7 @@ async function tapOnce(base, cardId) {
       status: 0,
       ms,
       cardId,
-      error: error instanceof Error ? error.message : String(error),
+      error: formatFetchError(error),
     };
   }
 }
@@ -137,7 +181,12 @@ for (let i = 0; i < opts.total + opts.warmup; i++) {
 
 console.log(`Base: ${opts.base}`);
 console.log(`Karten im Pool: ${cardIds.length} · Total: ${opts.total} (+ ${opts.warmup} Warmup) · Concurrency: ${opts.concurrency}`);
-console.log("Start…\n");
+
+if (!(await waitForServer(opts.base, opts.waitReadySec))) {
+  process.exit(1);
+}
+
+console.log("Server erreichbar — Start…\n");
 
 const started = performance.now();
 const allResults = await runPool(tasks, opts.concurrency);

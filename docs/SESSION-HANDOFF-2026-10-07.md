@@ -20,7 +20,7 @@ Stand nach Abschluss: **NFC Admin (Bulk, Tabzähler, Skalierung, VPS-Lasttest)**
 
 - **Tabs:** «NFC-Karten» | «Album-Tracks»
 - **Bulk-Erstellung:** variable Anzahl, nur **append**, volle Links `https://reakton.de/nfc/tap?card=…`
-- **Bulks persistiert** in `nfcAlbum.bulkBatches` (nach «Alles speichern»), **einklappbar**, Tabzähler pro Bulk + Export **CSV**
+- **Bulks persistiert** in `nfcAlbum.bulkBatches` (nach «Alles speichern»), **einklappbar**, Tabzähler pro Bulk + Export **Excel (XLSX)** und **CSV** (`;` für deutsches Excel)
 - Kartenliste: **Tabzähler** statt Label, **Rolle** entfernt, volle URL + Kopieren
 - **Tabzähler zurücksetzen** (Admin-Button, PR #10) → leert nur `data/nfc-tap-stats.json`
 
@@ -52,6 +52,7 @@ Logs «Server Reference ID…» = **Bot-Scans**, unkritisch.
 | `src/lib/nfc-album-sessions.ts` | Sessions, PC-Codes |
 | `src/lib/nfc-tap-stats.ts` | Tabzähler |
 | `src/lib/json-file-store.ts` | Locked JSON writes |
+| `src/lib/nfc-bulk-export.ts` | Bulk CSV/XLSX Export |
 | `scripts/nfc-load-test.mjs` | Lasttest |
 | `data/site-content.local.json` | Live-Content auf VPS (nicht in Git) |
 | `data/nfc-sessions.json` | Aktive NFC-Sessions |
@@ -63,7 +64,7 @@ Logs «Server Reference ID…» = **Bot-Scans**, unkritisch.
 
 **Backup:** Admin oben → «Backup exportieren» (JSON gesamter Content).
 
-**Nach Bulk:** «Alles speichern» → CSV/XML aus Bulk → GoToTags.
+**Nach Bulk:** «Alles speichern» → **XLSX** oder CSV aus Bulk → GoToTags.
 
 **Tabzähler nach Tests nullen:** Admin «Tabzähler zurücksetzen» oder VPS:
 
@@ -81,12 +82,6 @@ pm2 save
 
 ---
 
-## Optional offen (nicht blockierend)
-
-- **PR [#6](https://github.com/AdrianoDebatefy/REAKTON/pull/6):** CSV-Spalten für deutsches Excel (`;`) + **XLSX** statt XML — noch nicht gemerged.
-
----
-
 ## Merged PRs dieser Session
 
-#5 NFC Admin Bulk & Tabs · #7 Session-Locks & Loadtest · #8 Loadtest-Wartezeit · #9 PM2 fork & intl · #10 Tabzähler-Reset
+#5 NFC Admin Bulk & Tabs · #6 XLSX/CSV Bulk-Export · #7 Session-Locks & Loadtest · #8 Loadtest-Wartezeit · #9 PM2 fork & intl · #10 Tabzähler-Reset

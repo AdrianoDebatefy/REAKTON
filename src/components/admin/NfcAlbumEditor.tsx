@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState, type ToggleEvent } from "react";
 import type { NfcAlbumConfig, NfcAlbumTrack, NfcBulkBatch, NfcCard } from "@/types/content";
+import {
+  exportNfcBulkCsv,
+  exportNfcBulkXlsx,
+  type NfcBulkExportRow,
+} from "@/lib/nfc-bulk-export";
 
 type NfcEditorView = "cards" | "tracks";
 
@@ -14,8 +19,6 @@ type TapStatsRow = {
 };
 
 const NFC_TAP_URL_BASE = "https://reakton.de/nfc/tap?card=";
-
-type BulkExportRow = { cardId: string; url: string; taps: number; lastTapAt: number | null };
 
 function nfcTapUrl(cardId: string): string {
   return `${NFC_TAP_URL_BASE}${encodeURIComponent(cardId.trim())}`;
@@ -66,20 +69,10 @@ function formatLastTap(ms: number | null): string {
   }
 }
 
-function downloadTextFile(filename: string, content: string, mime: string) {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
 function bulkExportRows(
   batch: NfcBulkBatch,
   tapByCardId: Map<string, TapStatsRow>
-): BulkExportRow[] {
+): NfcBulkExportRow[] {
   return batch.cardIds.map((cardId) => {
     const key = cardId.trim().toLowerCase();
     const stat = key ? tapByCardId.get(key) : undefined;
@@ -97,32 +90,6 @@ function sumBatchTaps(batch: NfcBulkBatch, tapByCardId: Map<string, TapStatsRow>
     const key = cardId.trim().toLowerCase();
     return sum + (key ? (tapByCardId.get(key)?.taps ?? 0) : 0);
   }, 0);
-}
-
-function exportBulkCsv(batch: NfcBulkBatch, rows: BulkExportRow[]) {
-  const lines = [
-    "card_id,url,taps,last_tap",
-    ...rows.map(
-      (item) =>
-        `"${item.cardId}","${item.url}",${item.taps},"${item.lastTapAt ? formatLastTap(item.lastTapAt) : ""}"`
-    ),
-  ];
-  const stamp = batch.createdAt.slice(0, 19).replace(/[:T]/g, "-");
-  downloadTextFile(`reakton-nfc-bulk-${stamp}.csv`, lines.join("\n"), "text/csv;charset=utf-8");
-}
-
-function exportBulkXml(batch: NfcBulkBatch, rows: BulkExportRow[]) {
-  const escape = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const body = rows
-    .map(
-      (item) =>
-        `  <card id="${escape(item.cardId)}" url="${escape(item.url)}" taps="${item.taps}" lastTap="${escape(item.lastTapAt ? formatLastTap(item.lastTapAt) : "")}" />`
-    )
-    .join("\n");
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<bulk id="${escape(batch.id)}" created="${escape(batch.createdAt)}">\n${body}\n</bulk>\n`;
-  const stamp = batch.createdAt.slice(0, 19).replace(/[:T]/g, "-");
-  downloadTextFile(`reakton-nfc-bulk-${stamp}.xml`, xml, "application/xml;charset=utf-8");
 }
 
 async function copyToClipboard(text: string): Promise<boolean> {
@@ -213,17 +180,17 @@ function BulkBatchPanel({
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => exportBulkCsv(batch, rows)}
+            onClick={() => exportNfcBulkXlsx(batch, rows)}
             className="rounded border border-white/20 px-3 py-1 text-[10px] uppercase tracking-widest text-white/70 hover:border-white/40"
           >
-            CSV
+            Excel (XLSX)
           </button>
           <button
             type="button"
-            onClick={() => exportBulkXml(batch, rows)}
+            onClick={() => exportNfcBulkCsv(batch, rows)}
             className="rounded border border-white/20 px-3 py-1 text-[10px] uppercase tracking-widest text-white/70 hover:border-white/40"
           >
-            XML
+            CSV
           </button>
           <button
             type="button"

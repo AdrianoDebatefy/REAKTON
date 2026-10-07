@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "invalid_card" }, { status: 404 });
   }
 
-  const session = createNfcSession(card.id);
+  const session = await createNfcSession(card.id);
   await setNfcSessionCookie(session, "mobile");
 
   const locale = detectLocale(request);

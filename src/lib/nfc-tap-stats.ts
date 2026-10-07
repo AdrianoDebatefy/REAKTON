@@ -1,5 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import path from "path";
+import { mutateJsonFile } from "@/lib/json-file-store";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const STATS_PATH = path.join(DATA_DIR, "nfc-tap-stats.json");
@@ -21,35 +22,26 @@ function emptyStatsFile(): NfcTapStatsFile {
   return { byCardId: {} };
 }
 
-function readStatsFile(): NfcTapStatsFile {
-  if (!existsSync(STATS_PATH)) return emptyStatsFile();
-  try {
-    const parsed = JSON.parse(readFileSync(STATS_PATH, "utf-8")) as NfcTapStatsFile;
-    return { byCardId: parsed.byCardId ?? {} };
-  } catch {
-    return emptyStatsFile();
-  }
-}
-
-function writeStatsFile(data: NfcTapStatsFile): void {
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(STATS_PATH, JSON.stringify(data, null, 2), "utf-8");
-}
-
 /** Count one successful NFC tap (valid card, session created). */
-export function recordNfcTap(cardId: string): void {
+export async function recordNfcTap(cardId: string): Promise<void> {
   const key = normalizeCardKey(cardId);
   if (!key) return;
 
-  const data = readStatsFile();
-  const prev = data.byCardId[key] ?? { taps: 0, lastTapAt: null };
-  data.byCardId[key] = {
-    taps: prev.taps + 1,
-    lastTapAt: Date.now(),
-  };
-  writeStatsFile(data);
+  await mutateJsonFile(STATS_PATH, emptyStatsFile(), (data) => {
+    const prev = data.byCardId[key] ?? { taps: 0, lastTapAt: null };
+    data.byCardId[key] = {
+      taps: prev.taps + 1,
+      lastTapAt: Date.now(),
+    };
+  });
 }
 
 export function getNfcTapStatsByCardId(): Record<string, NfcTapStatEntry> {
-  return readStatsFile().byCardId;
+  if (!existsSync(STATS_PATH)) return {};
+  try {
+    const parsed = JSON.parse(readFileSync(STATS_PATH, "utf-8")) as NfcTapStatsFile;
+    return parsed.byCardId ?? {};
+  } catch {
+    return {};
+  }
 }

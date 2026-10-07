@@ -106,11 +106,20 @@ export interface NfcCard {
   enabled: boolean;
 }
 
+/** Persisted NFC bulk run (card IDs only — tap URLs derived in admin). */
+export interface NfcBulkBatch {
+  id: string;
+  createdAt: string;
+  cardIds: string[];
+}
+
 export interface NfcAlbumConfig {
   /** Session length after NFC tap (minutes). */
   sessionMinutes: number;
   tracks: NfcAlbumTrack[];
   cards: NfcCard[];
+  /** Bulk code generations (newest first in admin UI). */
+  bulkBatches?: NfcBulkBatch[];
 }
 
 export interface LiveVideo {

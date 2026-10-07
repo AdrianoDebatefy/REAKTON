@@ -10,7 +10,7 @@ import {
 import { mutateJsonFile, mutateJsonFileMaybe } from "@/lib/json-file-store";
 import { recordNfcTap } from "@/lib/nfc-tap-stats";
 
-/** Desktop pairing codes: always **three** words (REAKTON CI). Pool size → N³ combinations. */
+/** Desktop pairing codes: three 4-letter words (REAKTON CI, e.g. CLIP:CLAP:CLUB). */
 const CODE_WORDS = [
   "Clip",
   "Clap",
@@ -21,43 +21,68 @@ const CODE_WORDS = [
   "Rave",
   "Glow",
   "Flux",
-  "Pulse",
   "Echo",
   "Wave",
   "Neon",
   "Vibe",
   "Loop",
-  "Cosmos",
   "Erde",
   "Nano",
-  "Macro",
-  "Micro",
-  "Synth",
+  "Moon",
+  "Mars",
+  "Void",
+  "Beam",
+  "Star",
+  "Atom",
+  "Dawn",
+  "Haze",
   "Kick",
   "Hook",
   "Stem",
-  "Mix",
   "Live",
-  "Spark",
-  "Orbit",
-  "Star",
+  "Tone",
+  "Sync",
+  "Peak",
+  "Drum",
+  "Note",
+  "Disc",
   "Flow",
-  "Drive",
   "Rise",
   "Rush",
   "Play",
-  "Tap",
   "Grid",
-  "Atom",
-  "Laser",
-  "Strobe",
-  "Floor",
-  "Crowd",
-  "Haze",
-  "Dawn",
   "Tape",
-  "Reakton",
-];
+  "Fade",
+  "Gain",
+  "Mute",
+  "Solo",
+  "Deep",
+  "Dark",
+  "Pure",
+  "Bold",
+  "Cool",
+  "Heat",
+  "Fire",
+  "Gold",
+  "Iron",
+  "Lens",
+  "Code",
+  "Link",
+  "Core",
+  "Byte",
+  "Chip",
+  "Node",
+  "Feat",
+  "Funk",
+  "Jazz",
+  "Rock",
+] as const;
+
+for (const word of CODE_WORDS) {
+  if (word.length !== 4) {
+    throw new Error(`NFC CODE_WORDS entry must be exactly 4 letters: "${word}"`);
+  }
+}
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const SESSIONS_PATH = path.join(DATA_DIR, "nfc-sessions.json");

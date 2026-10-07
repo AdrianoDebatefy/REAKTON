@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { NfcAlbumConfig, NfcAlbumTrack, NfcCard } from "@/types/content";
+import { useCallback, useEffect, useMemo, useState, type ToggleEvent } from "react";
+import type { NfcAlbumConfig, NfcAlbumTrack, NfcBulkBatch, NfcCard } from "@/types/content";
 
 type NfcEditorView = "cards" | "tracks";
 
@@ -13,13 +13,9 @@ type TapStatsRow = {
   lastTapAt: number | null;
 };
 
-type NfcBulkBatch = {
-  id: string;
-  createdAt: string;
-  items: { cardId: string; url: string }[];
-};
-
 const NFC_TAP_URL_BASE = "https://reakton.de/nfc/tap?card=";
+
+type BulkExportRow = { cardId: string; url: string; taps: number; lastTapAt: number | null };
 
 function nfcTapUrl(cardId: string): string {
   return `${NFC_TAP_URL_BASE}${encodeURIComponent(cardId.trim())}`;
@@ -80,17 +76,49 @@ function downloadTextFile(filename: string, content: string, mime: string) {
   URL.revokeObjectURL(url);
 }
 
-function exportBulkCsv(batch: NfcBulkBatch) {
-  const lines = ["card_id,url", ...batch.items.map((item) => `"${item.cardId}","${item.url}"`)];
+function bulkExportRows(
+  batch: NfcBulkBatch,
+  tapByCardId: Map<string, TapStatsRow>
+): BulkExportRow[] {
+  return batch.cardIds.map((cardId) => {
+    const key = cardId.trim().toLowerCase();
+    const stat = key ? tapByCardId.get(key) : undefined;
+    return {
+      cardId,
+      url: nfcTapUrl(cardId),
+      taps: stat?.taps ?? 0,
+      lastTapAt: stat?.lastTapAt ?? null,
+    };
+  });
+}
+
+function sumBatchTaps(batch: NfcBulkBatch, tapByCardId: Map<string, TapStatsRow>): number {
+  return batch.cardIds.reduce((sum, cardId) => {
+    const key = cardId.trim().toLowerCase();
+    return sum + (key ? (tapByCardId.get(key)?.taps ?? 0) : 0);
+  }, 0);
+}
+
+function exportBulkCsv(batch: NfcBulkBatch, rows: BulkExportRow[]) {
+  const lines = [
+    "card_id,url,taps,last_tap",
+    ...rows.map(
+      (item) =>
+        `"${item.cardId}","${item.url}",${item.taps},"${item.lastTapAt ? formatLastTap(item.lastTapAt) : ""}"`
+    ),
+  ];
   const stamp = batch.createdAt.slice(0, 19).replace(/[:T]/g, "-");
   downloadTextFile(`reakton-nfc-bulk-${stamp}.csv`, lines.join("\n"), "text/csv;charset=utf-8");
 }
 
-function exportBulkXml(batch: NfcBulkBatch) {
+function exportBulkXml(batch: NfcBulkBatch, rows: BulkExportRow[]) {
   const escape = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const body = batch.items
-    .map((item) => `  <card id="${escape(item.cardId)}" url="${escape(item.url)}" />`)
+  const body = rows
+    .map(
+      (item) =>
+        `  <card id="${escape(item.cardId)}" url="${escape(item.url)}" taps="${item.taps}" lastTap="${escape(item.lastTapAt ? formatLastTap(item.lastTapAt) : "")}" />`
+    )
     .join("\n");
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<bulk id="${escape(batch.id)}" created="${escape(batch.createdAt)}">\n${body}\n</bulk>\n`;
   const stamp = batch.createdAt.slice(0, 19).replace(/[:T]/g, "-");
@@ -117,6 +145,124 @@ function TapCountCell({ taps, lastTapAt }: { taps: number; lastTapAt: number | n
   );
 }
 
+function BulkBatchPanel({
+  batch,
+  tapByCardId,
+  statsLoading,
+  defaultOpen,
+  onCopyAll,
+}: {
+  batch: NfcBulkBatch;
+  tapByCardId: Map<string, TapStatsRow>;
+  statsLoading: boolean;
+  defaultOpen: boolean;
+  onCopyAll: (text: string) => void;
+}) {
+  const rows = bulkExportRows(batch, tapByCardId);
+  const totalTaps = sumBatchTaps(batch, tapByCardId);
+  const tappedCards = rows.filter((row) => row.taps > 0).length;
+  const [open, setOpen] = useState(defaultOpen);
+
+  useEffect(() => {
+    if (defaultOpen) setOpen(true);
+  }, [defaultOpen]);
+
+  return (
+    <details
+      className="group rounded border border-white/10 p-3 open:bg-white/[0.02]"
+      open={open}
+      onToggle={(event: ToggleEvent<HTMLDetailsElement>) => {
+        setOpen(event.currentTarget.open);
+      }}
+    >
+      <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+        <div className="flex flex-wrap items-center justify-between gap-2 pr-6">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span className="text-[10px] uppercase tracking-widest text-white/50">
+              Bulk · {batch.cardIds.length} Codes · {new Date(batch.createdAt).toLocaleString("de-DE")}
+            </span>
+            <span className="text-xs text-white/65">
+              Tabzähler gesamt:{" "}
+              <span className="tabular-nums font-medium text-white/90">
+                {statsLoading ? "…" : totalTaps}
+              </span>
+              {!statsLoading ? (
+                <span className="text-white/45">
+                  {" "}
+                  ({tappedCards} Karte{tappedCards === 1 ? "" : "n"} mit Taps)
+                </span>
+              ) : null}
+            </span>
+          </div>
+          <span
+            className="text-[10px] uppercase tracking-widest text-white/40 group-open:hidden"
+            aria-hidden
+          >
+            Aufklappen
+          </span>
+          <span
+            className="hidden text-[10px] uppercase tracking-widest text-white/40 group-open:inline"
+            aria-hidden
+          >
+            Zuklappen
+          </span>
+        </div>
+      </summary>
+
+      <div className="mt-3 space-y-3 border-t border-white/10 pt-3">
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => exportBulkCsv(batch, rows)}
+            className="rounded border border-white/20 px-3 py-1 text-[10px] uppercase tracking-widest text-white/70 hover:border-white/40"
+          >
+            CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => exportBulkXml(batch, rows)}
+            className="rounded border border-white/20 px-3 py-1 text-[10px] uppercase tracking-widest text-white/70 hover:border-white/40"
+          >
+            XML
+          </button>
+          <button
+            type="button"
+            onClick={() => onCopyAll(rows.map((row) => row.url).join("\n"))}
+            className="rounded border border-white/20 px-3 py-1 text-[10px] uppercase tracking-widest text-white/70 hover:border-white/40"
+          >
+            Alle Links kopieren
+          </button>
+        </div>
+
+        <div className="max-h-64 overflow-auto rounded border border-white/10">
+          <table className="w-full min-w-[32rem] text-left text-[11px] text-white/75">
+            <thead className="sticky top-0 bg-[#1a1a1a]">
+              <tr className="border-b border-white/10 text-[10px] uppercase tracking-widest text-white/45">
+                <th className="py-2 pl-2 pr-2 font-normal">Karten-ID</th>
+                <th className="py-2 pr-2 font-normal text-right">Taps</th>
+                <th className="py-2 pr-2 font-normal">Letzter Tap</th>
+                <th className="py-2 pr-2 font-normal">Link</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.cardId} className="border-b border-white/5 align-top">
+                  <td className="py-1.5 pl-2 pr-2 font-mono text-white/85">{row.cardId}</td>
+                  <td className="py-1.5 pr-2 text-right tabular-nums">{row.taps}</td>
+                  <td className="py-1.5 pr-2 whitespace-nowrap text-white/50">
+                    {formatLastTap(row.lastTapAt)}
+                  </td>
+                  <td className="py-1.5 pr-2 font-mono text-[10px] text-white/60">{row.url}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+  );
+}
+
 export function NfcAlbumEditor({
   config,
   onChange,
@@ -133,8 +279,10 @@ export function NfcAlbumEditor({
   const [statsError, setStatsError] = useState<string | null>(null);
   const [bulkCount, setBulkCount] = useState(10);
   const [bulkBusy, setBulkBusy] = useState(false);
-  const [bulkBatches, setBulkBatches] = useState<NfcBulkBatch[]>([]);
   const [copyHint, setCopyHint] = useState<string | null>(null);
+  const [newestBulkId, setNewestBulkId] = useState<string | null>(null);
+
+  const bulkBatches = config.bulkBatches ?? [];
 
   const tapByCardId = useMemo(() => {
     const map = new Map<string, TapStatsRow>();
@@ -221,7 +369,7 @@ export function NfcAlbumEditor({
         config.cards.map((c) => c.id.trim().toLowerCase()).filter(Boolean)
       );
       const newCards: NfcCard[] = [];
-      const items: NfcBulkBatch["items"] = [];
+      const cardIds: string[] = [];
 
       for (let i = 0; i < count; i++) {
         const id = randomBulkCardId(existingLower);
@@ -231,16 +379,20 @@ export function NfcAlbumEditor({
           id,
           enabled: true,
         });
-        items.push({ cardId: id, url: nfcTapUrl(id) });
+        cardIds.push(id);
       }
 
-      onChange({ ...config, cards: [...config.cards, ...newCards] });
       const batch: NfcBulkBatch = {
         id: newBulkBatchId(),
         createdAt: new Date().toISOString(),
-        items,
+        cardIds,
       };
-      setBulkBatches((prev) => [batch, ...prev]);
+      setNewestBulkId(batch.id);
+      onChange({
+        ...config,
+        cards: [...config.cards, ...newCards],
+        bulkBatches: [batch, ...(config.bulkBatches ?? [])],
+      });
     } finally {
       setBulkBusy(false);
     }
@@ -308,8 +460,10 @@ export function NfcAlbumEditor({
           <div className="space-y-3 rounded border border-white/15 p-4">
             <h3 className="text-xs uppercase tracking-widest text-white/60">Bulk-Erstellung</h3>
             <p className="text-xs text-white/45">
-              Erzeugt neue zufällige Karten-IDs und hängt sie an die bestehende Liste an. Nach dem
-              Erzeugen «Alles speichern» klicken, damit die Karten auf dem Server aktiv sind.
+              Erzeugt neue zufällige Karten-IDs und hängt sie an die bestehende Liste an. Bulks
+              bleiben in der Konfiguration gespeichert (nach «Alles speichern» auch über Reload
+              hinweg). Tabzähler pro Bulk in der aufgeklappten Liste bzw. als Summe in der
+              Überschrift.
             </p>
             <div className="flex flex-wrap items-end gap-3">
               <label className="block text-xs text-white/75">
@@ -334,53 +488,26 @@ export function NfcAlbumEditor({
             </div>
 
             {bulkBatches.length > 0 ? (
-              <ul className="mt-4 space-y-4 border-t border-white/10 pt-4">
+              <ul className="mt-4 space-y-3 border-t border-white/10 pt-4">
                 {bulkBatches.map((batch) => (
-                  <li key={batch.id} className="rounded border border-white/10 p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-[10px] uppercase tracking-widest text-white/50">
-                        Bulk · {batch.items.length} Codes ·{" "}
-                        {new Date(batch.createdAt).toLocaleString("de-DE")}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => exportBulkCsv(batch)}
-                          className="rounded border border-white/20 px-3 py-1 text-[10px] uppercase tracking-widest text-white/70 hover:border-white/40"
-                        >
-                          CSV
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => exportBulkXml(batch)}
-                          className="rounded border border-white/20 px-3 py-1 text-[10px] uppercase tracking-widest text-white/70 hover:border-white/40"
-                        >
-                          XML
-                        </button>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            const ok = await copyToClipboard(
-                              batch.items.map((i) => i.url).join("\n")
-                            );
-                            setCopyHint(ok ? "Links kopiert." : "Kopieren fehlgeschlagen.");
-                            window.setTimeout(() => setCopyHint(null), 2500);
-                          }}
-                          className="rounded border border-white/20 px-3 py-1 text-[10px] uppercase tracking-widest text-white/70 hover:border-white/40"
-                        >
-                          Alle Links kopieren
-                        </button>
-                      </div>
-                    </div>
-                    <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto font-mono text-[11px] text-white/75">
-                      {batch.items.map((item) => (
-                        <li key={item.cardId}>{item.url}</li>
-                      ))}
-                    </ul>
+                  <li key={batch.id}>
+                    <BulkBatchPanel
+                      batch={batch}
+                      tapByCardId={tapByCardId}
+                      statsLoading={statsLoading}
+                      defaultOpen={batch.id === newestBulkId}
+                      onCopyAll={async (text) => {
+                        const ok = await copyToClipboard(text);
+                        setCopyHint(ok ? "Links kopiert." : "Kopieren fehlgeschlagen.");
+                        window.setTimeout(() => setCopyHint(null), 2500);
+                      }}
+                    />
                   </li>
                 ))}
               </ul>
-            ) : null}
+            ) : (
+              <p className="mt-3 text-sm text-white/40">Noch keine Bulks — oben «Bulk erstellen».</p>
+            )}
             {copyHint ? <p className="text-xs text-emerald-200/90">{copyHint}</p> : null}
           </div>
 

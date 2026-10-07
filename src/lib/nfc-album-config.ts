@@ -1,4 +1,4 @@
-import type { NfcAlbumConfig, NfcCard } from "@/types/content";
+import type { NfcAlbumConfig, NfcBulkBatch, NfcCard } from "@/types/content";
 
 export const DEFAULT_NFC_SESSION_MINUTES = 60;
 
@@ -34,7 +34,25 @@ export function normalizeNfcAlbumConfig(raw?: NfcAlbumConfig | null): NfcAlbumCo
       role: card.role === "dj" ? "dj" : "fan",
       enabled: card.enabled !== false,
     })),
+    bulkBatches: normalizeNfcBulkBatches(raw.bulkBatches),
   };
+}
+
+function normalizeNfcBulkBatches(raw?: NfcBulkBatch[] | null): NfcBulkBatch[] {
+  if (!raw?.length) return [];
+  return raw
+    .map((batch, index) => {
+      const cardIds = (batch.cardIds ?? [])
+        .map((id) => (typeof id === "string" ? id : "").trim())
+        .filter(Boolean);
+      return {
+        id: batch.id?.trim() || `bulk-legacy-${index}`,
+        createdAt: batch.createdAt?.trim() || new Date(0).toISOString(),
+        cardIds,
+      };
+    })
+    .filter((batch) => batch.cardIds.length > 0)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export function findNfcCard(cardId: string, config: NfcAlbumConfig): NfcCard | undefined {

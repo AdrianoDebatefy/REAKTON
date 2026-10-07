@@ -1,8 +1,8 @@
 # REAKTON auf Netcup VPS installieren
 
-**Ziel:** `reakton.de` auf dem VPS `v2202512327578422024` (neben 2 bestehenden Seiten)  
-**Branch:** `cursor/club-robot-admin-d206` (Club 3D Roboter + Admin-Konfiguration)  
-**Build-Label nach Deploy:** `club-robot-admin-2026-08-20`
+**Ziel:** `reakton.de` auf dem VPS (neben weiteren Seiten)  
+**Branch Produktion:** `main` — Repo: `https://github.com/AdrianoDebatefy/REAKTON`  
+**NFC-Lasttest & Ops:** `docs/NFC-LOAD-TEST.md`, Handoff `docs/SESSION-HANDOFF-2026-10-07.md`
 
 ---
 

@@ -15,7 +15,7 @@ export async function GET() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const record = getNfcSession(auth.sessionId);
+  const record = await getNfcSession(auth.sessionId);
   if (!record) {
     return NextResponse.json({ error: "expired" }, { status: 401 });
   }

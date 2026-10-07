@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin-auth";
 import { getNfcAlbumConfig } from "@/lib/nfc-album-sessions";
-import { getNfcTapStatsByCardId, type NfcTapStatEntry } from "@/lib/nfc-tap-stats";
+import {
+  getNfcTapStatsByCardId,
+  resetNfcTapStats,
+  type NfcTapStatEntry,
+} from "@/lib/nfc-tap-stats";
 
 export interface NfcTapStatsCardRow {
   cardId: string;
@@ -45,4 +49,13 @@ export async function GET() {
     .sort((a, b) => b.taps - a.taps);
 
   return NextResponse.json({ cards, unknown });
+}
+
+export async function DELETE() {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  await resetNfcTapStats();
+  return NextResponse.json({ ok: true });
 }

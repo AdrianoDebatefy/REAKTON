@@ -21,7 +21,7 @@ export async function GET() {
     });
   }
 
-  const record = getNfcSession(active.sessionId);
+  const record = await getNfcSession(active.sessionId);
   if (!record) {
     if (mobile) await clearNfcSessionCookie("mobile");
     if (desktop) await clearNfcSessionCookie("desktop");

@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid" }, { status: 400 });
   }
 
-  const session = pairNfcSessionByCode(code);
+  const session = await pairNfcSessionByCode(code);
   if (!session) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }

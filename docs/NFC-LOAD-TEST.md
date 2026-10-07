@@ -54,6 +54,12 @@ Das bedeutet: **Keine Verbindung zu Next.js** (nicht „Karte ungültig“).
 3. Viele PM2-Restarts (↺) → App stürzt ab, Logs lesen (`.env`, Speicher, Build).
 4. Node **v18+** für das Skript: `node -v`
 5. Falls nötig: `BASE=http://127.0.0.1:3010 bash deploy/netcup/nfc-load-test.sh`
+6. PM2 muss **`fork`** sein (nicht `cluster`): `pm2 delete reakton && pm2 start deploy/netcup/ecosystem.config.cjs && pm2 save`
+
+### Log-Zeilen (oft harmlos)
+
+- **`Server Reference ID did not match`** — Bots scannen Server Actions (POST-Müll), kein REAKTON-Bug.
+- **`ENVIRONMENT_FALLBACK`** — next-intl ohne Request-Kontext; NFC-Play-Seite ist auf `force-dynamic` gestellt (Update pullen + neu bauen).
 
 ## Wann nachjustieren?
 

@@ -1,13 +1,36 @@
 "use client";
 
-import { useState } from "react";
-import { NfcTapStatsPanel } from "@/components/admin/NfcTapStatsPanel";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { NfcAlbumConfig, NfcAlbumTrack, NfcCard } from "@/types/content";
 
-type NfcEditorView = "config" | "stats";
+type NfcEditorView = "cards" | "tracks";
+
+type TapStatsRow = {
+  cardId: string;
+  label: string;
+  enabled: boolean;
+  taps: number;
+  lastTapAt: number | null;
+};
+
+type NfcBulkBatch = {
+  id: string;
+  createdAt: string;
+  items: { cardId: string; url: string }[];
+};
+
+const NFC_TAP_URL_BASE = "https://reakton.de/nfc/tap?card=";
+
+function nfcTapUrl(cardId: string): string {
+  return `${NFC_TAP_URL_BASE}${encodeURIComponent(cardId.trim())}`;
+}
 
 function newCardEditorKey(): string {
   return `nfc-card-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function newBulkBatchId(): string {
+  return `bulk-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
 function duplicateCardIds(cards: NfcCard[]): string[] {
@@ -20,6 +43,80 @@ function duplicateCardIds(cards: NfcCard[]): string[] {
   return [...seen.entries()].filter(([, n]) => n > 1).map(([id]) => id);
 }
 
+function randomBulkCardId(existingLower: Set<string>): string {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  for (let attempt = 0; attempt < 200; attempt++) {
+    let suffix = "";
+    const bytes = new Uint8Array(10);
+    crypto.getRandomValues(bytes);
+    for (let i = 0; i < 10; i++) {
+      suffix += alphabet[bytes[i]! % alphabet.length];
+    }
+    const id = `RK-${suffix}`;
+    if (!existingLower.has(id.toLowerCase())) return id;
+  }
+  return `RK-${Date.now().toString(36).toUpperCase()}`;
+}
+
+function formatLastTap(ms: number | null): string {
+  if (ms == null) return "—";
+  try {
+    return new Intl.DateTimeFormat("de-DE", {
+      dateStyle: "short",
+      timeStyle: "short",
+    }).format(new Date(ms));
+  } catch {
+    return new Date(ms).toLocaleString();
+  }
+}
+
+function downloadTextFile(filename: string, content: string, mime: string) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportBulkCsv(batch: NfcBulkBatch) {
+  const lines = ["card_id,url", ...batch.items.map((item) => `"${item.cardId}","${item.url}"`)];
+  const stamp = batch.createdAt.slice(0, 19).replace(/[:T]/g, "-");
+  downloadTextFile(`reakton-nfc-bulk-${stamp}.csv`, lines.join("\n"), "text/csv;charset=utf-8");
+}
+
+function exportBulkXml(batch: NfcBulkBatch) {
+  const escape = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const body = batch.items
+    .map((item) => `  <card id="${escape(item.cardId)}" url="${escape(item.url)}" />`)
+    .join("\n");
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<bulk id="${escape(batch.id)}" created="${escape(batch.createdAt)}">\n${body}\n</bulk>\n`;
+  const stamp = batch.createdAt.slice(0, 19).replace(/[:T]/g, "-");
+  downloadTextFile(`reakton-nfc-bulk-${stamp}.xml`, xml, "application/xml;charset=utf-8");
+}
+
+async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function TapCountCell({ taps, lastTapAt }: { taps: number; lastTapAt: number | null }) {
+  return (
+    <div>
+      <span className="tabular-nums text-white/90">{taps}</span>
+      {lastTapAt != null ? (
+        <p className="mt-0.5 text-[10px] text-white/40">zuletzt {formatLastTap(lastTapAt)}</p>
+      ) : null}
+    </div>
+  );
+}
+
 export function NfcAlbumEditor({
   config,
   onChange,
@@ -29,7 +126,47 @@ export function NfcAlbumEditor({
   onChange: (config: NfcAlbumConfig) => void;
   onUpload: (file: File) => Promise<string>;
 }) {
-  const [view, setView] = useState<NfcEditorView>("config");
+  const [view, setView] = useState<NfcEditorView>("cards");
+  const [tapRows, setTapRows] = useState<TapStatsRow[]>([]);
+  const [unknownTaps, setUnknownTaps] = useState<TapStatsRow[]>([]);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const [bulkCount, setBulkCount] = useState(10);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkBatches, setBulkBatches] = useState<NfcBulkBatch[]>([]);
+  const [copyHint, setCopyHint] = useState<string | null>(null);
+
+  const tapByCardId = useMemo(() => {
+    const map = new Map<string, TapStatsRow>();
+    for (const row of tapRows) {
+      const key = row.cardId.trim().toLowerCase();
+      if (key) map.set(key, row);
+    }
+    return map;
+  }, [tapRows]);
+
+  const loadTapStats = useCallback(async () => {
+    setStatsLoading(true);
+    setStatsError(null);
+    try {
+      const res = await fetch("/api/admin/nfc/tap-stats");
+      if (!res.ok) {
+        setStatsError(res.status === 401 ? "Nicht angemeldet." : "Tabzähler konnten nicht geladen werden.");
+        return;
+      }
+      const data = (await res.json()) as { cards: TapStatsRow[]; unknown: TapStatsRow[] };
+      setTapRows(data.cards ?? []);
+      setUnknownTaps(data.unknown ?? []);
+    } catch {
+      setStatsError("Netzwerkfehler beim Laden der Tabzähler.");
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (view === "cards") void loadTapStats();
+  }, [view, loadTapStats]);
 
   const addTrack = () => {
     const next: NfcAlbumTrack = {
@@ -58,8 +195,6 @@ export function NfcAlbumEditor({
     const next: NfcCard = {
       editorKey: newCardEditorKey(),
       id: "",
-      label: "",
-      role: "fan",
       enabled: true,
     };
     onChange({ ...config, cards: [...config.cards, next] });
@@ -78,6 +213,39 @@ export function NfcAlbumEditor({
     onChange({ ...config, cards: config.cards.filter((card) => card.editorKey !== editorKey) });
   };
 
+  const runBulkCreate = () => {
+    const count = Math.min(500, Math.max(1, Math.floor(bulkCount) || 1));
+    setBulkBusy(true);
+    try {
+      const existingLower = new Set(
+        config.cards.map((c) => c.id.trim().toLowerCase()).filter(Boolean)
+      );
+      const newCards: NfcCard[] = [];
+      const items: NfcBulkBatch["items"] = [];
+
+      for (let i = 0; i < count; i++) {
+        const id = randomBulkCardId(existingLower);
+        existingLower.add(id.toLowerCase());
+        newCards.push({
+          editorKey: newCardEditorKey(),
+          id,
+          enabled: true,
+        });
+        items.push({ cardId: id, url: nfcTapUrl(id) });
+      }
+
+      onChange({ ...config, cards: [...config.cards, ...newCards] });
+      const batch: NfcBulkBatch = {
+        id: newBulkBatchId(),
+        createdAt: new Date().toISOString(),
+        items,
+      };
+      setBulkBatches((prev) => [batch, ...prev]);
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   const tracks = [...config.tracks].sort((a, b) => a.order - b.order);
   const dupIds = duplicateCardIds(config.cards);
 
@@ -87,243 +255,376 @@ export function NfcAlbumEditor({
         <h2 className="text-sm uppercase tracking-widest text-white/70">NFC Album Player</h2>
         <p className="mt-2 text-sm text-white/50">
           NFC-Karten öffnen den Mobile-Player. Der PC-Code aktiviert 60 Minuten Club-Wiedergabe auf
-          Desktop.
+          Desktop. Neue Bulk-Codes werden immer ergänzt — bestehende Karten bleiben unverändert.
         </p>
         <nav className="mt-4 flex flex-wrap gap-2" aria-label="NFC Admin">
           <button
             type="button"
-            onClick={() => setView("config")}
+            onClick={() => setView("cards")}
             className={`rounded border px-4 py-2 text-[10px] uppercase tracking-widest ${
-              view === "config"
+              view === "cards"
                 ? "border-white/50 bg-white/10 text-white"
                 : "border-white/20 text-white/55 hover:border-white/35 hover:text-white/80"
             }`}
           >
-            Karten &amp; Album
+            NFC-Karten
           </button>
           <button
             type="button"
-            onClick={() => setView("stats")}
+            onClick={() => setView("tracks")}
             className={`rounded border px-4 py-2 text-[10px] uppercase tracking-widest ${
-              view === "stats"
+              view === "tracks"
                 ? "border-white/50 bg-white/10 text-white"
                 : "border-white/20 text-white/55 hover:border-white/35 hover:text-white/80"
             }`}
           >
-            Tap-Zähler
+            Album-Tracks
           </button>
         </nav>
       </div>
 
-      {view === "stats" ? <NfcTapStatsPanel /> : null}
-
-      {view === "config" ? (
+      {view === "cards" ? (
         <>
-      <div className="rounded border border-white/15 p-4">
-        <label className="block text-xs text-white/75">
-          Session-Dauer (Minuten)
-          <input
-            type="number"
-            min={1}
-            max={240}
-            value={config.sessionMinutes}
-            onChange={(e) =>
-              onChange({ ...config, sessionMinutes: Math.max(1, Number(e.target.value) || 60) })
-            }
-            className="mt-1 w-28 border border-white/15 bg-black/40 px-2 py-1.5 text-sm text-white"
-          />
-        </label>
-        <p className="mt-3 text-xs text-white/45">
-          Tap-URL pro Karte:{" "}
-          <code className="text-white/60">https://reakton.de/nfc/tap?card=KARTEN-ID</code>
-        </p>
-      </div>
+          <div className="rounded border border-white/15 p-4">
+            <label className="block text-xs text-white/75">
+              Session-Dauer (Minuten)
+              <input
+                type="number"
+                min={1}
+                max={240}
+                value={config.sessionMinutes}
+                onChange={(e) =>
+                  onChange({ ...config, sessionMinutes: Math.max(1, Number(e.target.value) || 60) })
+                }
+                className="mt-1 w-28 border border-white/15 bg-black/40 px-2 py-1.5 text-sm text-white"
+              />
+            </label>
+            <p className="mt-3 text-xs text-white/45">
+              GoToTags / NFC-Link-Format:{" "}
+              <code className="text-white/60">{NFC_TAP_URL_BASE}KARTEN-ID</code>
+            </p>
+          </div>
 
-      <div className="space-y-3 rounded border border-white/15 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-xs uppercase tracking-widest text-white/60">NFC-Karten</h3>
-          <button
-            type="button"
-            onClick={addCard}
-            className="rounded border border-white/25 px-4 py-2 text-[10px] uppercase tracking-widest text-white/80 hover:border-white/50"
-          >
-            + Karte
-          </button>
-        </div>
-        {dupIds.length > 0 ? (
-          <p className="rounded border border-amber-400/35 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
-            Doppelte Karten-IDs (NFC funktioniert nur für eine davon):{" "}
-            <code className="text-amber-50">{dupIds.join(", ")}</code>
-          </p>
-        ) : null}
-        {config.cards.length === 0 ? (
-          <p className="text-sm text-white/40">Noch keine Karten registriert.</p>
-        ) : (
-          <ul className="space-y-3">
-            {config.cards.map((card) => (
-              <li
-                key={card.editorKey ?? card.id}
-                className="grid gap-3 rounded border border-white/10 p-3 md:grid-cols-4"
+          <div className="space-y-3 rounded border border-white/15 p-4">
+            <h3 className="text-xs uppercase tracking-widest text-white/60">Bulk-Erstellung</h3>
+            <p className="text-xs text-white/45">
+              Erzeugt neue zufällige Karten-IDs und hängt sie an die bestehende Liste an. Nach dem
+              Erzeugen «Alles speichern» klicken, damit die Karten auf dem Server aktiv sind.
+            </p>
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="block text-xs text-white/75">
+                Anzahl neuer Codes
+                <input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={bulkCount}
+                  onChange={(e) => setBulkCount(Math.max(1, Number(e.target.value) || 1))}
+                  className="mt-1 w-28 border border-white/15 bg-black/40 px-2 py-1.5 text-sm text-white"
+                />
+              </label>
+              <button
+                type="button"
+                disabled={bulkBusy}
+                onClick={runBulkCreate}
+                className="rounded border border-white/25 px-4 py-2 text-[10px] uppercase tracking-widest text-white/80 hover:border-white/50 disabled:opacity-50"
               >
-                <label className="block text-xs text-white/75">
-                  Karten-ID
-                  <input
-                    type="text"
-                    value={card.id}
-                    onChange={(e) =>
-                      updateCard(card.editorKey!, { id: e.target.value })
-                    }
-                    placeholder="z. B. TEST-001"
-                    className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-xs"
-                  />
-                </label>
-                <label className="block text-xs text-white/75">
-                  Label
-                  <input
-                    type="text"
-                    value={card.label ?? ""}
-                    onChange={(e) => updateCard(card.editorKey!, { label: e.target.value })}
-                    className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-xs"
-                  />
-                </label>
-                <label className="block text-xs text-white/75">
-                  Rolle
-                  <select
-                    value={card.role ?? "fan"}
-                    onChange={(e) =>
-                      updateCard(card.editorKey!, {
-                        role: e.target.value === "dj" ? "dj" : "fan",
-                      })
-                    }
-                    className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-xs"
-                  >
-                    <option value="fan">Fan</option>
-                    <option value="dj">DJ</option>
-                  </select>
-                </label>
-                <div className="flex items-end justify-between gap-2">
-                  <label className="flex items-center gap-2 text-xs text-white/75">
-                    <input
-                      type="checkbox"
-                      checked={card.enabled}
-                      onChange={(e) =>
-                        updateCard(card.editorKey!, { enabled: e.target.checked })
-                      }
-                    />
-                    Aktiv
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => removeCard(card.editorKey!)}
-                    className="text-[10px] uppercase tracking-widest text-white/45 underline hover:text-white/70"
-                  >
-                    Entfernen
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+                Bulk erstellen
+              </button>
+            </div>
 
-      <div className="space-y-3 rounded border border-white/15 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-xs uppercase tracking-widest text-white/60">Album-Tracks</h3>
-          <button
-            type="button"
-            onClick={addTrack}
-            className="rounded border border-white/25 px-4 py-2 text-[10px] uppercase tracking-widest text-white/80 hover:border-white/50"
-          >
-            + Track
-          </button>
-        </div>
-        {tracks.length === 0 ? (
-          <p className="text-sm text-white/40">Noch keine NFC-Tracks.</p>
-        ) : (
-          <ul className="space-y-4">
-            {tracks.map((track, index) => (
-              <li key={track.id} className="space-y-3 rounded border border-white/10 p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] uppercase tracking-widest text-white/45">
-                    Track {index + 1}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeTrack(track.id)}
-                    className="text-[10px] uppercase tracking-widest text-white/45 underline hover:text-white/70"
-                  >
-                    Entfernen
-                  </button>
-                </div>
-                <label className="block text-xs text-white/75">
-                  Titel
-                  <input
-                    type="text"
-                    value={track.title}
-                    onChange={(e) => updateTrack(track.id, { title: e.target.value })}
-                    className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-xs"
-                  />
-                </label>
-                <label className="block text-xs text-white/75">
-                  Artist (optional)
-                  <input
-                    type="text"
-                    value={track.artist ?? ""}
-                    onChange={(e) => updateTrack(track.id, { artist: e.target.value })}
-                    className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-xs"
-                  />
-                </label>
-                <label className="block text-xs text-white/75">
-                  MP3-URL
-                  <input
-                    type="text"
-                    value={track.audioUrl}
-                    onChange={(e) => updateTrack(track.id, { audioUrl: e.target.value })}
-                    className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-xs"
-                  />
-                </label>
-                <div className="flex flex-wrap items-center gap-3">
-                  <label className="text-xs text-white/75">
-                    MP3 hochladen
-                    <input
-                      type="file"
-                      accept="audio/mpeg,audio/mp3,.mp3"
-                      className="mt-1 block text-[10px] text-white/50"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const url = await onUpload(file);
-                        updateTrack(track.id, { audioUrl: url });
-                        e.target.value = "";
-                      }}
-                    />
-                  </label>
-                  <label className="text-xs text-white/75">
-                    Cover hochladen
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="mt-1 block text-[10px] text-white/50"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const url = await onUpload(file);
-                        updateTrack(track.id, { coverImage: url });
-                        e.target.value = "";
-                      }}
-                    />
-                  </label>
-                </div>
-                {track.coverImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={track.coverImage} alt="" className="h-16 w-16 rounded object-cover" />
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+            {bulkBatches.length > 0 ? (
+              <ul className="mt-4 space-y-4 border-t border-white/10 pt-4">
+                {bulkBatches.map((batch) => (
+                  <li key={batch.id} className="rounded border border-white/10 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-[10px] uppercase tracking-widest text-white/50">
+                        Bulk · {batch.items.length} Codes ·{" "}
+                        {new Date(batch.createdAt).toLocaleString("de-DE")}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => exportBulkCsv(batch)}
+                          className="rounded border border-white/20 px-3 py-1 text-[10px] uppercase tracking-widest text-white/70 hover:border-white/40"
+                        >
+                          CSV
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => exportBulkXml(batch)}
+                          className="rounded border border-white/20 px-3 py-1 text-[10px] uppercase tracking-widest text-white/70 hover:border-white/40"
+                        >
+                          XML
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const ok = await copyToClipboard(
+                              batch.items.map((i) => i.url).join("\n")
+                            );
+                            setCopyHint(ok ? "Links kopiert." : "Kopieren fehlgeschlagen.");
+                            window.setTimeout(() => setCopyHint(null), 2500);
+                          }}
+                          className="rounded border border-white/20 px-3 py-1 text-[10px] uppercase tracking-widest text-white/70 hover:border-white/40"
+                        >
+                          Alle Links kopieren
+                        </button>
+                      </div>
+                    </div>
+                    <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto font-mono text-[11px] text-white/75">
+                      {batch.items.map((item) => (
+                        <li key={item.cardId}>{item.url}</li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {copyHint ? <p className="text-xs text-emerald-200/90">{copyHint}</p> : null}
+          </div>
+
+          <div className="space-y-3 rounded border border-white/15 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-xs uppercase tracking-widest text-white/60">NFC-Karten</h3>
+                <p className="mt-1 text-xs text-white/45">
+                  Tabzähler = erfolgreiche Taps. Neue Karten sind standardmäßig aktiv.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void loadTapStats()}
+                  disabled={statsLoading}
+                  className="rounded border border-white/25 px-4 py-2 text-[10px] uppercase tracking-widest text-white/80 hover:border-white/50 disabled:opacity-50"
+                >
+                  Tabzähler aktualisieren
+                </button>
+                <button
+                  type="button"
+                  onClick={addCard}
+                  className="rounded border border-white/25 px-4 py-2 text-[10px] uppercase tracking-widest text-white/80 hover:border-white/50"
+                >
+                  + Karte
+                </button>
+              </div>
+            </div>
+            {statsError ? <p className="text-sm text-red-300/90">{statsError}</p> : null}
+            {dupIds.length > 0 ? (
+              <p className="rounded border border-amber-400/35 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                Doppelte Karten-IDs (NFC funktioniert nur für eine davon):{" "}
+                <code className="text-amber-50">{dupIds.join(", ")}</code>
+              </p>
+            ) : null}
+            {config.cards.length === 0 ? (
+              <p className="text-sm text-white/40">Noch keine Karten registriert.</p>
+            ) : (
+              <ul className="space-y-3">
+                {config.cards.map((card) => {
+                  const statKey = card.id.trim().toLowerCase();
+                  const stat = statKey ? tapByCardId.get(statKey) : undefined;
+                  const taps = stat?.taps ?? 0;
+                  const lastTapAt = stat?.lastTapAt ?? null;
+                  const url = card.id.trim() ? nfcTapUrl(card.id) : "";
+
+                  return (
+                    <li
+                      key={card.editorKey ?? card.id}
+                      className="space-y-3 rounded border border-white/10 p-3"
+                    >
+                      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto]">
+                        <label className="block text-xs text-white/75">
+                          Karten-ID
+                          <input
+                            type="text"
+                            value={card.id}
+                            onChange={(e) =>
+                              updateCard(card.editorKey!, { id: e.target.value })
+                            }
+                            placeholder="z. B. RK-ABCDEFGHJK"
+                            className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-xs font-mono"
+                          />
+                        </label>
+                        <div className="text-xs text-white/75">
+                          <span className="block">Tabzähler</span>
+                          <div className="mt-2 min-w-[5rem]">
+                            {statsLoading && !stat && card.id.trim() ? (
+                              <span className="text-white/35">…</span>
+                            ) : (
+                              <TapCountCell taps={taps} lastTapAt={lastTapAt} />
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-end justify-end gap-2">
+                          <label className="flex items-center gap-2 text-xs text-white/75">
+                            <input
+                              type="checkbox"
+                              checked={card.enabled !== false}
+                              onChange={(e) =>
+                                updateCard(card.editorKey!, { enabled: e.target.checked })
+                              }
+                            />
+                            Aktiv
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => removeCard(card.editorKey!)}
+                            className="text-[10px] uppercase tracking-widest text-white/45 underline hover:text-white/70"
+                          >
+                            Entfernen
+                          </button>
+                        </div>
+                      </div>
+                      {url ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <input
+                            type="text"
+                            readOnly
+                            value={url}
+                            className="min-w-0 flex-1 border border-white/15 bg-black/30 px-2 py-1.5 font-mono text-[11px] text-white/80"
+                            onFocus={(e) => e.target.select()}
+                          />
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const ok = await copyToClipboard(url);
+                              setCopyHint(
+                                ok ? `Link kopiert (${card.id}).` : "Kopieren fehlgeschlagen."
+                              );
+                              window.setTimeout(() => setCopyHint(null), 2500);
+                            }}
+                            className="shrink-0 rounded border border-white/25 px-3 py-1.5 text-[10px] uppercase tracking-widest text-white/75 hover:border-white/45"
+                          >
+                            Kopieren
+                          </button>
+                        </div>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+
+            {unknownTaps.length > 0 ? (
+              <div className="space-y-2 border-t border-white/10 pt-4">
+                <p className="text-[10px] uppercase tracking-widest text-white/45">
+                  Unbekannte IDs (Taps ohne Eintrag in der Kartenliste)
+                </p>
+                <ul className="space-y-1 text-xs text-white/60">
+                  {unknownTaps.map((row) => (
+                    <li key={row.cardId} className="flex flex-wrap justify-between gap-2 font-mono">
+                      <span>{row.cardId}</span>
+                      <span>
+                        {row.taps} Tap{row.taps === 1 ? "" : "s"} · {formatLastTap(row.lastTapAt)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
         </>
+      ) : null}
+
+      {view === "tracks" ? (
+        <div className="space-y-3 rounded border border-white/15 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-xs uppercase tracking-widest text-white/60">Album-Tracks</h3>
+            <button
+              type="button"
+              onClick={addTrack}
+              className="rounded border border-white/25 px-4 py-2 text-[10px] uppercase tracking-widest text-white/80 hover:border-white/50"
+            >
+              + Track
+            </button>
+          </div>
+          {tracks.length === 0 ? (
+            <p className="text-sm text-white/40">Noch keine NFC-Tracks.</p>
+          ) : (
+            <ul className="space-y-4">
+              {tracks.map((track, index) => (
+                <li key={track.id} className="space-y-3 rounded border border-white/10 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] uppercase tracking-widest text-white/45">
+                      Track {index + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeTrack(track.id)}
+                      className="text-[10px] uppercase tracking-widest text-white/45 underline hover:text-white/70"
+                    >
+                      Entfernen
+                    </button>
+                  </div>
+                  <label className="block text-xs text-white/75">
+                    Titel
+                    <input
+                      type="text"
+                      value={track.title}
+                      onChange={(e) => updateTrack(track.id, { title: e.target.value })}
+                      className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-xs"
+                    />
+                  </label>
+                  <label className="block text-xs text-white/75">
+                    Artist (optional)
+                    <input
+                      type="text"
+                      value={track.artist ?? ""}
+                      onChange={(e) => updateTrack(track.id, { artist: e.target.value })}
+                      className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-xs"
+                    />
+                  </label>
+                  <label className="block text-xs text-white/75">
+                    MP3-URL
+                    <input
+                      type="text"
+                      value={track.audioUrl}
+                      onChange={(e) => updateTrack(track.id, { audioUrl: e.target.value })}
+                      className="mt-1 w-full border border-white/15 bg-black/40 px-2 py-1.5 text-xs"
+                    />
+                  </label>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="text-xs text-white/75">
+                      MP3 hochladen
+                      <input
+                        type="file"
+                        accept="audio/mpeg,audio/mp3,.mp3"
+                        className="mt-1 block text-[10px] text-white/50"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const uploadedUrl = await onUpload(file);
+                          updateTrack(track.id, { audioUrl: uploadedUrl });
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                    <label className="text-xs text-white/75">
+                      Cover hochladen
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="mt-1 block text-[10px] text-white/50"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const uploadedUrl = await onUpload(file);
+                          updateTrack(track.id, { coverImage: uploadedUrl });
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+                  {track.coverImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={track.coverImage} alt="" className="h-16 w-16 rounded object-cover" />
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       ) : null}
     </div>
   );

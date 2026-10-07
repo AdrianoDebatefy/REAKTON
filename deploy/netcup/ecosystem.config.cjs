@@ -6,6 +6,8 @@ module.exports = {
       script: "node_modules/next/dist/bin/next",
       // Bind to localhost (not 127.0.0.1) so next-intl rewrites stay in-process.
       args: "start -p 3010 -H localhost",
+      /** Next.js must run in fork mode — cluster breaks Server Actions / session state. */
+      exec_mode: "fork",
       instances: 1,
       autorestart: true,
       max_memory_restart: "512M",

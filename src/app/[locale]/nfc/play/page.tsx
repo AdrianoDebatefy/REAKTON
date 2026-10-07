@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { NfcPlayPageClient } from "@/components/nfc/NfcPlayPageClient";
 import { buildPageMetadata } from "@/lib/seo";
-import { routing } from "@/i18n/routing";
 import type { Locale } from "@/types/content";
+
+/** NFC player uses live session/API — avoid static prerender (prevents next-intl ENVIRONMENT_FALLBACK). */
+export const dynamic = "force-dynamic";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -11,10 +13,6 @@ export const viewport: Viewport = {
   viewportFit: "cover",
   themeColor: "#050508",
 };
-
-export function generateStaticParams() {
-  return routing.locales.map((locale) => ({ locale }));
-}
 
 export async function generateMetadata({
   params,
@@ -32,6 +30,12 @@ export async function generateMetadata({
   });
 }
 
-export default function NfcPlayPage() {
+export default async function NfcPlayPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
   return <NfcPlayPageClient />;
 }

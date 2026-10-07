@@ -10,6 +10,7 @@ import {
 import { mutateJsonFile, mutateJsonFileMaybe } from "@/lib/json-file-store";
 import { recordNfcTap } from "@/lib/nfc-tap-stats";
 
+/** Desktop pairing codes: always **three** words (REAKTON CI). Pool size → N³ combinations. */
 const CODE_WORDS = [
   "Clip",
   "Clap",
@@ -26,6 +27,36 @@ const CODE_WORDS = [
   "Neon",
   "Vibe",
   "Loop",
+  "Cosmos",
+  "Erde",
+  "Nano",
+  "Macro",
+  "Micro",
+  "Synth",
+  "Kick",
+  "Hook",
+  "Stem",
+  "Mix",
+  "Live",
+  "Spark",
+  "Orbit",
+  "Star",
+  "Flow",
+  "Drive",
+  "Rise",
+  "Rush",
+  "Play",
+  "Tap",
+  "Grid",
+  "Atom",
+  "Laser",
+  "Strobe",
+  "Floor",
+  "Crowd",
+  "Haze",
+  "Dawn",
+  "Tape",
+  "Reakton",
 ];
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -68,9 +99,8 @@ function pickCodeWord(): string {
   return CODE_WORDS[Math.floor(Math.random() * CODE_WORDS.length)]!;
 }
 
-/** Four words → 15^4 = 50 625 combinations (safer for many concurrent sessions). */
 export function generatePcCode(): string {
-  return `${pickCodeWord()}:${pickCodeWord()}:${pickCodeWord()}:${pickCodeWord()}`;
+  return `${pickCodeWord()}:${pickCodeWord()}:${pickCodeWord()}`;
 }
 
 function purgeExpiredSessions(data: NfcSessionsFile, now = Date.now()): boolean {

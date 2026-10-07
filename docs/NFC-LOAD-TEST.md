@@ -37,7 +37,7 @@ node scripts/nfc-load-test.mjs --base https://reakton.de --cards-file ./karten-i
 ## Was wir technisch abgesichert haben
 
 - **Datei-Lock** auf `data/nfc-sessions.json` und `nfc-tap-stats.json` (parallele Taps überschreiben sich nicht mehr).
-- **PC-Codes** mit **4 Wörtern** (~50 000 Kombinationen statt ~3 375).
+- **PC-Codes** weiterhin **3 Wörter** (CI: `Clip:Clap:Club`-Stil), größerer Wort-Pool (~45³ ≈ 90 000 Kombinationen).
 
 ## Wann nachjustieren?
 

@@ -1,4 +1,3 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
 import { getSiteContent } from "@/lib/content";
@@ -8,6 +7,7 @@ import {
   getNfcTracksFromConfig,
   normalizeNfcAlbumConfig,
 } from "@/lib/nfc-album-config";
+import { mutateJsonFile, mutateJsonFileMaybe } from "@/lib/json-file-store";
 import { recordNfcTap } from "@/lib/nfc-tap-stats";
 
 const CODE_WORDS = [
@@ -60,24 +60,6 @@ function emptySessionsFile(): NfcSessionsFile {
   return { sessions: {}, pcCodes: {} };
 }
 
-function readSessionsFile(): NfcSessionsFile {
-  if (!existsSync(SESSIONS_PATH)) return emptySessionsFile();
-  try {
-    const parsed = JSON.parse(readFileSync(SESSIONS_PATH, "utf-8")) as NfcSessionsFile;
-    return {
-      sessions: parsed.sessions ?? {},
-      pcCodes: parsed.pcCodes ?? {},
-    };
-  } catch {
-    return emptySessionsFile();
-  }
-}
-
-function writeSessionsFile(data: NfcSessionsFile): void {
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(SESSIONS_PATH, JSON.stringify(data, null, 2), "utf-8");
-}
-
 function normalizePcCode(code: string): string {
   return code.trim().toUpperCase();
 }
@@ -86,17 +68,21 @@ function pickCodeWord(): string {
   return CODE_WORDS[Math.floor(Math.random() * CODE_WORDS.length)]!;
 }
 
+/** Four words → 15^4 = 50 625 combinations (safer for many concurrent sessions). */
 export function generatePcCode(): string {
-  return `${pickCodeWord()}:${pickCodeWord()}:${pickCodeWord()}`;
+  return `${pickCodeWord()}:${pickCodeWord()}:${pickCodeWord()}:${pickCodeWord()}`;
 }
 
-function purgeExpiredSessions(data: NfcSessionsFile, now = Date.now()): void {
+function purgeExpiredSessions(data: NfcSessionsFile, now = Date.now()): boolean {
+  let changed = false;
   for (const [sessionId, session] of Object.entries(data.sessions)) {
     if (session.expiresAt <= now) {
       delete data.sessions[sessionId];
       delete data.pcCodes[normalizePcCode(session.pcCode)];
+      changed = true;
     }
   }
+  return changed;
 }
 
 function revokeSessionsForCard(data: NfcSessionsFile, cardId: string): void {
@@ -108,74 +94,87 @@ function revokeSessionsForCard(data: NfcSessionsFile, cardId: string): void {
   }
 }
 
-export function getNfcSession(sessionId: string): NfcSessionRecord | null {
-  const data = readSessionsFile();
-  purgeExpiredSessions(data);
-  const session = data.sessions[sessionId];
-  if (!session) {
-    writeSessionsFile(data);
-    return null;
-  }
-  if (session.expiresAt <= Date.now()) {
-    delete data.sessions[sessionId];
-    delete data.pcCodes[normalizePcCode(session.pcCode)];
-    writeSessionsFile(data);
-    return null;
-  }
-  writeSessionsFile(data);
-  return session;
+export async function getNfcSession(sessionId: string): Promise<NfcSessionRecord | null> {
+  let found: NfcSessionRecord | null = null;
+
+  await mutateJsonFileMaybe(SESSIONS_PATH, emptySessionsFile(), (data) => {
+    const purged = purgeExpiredSessions(data);
+    const session = data.sessions[sessionId];
+    if (!session) {
+      found = null;
+      return purged;
+    }
+    if (session.expiresAt <= Date.now()) {
+      delete data.sessions[sessionId];
+      delete data.pcCodes[normalizePcCode(session.pcCode)];
+      found = null;
+      return true;
+    }
+    found = session;
+    return purged;
+  });
+
+  return found;
 }
 
-export function createNfcSession(cardId: string): NfcSessionRecord {
+export async function createNfcSession(cardId: string): Promise<NfcSessionRecord> {
   const config = getNfcAlbumConfig();
   const minutes = config.sessionMinutes || DEFAULT_NFC_SESSION_MINUTES;
   const now = Date.now();
-  const data = readSessionsFile();
-  purgeExpiredSessions(data, now);
-  revokeSessionsForCard(data, cardId);
+  let created!: NfcSessionRecord;
 
-  let pcCode = generatePcCode();
-  while (data.pcCodes[normalizePcCode(pcCode)]) {
-    pcCode = generatePcCode();
-  }
+  await mutateJsonFile(SESSIONS_PATH, emptySessionsFile(), (data) => {
+    purgeExpiredSessions(data, now);
+    revokeSessionsForCard(data, cardId);
 
-  const session: NfcSessionRecord = {
-    sessionId: randomUUID(),
-    cardId,
-    pcCode,
-    createdAt: now,
-    expiresAt: now + minutes * 60_000,
-  };
+    let pcCode = generatePcCode();
+    while (data.pcCodes[normalizePcCode(pcCode)]) {
+      pcCode = generatePcCode();
+    }
 
-  data.sessions[session.sessionId] = session;
-  data.pcCodes[normalizePcCode(pcCode)] = session.sessionId;
-  writeSessionsFile(data);
-  recordNfcTap(cardId);
-  return session;
+    created = {
+      sessionId: randomUUID(),
+      cardId,
+      pcCode,
+      createdAt: now,
+      expiresAt: now + minutes * 60_000,
+    };
+
+    data.sessions[created.sessionId] = created;
+    data.pcCodes[normalizePcCode(pcCode)] = created.sessionId;
+  });
+
+  await recordNfcTap(cardId);
+  return created;
 }
 
-export function pairNfcSessionByCode(code: string): NfcSessionRecord | null {
+export async function pairNfcSessionByCode(code: string): Promise<NfcSessionRecord | null> {
   const normalized = normalizePcCode(code);
   if (!normalized) return null;
 
-  const data = readSessionsFile();
-  purgeExpiredSessions(data);
-  const sessionId = data.pcCodes[normalized];
-  if (!sessionId) {
-    writeSessionsFile(data);
-    return null;
-  }
+  let found: NfcSessionRecord | null = null;
 
-  const session = data.sessions[sessionId];
-  if (!session || session.expiresAt <= Date.now()) {
-    delete data.sessions[sessionId];
-    delete data.pcCodes[normalized];
-    writeSessionsFile(data);
-    return null;
-  }
+  await mutateJsonFileMaybe(SESSIONS_PATH, emptySessionsFile(), (data) => {
+    const purged = purgeExpiredSessions(data);
+    const sessionId = data.pcCodes[normalized];
+    if (!sessionId) {
+      found = null;
+      return purged;
+    }
 
-  writeSessionsFile(data);
-  return session;
+    const session = data.sessions[sessionId];
+    if (!session || session.expiresAt <= Date.now()) {
+      delete data.sessions[sessionId];
+      delete data.pcCodes[normalized];
+      found = null;
+      return true;
+    }
+
+    found = session;
+    return purged;
+  });
+
+  return found;
 }
 
 export function sessionRemainingMs(session: NfcSessionRecord, now = Date.now()): number {
@@ -183,12 +182,28 @@ export function sessionRemainingMs(session: NfcSessionRecord, now = Date.now()):
 }
 
 /** Latest active NFC tap session waiting for desktop pairing. */
-export function getActivePairingSession(): NfcSessionRecord | null {
-  const data = readSessionsFile();
-  purgeExpiredSessions(data);
-  const now = Date.now();
-  const sessions = Object.values(data.sessions).filter((session) => session.expiresAt > now);
-  writeSessionsFile(data);
-  if (sessions.length === 0) return null;
-  return sessions.sort((a, b) => b.createdAt - a.createdAt)[0] ?? null;
+export async function getActivePairingSession(): Promise<NfcSessionRecord | null> {
+  let latest: NfcSessionRecord | null = null;
+
+  await mutateJsonFileMaybe(SESSIONS_PATH, emptySessionsFile(), (data) => {
+    const purged = purgeExpiredSessions(data);
+    const now = Date.now();
+    const sessions = Object.values(data.sessions).filter((session) => session.expiresAt > now);
+    latest = sessions.sort((a, b) => b.createdAt - a.createdAt)[0] ?? null;
+    return purged;
+  });
+
+  return latest;
+}
+
+/** Count active sessions (admin / load-test diagnostics). */
+export async function countActiveNfcSessions(): Promise<number> {
+  let count = 0;
+  await mutateJsonFileMaybe(SESSIONS_PATH, emptySessionsFile(), (data) => {
+    const purged = purgeExpiredSessions(data);
+    const now = Date.now();
+    count = Object.values(data.sessions).filter((s) => s.expiresAt > now).length;
+    return purged;
+  });
+  return count;
 }

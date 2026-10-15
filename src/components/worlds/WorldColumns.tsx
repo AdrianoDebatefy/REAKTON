@@ -7,6 +7,7 @@ import { Link } from "@/i18n/routing";
 import { motion, AnimatePresence } from "framer-motion";
 import type { World, WorldAtmosphere, Locale, ClubRobotConfig } from "@/types/content";
 import { WorldView } from "./WorldView";
+import { WorldLinkButtonMobileFixed } from "./WorldLinkButtonOverlay";
 import { MobileWorldLanding } from "./MobileWorldLanding";
 import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import { getInitialWorldUiState, writeWorldSession } from "@/lib/world-session";
@@ -797,6 +798,12 @@ export function WorldColumns({ worlds, clubRobot }: WorldColumnsProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {showWorld && activeWorld && isMobile ? (
+        <div className="pointer-events-none fixed inset-0 z-[45] md:hidden">
+          <WorldLinkButtonMobileFixed linkButton={activeWorld.linkButton} locale={locale} />
+        </div>
+      ) : null}
 
       <div className="hidden h-[calc(100vh-6rem)] md:block" aria-hidden />
 

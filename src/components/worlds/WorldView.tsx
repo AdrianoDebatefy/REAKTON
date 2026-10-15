@@ -7,7 +7,7 @@ import type { World } from "@/types/content";
 import { AlbumSlotScene } from "./AlbumSlotScene";
 import { MobileAlbumSlotScene } from "./MobileAlbumSlotScene";
 import { WorldAmbientAudio } from "./WorldAmbientAudio";
-import { WorldLinkButtonMobileHeader, WorldLinkButtonOverlay } from "./WorldLinkButtonOverlay";
+import { WorldLinkButtonOverlay } from "./WorldLinkButtonOverlay";
 import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import type { Locale } from "@/types/content";
 import { getLocalized } from "@/lib/locale";
@@ -164,11 +164,6 @@ export function WorldView({ world: initialWorld, onBack }: WorldViewProps) {
             duration={headerDecodeMs}
             className="min-w-0 pr-[7.5rem] text-[28px] font-light leading-tight tracking-wide max-md:max-w-[58vw] lg:text-[42px] md:pr-0"
           />
-          {isMobile ? (
-            <div className="absolute right-0 top-1/2 -translate-y-1/2">
-              <WorldLinkButtonMobileHeader linkButton={world.linkButton} locale={locale} />
-            </div>
-          ) : null}
         </div>
         {!useSlotScene && (
           <p className="mt-6 max-w-2xl text-2xl leading-relaxed text-white/45">
@@ -185,7 +180,7 @@ export function WorldView({ world: initialWorld, onBack }: WorldViewProps) {
       <div className="relative">
         {useSlotScene && world.songs.length > 0 ? (
           isMobile ? (
-            <div className="relative z-20 isolate">
+            <div className="relative z-10 isolate">
               <MobileAlbumSlotScene
                 key={`${world.id}-${world.songs.map((s) => `${s.id}:${s.coverImage}`).join("|")}`}
                 songs={world.songs}

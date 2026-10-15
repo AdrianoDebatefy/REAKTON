@@ -4,7 +4,12 @@ import type { CSSProperties } from "react";
 import type { Locale, WorldLinkButton } from "@/types/content";
 import { Link } from "@/i18n/routing";
 import { getLocalized } from "@/lib/locale";
-import { normalizeWorldLinkButton, worldLinkButtonStyle } from "@/lib/world-link-button";
+import {
+  isExternalWorldLink,
+  normalizeWorldLinkButton,
+  resolveWorldLinkHref,
+  worldLinkButtonStyle,
+} from "@/lib/world-link-button";
 
 function useLinkButtonContent(linkButton: WorldLinkButton | null | undefined, locale: Locale) {
   const config = normalizeWorldLinkButton(linkButton);
@@ -17,8 +22,11 @@ function useLinkButtonContent(linkButton: WorldLinkButton | null | undefined, lo
   return { config, url, label };
 }
 
-/** Mobile: top-right in the world header row, aligned with album title (e.g. Clip:Clap:Club). */
-export function WorldLinkButtonMobileHeader({
+const MOBILE_LINK_CLASS =
+  "pointer-events-auto fixed z-[1] flex h-[3.25rem] min-w-[6.75rem] max-w-[42vw] touch-manipulation items-center justify-center border border-white/25 px-2 text-center text-[9px] font-semibold uppercase leading-[1.15] tracking-[0.04em] text-black/85 shadow-lg transition hover:brightness-110 sm:h-[3.5rem] sm:min-w-[7.25rem] sm:px-2.5 sm:text-[10px]";
+
+/** Aligned with album title row — rendered above the z-30 world shell (see WorldColumns). */
+export function WorldLinkButtonMobileFixed({
   linkButton,
   locale,
 }: {
@@ -29,27 +37,34 @@ export function WorldLinkButtonMobileHeader({
   if (!content) return null;
 
   const { config, url, label } = content;
-  const className =
-    "shrink-0 flex h-[3.25rem] min-w-[6.75rem] max-w-[42vw] items-center justify-center border border-white/25 px-2 text-center text-[9px] font-semibold uppercase leading-[1.15] tracking-[0.04em] text-black/85 shadow-lg transition hover:brightness-110 sm:h-[3.5rem] sm:min-w-[7.25rem] sm:px-2.5 sm:text-[10px]";
-  const style: CSSProperties = { backgroundColor: config.backgroundColor };
-  const isInternal = url.startsWith("/") && !url.startsWith("//");
+  const href = resolveWorldLinkHref(url, locale);
+  const external = isExternalWorldLink(url);
 
-  if (isInternal) {
-    return (
-      <Link href={url} className={className} style={style}>
-        {label}
-      </Link>
-    );
-  }
+  const style: CSSProperties = {
+    top: "calc(env(safe-area-inset-top, 0px) + 9.125rem)",
+    right: "max(1rem, env(safe-area-inset-right, 0px))",
+    backgroundColor: config.backgroundColor,
+  };
 
   return (
-    <a href={url} target="_blank" rel="noopener noreferrer" className={className} style={style}>
+    <a
+      href={href}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noopener noreferrer" : undefined}
+      className={MOBILE_LINK_CLASS}
+      style={style}
+      onClick={(event) => {
+        if (external) return;
+        event.preventDefault();
+        window.location.assign(href);
+      }}
+    >
       {label}
     </a>
   );
 }
 
-/** Desktop: positioned via admin canvas (1920×1080). Hidden on mobile — use WorldLinkButtonMobileHeader. */
+/** Desktop: positioned via admin canvas (1920×1080). Hidden on mobile — use WorldLinkButtonMobileFixed. */
 export function WorldLinkButtonOverlay({
   linkButton,
   locale,

@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { WorldLinkButton } from "@/types/content";
+import type { Locale } from "@/types/content";
 import { emptyLocalized } from "@/lib/locale";
 
 /** Design reference canvas (px) for admin position fields. */
@@ -27,6 +28,26 @@ export function normalizeWorldLinkButton(button?: WorldLinkButton | null): World
     ...button,
     label: { ...defaults.label, ...button?.label },
   };
+}
+
+/** href for native `<a>` — reliable on mobile (Next.js Link inside layered UI can miss taps). */
+export function resolveWorldLinkHref(url: string, locale: Locale): string {
+  const trimmed = url.trim();
+  if (!trimmed || /^https?:\/\//i.test(trimmed) || trimmed.startsWith("//")) {
+    return trimmed;
+  }
+  if (!trimmed.startsWith("/")) return trimmed;
+  if (/^\/(de|en|ja)(\/|$)/.test(trimmed)) return trimmed;
+  return `/${locale}${trimmed === "/" ? "" : trimmed}`;
+}
+
+export function isExternalWorldLink(url: string): boolean {
+  const trimmed = url.trim();
+  return (
+    trimmed.startsWith("//") ||
+    /^https?:\/\//i.test(trimmed) ||
+    (!trimmed.startsWith("/") && trimmed.length > 0)
+  );
 }
 
 export function worldLinkButtonStyle(button: WorldLinkButton): CSSProperties {

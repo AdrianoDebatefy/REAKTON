@@ -222,7 +222,7 @@ export function WorldView({ world: initialWorld, onBack }: WorldViewProps) {
         ) : (
           <p className="relative z-10 mx-auto max-w-6xl px-4 text-sm text-white/40">—</p>
         )}
-        {!isMobile && <WorldLinkButtonOverlay linkButton={world.linkButton} locale={locale} />}
+        <WorldLinkButtonOverlay linkButton={world.linkButton} locale={locale} />
       </div>
     </div>
   );

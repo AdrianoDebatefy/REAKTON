@@ -30,7 +30,7 @@ export function WorldLinkButtonMobileHeader({
 
   const { config, url, label } = content;
   const className =
-    "shrink-0 max-w-[46vw] border border-white/25 px-2.5 py-2 text-center text-[10px] font-medium uppercase leading-tight tracking-[0.06em] text-black/85 shadow-lg transition hover:brightness-110 sm:max-w-[40vw] sm:px-3 sm:text-[11px]";
+    "shrink-0 flex h-[3.25rem] min-w-[6.75rem] max-w-[42vw] items-center justify-center border border-white/25 px-2 text-center text-[9px] font-semibold uppercase leading-[1.15] tracking-[0.04em] text-black/85 shadow-lg transition hover:brightness-110 sm:h-[3.5rem] sm:min-w-[7.25rem] sm:px-2.5 sm:text-[10px]";
   const style: CSSProperties = { backgroundColor: config.backgroundColor };
   const isInternal = url.startsWith("/") && !url.startsWith("//");
 

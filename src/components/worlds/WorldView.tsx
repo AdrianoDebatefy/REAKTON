@@ -156,16 +156,18 @@ export function WorldView({ world: initialWorld, onBack }: WorldViewProps) {
         <p className="text-sm lowercase tracking-[0.2em] text-white/50 md:text-[14px] md:tracking-[0.25em]">
           <DecodeText text={t("themeLabel")} mode={headerDecodeMode} duration={headerDecodeMs} />
         </p>
-        <div className="mt-1 flex items-center justify-between gap-3 md:mt-2">
+        <div className="relative mt-1 md:mt-2 max-md:min-h-[3.25rem]">
           <DecodeText
             as="h1"
             text={getLocalized(world.albumTitle, locale)}
             mode={headerDecodeMode}
             duration={headerDecodeMs}
-            className="min-w-0 flex-1 text-[28px] font-light tracking-wide lg:text-[42px]"
+            className="min-w-0 pr-[7.5rem] text-[28px] font-light leading-tight tracking-wide max-md:max-w-[58vw] lg:text-[42px] md:pr-0"
           />
           {isMobile ? (
-            <WorldLinkButtonMobileHeader linkButton={world.linkButton} locale={locale} />
+            <div className="absolute right-0 top-1/2 -translate-y-1/2">
+              <WorldLinkButtonMobileHeader linkButton={world.linkButton} locale={locale} />
+            </div>
           ) : null}
         </div>
         {!useSlotScene && (

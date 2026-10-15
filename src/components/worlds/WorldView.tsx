@@ -7,7 +7,7 @@ import type { World } from "@/types/content";
 import { AlbumSlotScene } from "./AlbumSlotScene";
 import { MobileAlbumSlotScene } from "./MobileAlbumSlotScene";
 import { WorldAmbientAudio } from "./WorldAmbientAudio";
-import { WorldLinkButtonMobileHeader, WorldLinkButtonOverlay } from "./WorldLinkButtonOverlay";
+import { WorldLinkButtonOverlay } from "./WorldLinkButtonOverlay";
 import { DecodeText, type DecodeMode } from "@/components/DecodeText";
 import type { Locale } from "@/types/content";
 import { getLocalized } from "@/lib/locale";
@@ -164,9 +164,6 @@ export function WorldView({ world: initialWorld, onBack }: WorldViewProps) {
             duration={headerDecodeMs}
             className="min-w-0 pr-[7.5rem] text-[28px] font-light leading-tight tracking-wide max-md:max-w-[58vw] lg:text-[42px] md:pr-0"
           />
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 md:hidden">
-            <WorldLinkButtonMobileHeader linkButton={world.linkButton} locale={locale} />
-          </div>
         </div>
         {!useSlotScene && (
           <p className="mt-6 max-w-2xl text-2xl leading-relaxed text-white/45">

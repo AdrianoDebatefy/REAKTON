@@ -386,7 +386,7 @@ export function MobileAlbumSlotScene({
     <>
       <div
         ref={sceneRef}
-        className="album-slot-scene relative z-20 mx-auto h-[calc(100svh-11.5rem-env(safe-area-inset-top))] min-h-[320px] w-full max-w-lg overflow-hidden bg-transparent max-md:pointer-events-none"
+        className="album-slot-scene relative z-20 mx-auto h-[calc(100svh-11.5rem-env(safe-area-inset-top))] min-h-[320px] w-full max-w-lg overflow-hidden bg-transparent"
         style={{
           isolation: "isolate",
           transform: `translateY(-${MOBILE_COVER_BLOCK_SHIFT_PX}px)`,
@@ -413,7 +413,7 @@ export function MobileAlbumSlotScene({
               layout={false}
               disabled={exiting || !introDone || (isPoleMode && !isActive)}
               onClick={() => handleSelect(song)}
-              className={`album-cover-slot pointer-events-auto absolute overflow-hidden rounded-sm border focus:outline-none ${borderClass} ${
+              className={`album-cover-slot absolute overflow-hidden rounded-sm border focus:outline-none ${borderClass} ${
                 exiting ? "z-10" : isActive ? "z-40" : "z-10"
               } ${isActive ? "border-white/40 shadow-lg" : "shadow-md shadow-black/50"}`}
               style={{
@@ -647,7 +647,7 @@ export function MobileAlbumSlotScene({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="pointer-events-auto fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4 pt-24"
+              className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4 pt-24"
               role="dialog"
               aria-modal
             >

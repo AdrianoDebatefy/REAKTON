@@ -135,7 +135,7 @@ export function WorldView({ world: initialWorld, onBack }: WorldViewProps) {
       )}
 
       <motion.div
-        className="relative z-10 mx-auto max-w-6xl px-4 pb-2 pt-2 max-md:z-50 md:pt-6"
+        className="relative z-10 mx-auto max-w-6xl px-4 pb-2 pt-2 md:pt-6"
         animate={{ opacity: exiting && !isMobile ? 0 : 1 }}
         transition={{ duration: isMobile ? 0.25 : 0.35 }}
       >
@@ -164,7 +164,7 @@ export function WorldView({ world: initialWorld, onBack }: WorldViewProps) {
             duration={headerDecodeMs}
             className="min-w-0 pr-[7.5rem] text-[28px] font-light leading-tight tracking-wide max-md:max-w-[58vw] lg:text-[42px] md:pr-0"
           />
-          <div className="absolute right-0 top-1/2 z-[60] -translate-y-1/2 md:hidden">
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 md:hidden">
             <WorldLinkButtonMobileHeader linkButton={world.linkButton} locale={locale} />
           </div>
         </div>
